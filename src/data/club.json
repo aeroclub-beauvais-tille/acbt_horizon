@@ -1,0 +1,59 @@
+{
+  "nom": "Aéroclub de Beauvais-Tillé",
+  "sigle": "ACBT",
+  "fondation": "6 juillet 1979",
+  "slogan": "Apprendre à piloter dans le ciel picard depuis 1979",
+  "adresse": "Aéroport de Beauvais-Tillé, zone aéroplaisance, 60000 Tillé",
+  "telephone": "03 44 48 28 52",
+  "email": "acbt60@gmail.com",
+  "facebook": "https://www.facebook.com/ACBT60",
+  "aerogest": "https://online.aerogest.fr/connection/Logon",
+  "horaires": "Ouvert le week-end et sur rendez-vous en semaine (à confirmer)",
+  "acces": [
+    "Direction P4 (3e rond-point depuis Beauvais)",
+    "Premier aéroclub sur la gauche après le portail coulissant vert"
+  ],
+  "latitude": 49.46282414952464,
+  "longitude": 2.1184244390691402,
+  "aides": [
+    {
+      "titre": "Pass'Sports Citoyen",
+      "texte": "15 € de réduction sur la licence pour les moins de 18 ans, avec le conseil départemental de l'Oise."
+    },
+    {
+      "titre": "Objectif Pilote FFA",
+      "texte": "Subventions de la Fédération française aéronautique pour les moins de 21 ans."
+    },
+    {
+      "titre": "Bourses BIA",
+      "texte": "Les titulaires du BIA peuvent obtenir des bourses : renseignez-vous au club."
+    }
+  ],
+  "partenaires": [
+    {
+      "nom": "Fédération française aéronautique",
+      "lien": "https://www.ffa-aero.fr/"
+    },
+    {
+      "nom": "Conseil départemental de l'Oise",
+      "lien": "https://www.oise.fr/"
+    },
+    {
+      "nom": "Ville de Beauvais",
+      "lien": "https://www.beauvais.fr/"
+    },
+    {
+      "nom": "Aéroport de Beauvais",
+      "lien": "https://www.aeroportparisbeauvais.com/"
+    }
+  ],
+  "legal": {
+    "statut": "Association loi 1901",
+    "rna": "",
+    "siret": "",
+    "directeur_publication": "",
+    "hebergeur_nom": "GitHub Pages (GitHub Inc.)",
+    "hebergeur_adresse": "88 Colin P. Kelly Jr. Street, San Francisco, CA 94107, États-Unis",
+    "credits_photos": "Les photos appartiennent à l'aéroclub et à ses membres."
+  }
+}

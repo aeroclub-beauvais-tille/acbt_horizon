@@ -1,0 +1,65 @@
+---
+import { photo, photoUrl } from '../lib/photo';
+// Bloc « heures de vol » de la page Tarifs : une carte par groupe d'avions aux tarifs identiques.
+// Le prix affiché est celui en vigueur au moment de la publication (le site se republie chaque nuit).
+import type { CollectionEntry } from 'astro:content';
+import { url, asset, tarifEnVigueur } from '../lib/utils';
+interface Props { avions: CollectionEntry<'avions'>[] }
+const { avions } = Astro.props;
+const n = (x?: number) => (x == null ? '—' : x.toLocaleString('fr-FR'));
+const lignes = avions.map((a) => ({ a, t: tarifEnVigueur(a.data.tarifs).actuel }));
+// Regroupe les avions qui ont exactement les mêmes tarifs
+const groupes = Object.values(
+  lignes.reduce<Record<string, typeof lignes>>((acc, l) => {
+    const k = `${l.t?.prix_heure}-${l.t?.prix_instruction}`;
+    (acc[k] ??= []).push(l);
+    return acc;
+  }, {}),
+);
+const modeles = (g: typeof lignes) => [...new Set(g.map((l) => l.a.data.type.replace(/-120.*| Petit Prince/, '').replace(' Paris-Nice', '')))].join(' / ').replace(/ \/ Robin /g, ' / ');
+---
+  <div class="groupes">
+    {groupes.map((g) => (
+      <article class="groupe">
+        <div class="mosaique" data-n={Math.min(g.length, 3)}>
+          {g.slice(0, 3).map((l) => l.a.data.photos[0] && <img {...photo(l.a.data.photos[0], '(min-width: 900px) 25vw, 60vw')} alt={l.a.data.nom} loading="lazy" />)}
+        </div>
+        <div class="infos">
+          <h3>{modeles(g)}</h3>
+          <p class="meta">{g[0].a.data.puissance} ch · {g[0].a.data.usage}</p>
+          <div class="immats">{g.map((l) => <a href={url(`/club/flotte#${l.a.id}`)}>{l.a.data.immatriculation}</a>)}</div>
+          <div class="prix2">
+            <div><span>Solo</span><b>{n(g[0].t?.prix_heure)}</b><small>€ / heure</small></div>
+            <div class="inst"><span><span class="court">DC</span><span class="long">Double commande</span></span><b>{n(g[0].t?.prix_instruction)}</b><small>€ / heure</small></div>
+          </div>
+        </div>
+      </article>
+    ))}
+  </div>
+
+
+<style>
+  /* Une carte par type d'avion (les avions aux tarifs identiques sont regroupés) */
+  .groupes { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+  .groupe { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
+  .mosaique { display: grid; gap: 3px; height: 240px; overflow: hidden; grid-template-rows: 100%; }
+  .mosaique[data-n='2'] { grid-template-columns: 1fr 1fr; }
+  .mosaique[data-n='3'] { grid-template-columns: 2fr 1fr; grid-template-rows: repeat(2, minmax(0, 1fr)); }
+  .mosaique[data-n='3'] img:first-child { grid-row: span 2; }
+  .mosaique img { width: 100%; height: 100%; min-height: 0; object-fit: cover; }
+  .infos { padding: 26px 28px 28px; display: flex; flex-direction: column; flex: 1; }
+  .infos h3 { font-size: 1.8rem; margin: 0 0 2px; }
+  .immats { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 22px; }
+  .immats a { font-size: .78rem; font-weight: 700; letter-spacing: .08em; padding: 5px 12px; border-radius: 999px; border: 1.5px solid var(--ink); color: var(--ink); text-decoration: none; }
+  .immats a:hover { background: var(--ink); color: #fff; }
+  .prix2 { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .prix2 > div { border-radius: var(--radius); padding: 16px 18px; background: var(--paper); display: flex; flex-direction: column; }
+  .court { display: none; }
+  .prix2 .inst .court, .prix2 .inst .long { opacity: 1; }
+  @media (max-width: 700px) { .court { display: inline; } .long { display: none; } }
+  .prix2 .inst { background: var(--ink); color: #fff; }
+  .prix2 span { font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; opacity: .7; }
+  .prix2 b { font-family: var(--font-title); font-size: 2.8rem; font-weight: 600; line-height: 1.1; }
+  .prix2 small { font-size: .82rem; opacity: .7; }
+
+</style>

@@ -1,0 +1,21 @@
+nom: Jodel D120 Paris-Nice
+type: Jodel D120 Paris-Nice
+immatriculation: F-BIXA
+puissance: 90
+places: 2
+usage: Perfectionnement train classique
+description: Un biplace en bois et toile à train classique, pour apprendre le pilotage « à l'ancienne » et se perfectionner aux décollages et atterrissages.
+photos:
+  - /uploads/avions/jodel-d120-01.jpg
+  - /uploads/avions/jodel-d120-02.jpg
+  - /uploads/avions/jodel-d120-03.jpg
+  - /uploads/avions/jodel-d120-04.jpg
+tarifs:
+  - a_partir_du: 2025-01-01
+    prix_heure: 96
+    prix_instruction: 106
+  - a_partir_du: 2026-11-01
+    prix_heure: 106
+    prix_instruction: 116
+    note: "+10 € / h en solo, supplément double commande maintenu à 10 €"
+ordre: 4

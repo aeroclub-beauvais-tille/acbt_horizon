@@ -1,0 +1,21 @@
+nom: Robin DR400 120 ch
+type: Robin DR400-120
+immatriculation: F-GCAL
+puissance: 120
+places: 4
+usage: École et voyage
+description: Le DR400 est l'avion école de référence des aéroclubs français. Stable et facile à piloter, il emmène 3 passagers pour vos premières navigations.
+photos:
+  - /uploads/avions/dr400-120-02.jpg
+  - /uploads/avions/dr400-120-01.jpg
+  - /uploads/avions/dr400-120-03.jpg
+  - /uploads/avions/dr400-120-04.jpg
+tarifs:
+  - a_partir_du: 2025-01-01
+    prix_heure: 130
+    prix_instruction: 175
+  - a_partir_du: 2026-11-01
+    prix_heure: 140
+    prix_instruction: 185
+    note: "+10 € / h en solo, supplément double commande maintenu à 45 €"
+ordre: 1

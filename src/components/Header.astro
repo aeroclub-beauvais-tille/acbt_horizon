@@ -1,0 +1,95 @@
+---
+import { url } from '../lib/utils';
+const nav = [
+  { label: 'Baptême de l\'air', href: '/decouvrir-le-vol' },
+  { label: 'Devenir pilote', href: '/formations' },
+  { label: 'Tarifs', href: '/club/tarifs' },
+  { label: 'Le club', href: '/club' },
+  { label: 'Contact', href: '/contact' },
+];
+const path = Astro.url.pathname.replace(/\/$/, '');
+// Menu volontairement court : « Le club » regroupe aussi la flotte, l'histoire et les actualités.
+const actif = (href: string) =>
+  href === '/club' ? [url('/club'), url('/club/flotte'), url('/club/historique'), url('/actualites')].some((p) => path === p || path.startsWith(p + '/')) : path.startsWith(url(href));
+const membre = path.startsWith(url('/membre'));
+---
+<header class:list={['site-header', { membre }]}>
+  <div class="bar">
+    <a class="logo" href={url('/')}>
+      <img src={url('/uploads/logo/logo-acbt.png')} alt="" width="50" height="36" />
+      <span><strong>ACBT</strong><small>Aéroclub de Beauvais-Tillé</small></span>
+    </a>
+    <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Ouvrir le menu" />
+    <nav aria-label="Navigation principale">
+      <ul>
+        {nav.map((n) => <li><a href={url(n.href)} aria-current={actif(n.href) ? 'page' : undefined}>{n.label}</a></li>)}
+        <li class="li-membre"><a class="member" href={url('/membre')}>Espace membre</a></li>
+      </ul>
+      <p class="nav-pied">03 44 48 28 52 · Aéroport de Beauvais-Tillé</p>
+    </nav>
+    {Astro.slots.has('actions') && <div class="actions"><slot name="actions" /></div>}
+    {!membre && <a class="reserver" href={url('/contact?objet=Baptême')}>Réserver<span>&nbsp;un baptême</span></a>}
+    <label for="nav-toggle" class="burger"><span class="b-ouvrir">Menu</span><span class="b-fermer">Fermer</span></label>
+  </div>
+  <div class="progression" aria-hidden="true"></div>
+</header>
+<script is:inline>
+  // Fond crème dès qu'on quitte le haut de la page, même sans le moteur d'animations
+  (() => { const h = document.currentScript.previousElementSibling; const f = () => h.classList.toggle('defile', scrollY > 20); addEventListener('scroll', f, { passive: true }); f(); })();
+</script>
+<style>
+  /* En-tête posé sur la page ; transparent et en blanc quand la page commence par une grande photo */
+  .site-header { --fg: var(--ink); position: fixed; top: 0; left: 0; right: 0; z-index: 50; color: var(--fg); transition: transform .5s cubic-bezier(.2,.7,.2,1), background-color .35s, color .35s, border-color .35s; border-bottom: 1px solid transparent; }
+  :global(body:has(main > .hero:first-child, main > .page-head.has-img:first-child)) .site-header:not(.defile) { --fg: #fff; }
+  .site-header.defile { background: color-mix(in srgb, var(--paper) 92%, transparent); backdrop-filter: saturate(1.3) blur(14px); border-bottom-color: var(--line); }
+  .site-header.cache { transform: translateY(-100%); }
+  .site-header.membre { position: sticky; background: var(--paper); border-bottom-color: var(--line); }
+  :global(main:not(:has(> .hero:first-child, > .page-head:first-child))) { padding-top: 76px; }
+  :global(body:has(.site-header.membre) main) { padding-top: 0; }
+  .progression { position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: var(--accent); transform: scaleX(0); transform-origin: left; pointer-events: none; }
+  .bar { display: flex; align-items: center; gap: 10px; height: 76px; padding: 0 clamp(20px, 4vw, 56px); }
+  .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--fg); margin-right: auto; }
+  .logo img { height: 34px; width: auto; background: #fff; border-radius: 6px; padding: 2px 3px; }
+  .logo span { display: flex; flex-direction: column; line-height: 1.1; }
+  .logo strong { font-family: var(--font-title); font-weight: 600; font-size: 1.05rem; letter-spacing: .08em; }
+  .logo small { font-size: .74rem; opacity: .75; }
+  nav ul { display: flex; align-items: center; gap: 2px; list-style: none; margin: 0; padding: 0; }
+  nav a { position: relative; display: block; padding: 8px 14px; color: var(--fg); text-decoration: none; font-family: var(--font-title); font-size: .96rem; white-space: nowrap; opacity: .9; }
+  nav a::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: 2px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform .35s cubic-bezier(.2,.7,.2,1); }
+  nav a:hover { color: var(--fg); opacity: 1; }
+  nav a:hover::after, nav a[aria-current]::after { transform: scaleX(1); }
+  nav a.member { opacity: .7; font-size: .88rem; }
+  .nav-pied { display: none; }
+  .nav-toggle { position: absolute; opacity: 0; pointer-events: none; }
+  .reserver { margin-left: 12px; display: inline-flex; align-items: center; height: 42px; padding: 0 20px; border-radius: 999px; background: var(--fg); color: var(--paper); font-family: var(--font-title); font-weight: 500; font-size: .92rem; text-decoration: none; white-space: nowrap; transition: background-color .25s, color .25s; }
+  :global(body:has(main > .hero:first-child, main > .page-head.has-img:first-child)) .site-header:not(.defile) .reserver { color: var(--ink); }
+  .reserver:hover { background: var(--accent-fonce); color: #fff !important; }
+  .burger { display: none; align-items: center; height: 42px; padding: 0 18px; border-radius: 999px; border: 1px solid color-mix(in srgb, var(--fg) 50%, transparent); font-family: var(--font-title); font-size: .92rem; cursor: pointer; position: relative; z-index: 2; }
+  .b-fermer { display: none; }
+  .nav-toggle:focus-visible ~ .burger, .reserver:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .actions { display: flex; align-items: center; }
+  @media (max-width: 1180px) { .reserver span { display: none; } nav a { padding: 8px 10px; } }
+  @media (max-width: 960px) {
+    .burger { display: inline-flex; }
+    .reserver { margin-left: 0; }
+    /* Menu ouvert : plein écran, grands titres fins */
+    nav { position: fixed; inset: 0; z-index: 1; background: var(--nuit); display: none; flex-direction: column; justify-content: center; padding: 96px clamp(20px, 6vw, 56px) 40px; }
+    nav ul { flex-direction: column; align-items: stretch; gap: 0; }
+    nav a { color: #f2ede4; font-weight: 300; font-size: clamp(2rem, 9vw, 3rem); letter-spacing: -.04em; padding: 6px 0; opacity: 1; }
+    nav a::after { left: 0; right: auto; width: 40px; bottom: 10px; }
+    nav a:hover { color: #f2ede4; }
+    .li-membre { margin-top: 26px; }
+    nav a.member { font-size: 1rem; letter-spacing: 0; color: #9a968c; }
+    .nav-pied { display: block; margin: 30px 0 0; color: #9a968c; font-size: .9rem; }
+    .nav-toggle:checked ~ nav { display: flex; animation: menu-in .35s cubic-bezier(.2,.7,.2,1); }
+    .nav-toggle:checked ~ .burger { --fg: #f2ede4; color: #f2ede4; }
+    .nav-toggle:checked ~ .burger .b-ouvrir { display: none; }
+    .nav-toggle:checked ~ .burger .b-fermer { display: inline; }
+    .nav-toggle:checked ~ .reserver { visibility: hidden; }
+    .site-header:has(.nav-toggle:checked) { background: transparent; border-color: transparent; backdrop-filter: none; }
+    .site-header:has(.nav-toggle:checked) .logo { color: #f2ede4; position: relative; z-index: 2; }
+  }
+  @media (max-width: 420px) { .logo small { display: none; } .bar { height: 68px; } }
+  @keyframes menu-in { from { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { nav a::after { transition: none; } .nav-toggle:checked ~ nav { animation: none; } }
+</style>

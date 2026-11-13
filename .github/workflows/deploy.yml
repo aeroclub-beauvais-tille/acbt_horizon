@@ -1,0 +1,54 @@
+name: Publier le site
+
+on:
+  push:
+    branches: [main]
+  # Republication toutes les 30 minutes : METAR de LFOB, tarifs planifiés et date du jour à jour.
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Les versions allégées des photos sont gardées d'une publication à l'autre : seules les nouvelles photos sont traitées.
+      - uses: actions/cache@v4
+        with:
+          path: public/opt
+          key: photos-${{ hashFiles('public/uploads/**', 'scripts/optimiser-images.mjs') }}
+          restore-keys: photos-
+      - run: npm run build
+        env:
+          AVWX_TOKEN: ${{ secrets.AVWX_TOKEN }}
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
+        with:
+          # GitHub Pages met parfois plus de 10 min à finaliser la mise en ligne : on lui laisse 30 min.
+          timeout: 1800000

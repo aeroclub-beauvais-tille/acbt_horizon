@@ -1,0 +1,76 @@
+{
+  "categories": [
+    {
+      "titre": "Briefing",
+      "outils": [
+        {
+          "nom": "Préparation des vols ACBT",
+          "description": "L'outil de préparation des vols du club.",
+          "lien": "https://prepa-vols-acbt.pages.dev/",
+          "logo": "/uploads/outils/prepa-vols-acbt.png"
+        },
+        {
+          "nom": "SOFIA Briefing",
+          "description": "Dossier de vol, NOTAM, météo et dépôt de plan de vol (DGAC).",
+          "lien": "https://sofia-briefing.aviation-civile.gouv.fr/sofia/pages/homepage.html",
+          "logo": "https://sofia-briefing.aviation-civile.gouv.fr/content/sofia/img/logo-sofia.svg"
+        },
+        {
+          "nom": "Fiches ICARUS (FFA)",
+          "description": "Fiches de sécurité et retours d'expérience de la FFA.",
+          "lien": "https://www.ffa-aero.fr/WD170AWP/WD170Awp.exe/CONNECT/SITEFFAPROD?_WWREFERER_=https%3A%2F%2Fwww.ffa-aero.fr%2FWD170AWP%2FWD170Awp.exe%2FCONNECT%2FSITEFFAPROD&_WWNATION_=5&_WW1STPAGE_=frm_icarus",
+          "logo": "https://fr.wikipedia.org/wiki/Special:FilePath/F%C3%A9d%C3%A9ration_fran%C3%A7aise_a%C3%A9ronautique.svg"
+        }
+      ]
+    },
+    {
+      "titre": "Météo",
+      "outils": [
+        {
+          "nom": "AEROWEB",
+          "description": "Météo aéronautique officielle de Météo-France (compte gratuit).",
+          "lien": "https://aviation.meteo.fr/login.php",
+          "logo": "https://upload.wikimedia.org/wikipedia/fr/4/47/Logo_M%C3%A9t%C3%A9o_France_2016.svg"
+        },
+        {
+          "nom": "Windy",
+          "description": "Vent, nuages et précipitations en prévision, par altitude.",
+          "lien": "https://www.windy.com/?49.454,2.113,8",
+          "logo": "https://img1.oastatic.com/img2/55439377/max/variant.png"
+        }
+      ]
+    },
+    {
+      "titre": "SIA : préparation du vol",
+      "outils": [
+        {
+          "nom": "Site du SIA",
+          "description": "Cartes VAC, eAIP, AIC et préparation du vol.",
+          "lien": "https://www.sia.aviation-civile.gouv.fr/"
+        },
+        {
+          "nom": "SUPAIP.fr",
+          "description": "Les SUP AIP et zones actives sur une carte, en un coup d'œil.",
+          "lien": "https://www.supaip.fr/",
+          "logo": "https://supaip.fr/img/logo-supaip.svg?v=1777106873"
+        }
+      ]
+    },
+    {
+      "titre": "Cartes et réservation",
+      "outils": [
+        {
+          "nom": "Carte OACI Géoportail",
+          "description": "Carte aéronautique OACI 1/500 000 en ligne.",
+          "lien": "https://www.geoportail.gouv.fr/carte?c=0.8349609375%2C47.83528342275264&z=7&l0=GEOGRAPHICALGRIDSYSTEMS.MAPS.SCAN-OACI%3A%3AGEOPORTAIL%3AOGC%3AWMTS%281%29&permalink=yes"
+        },
+        {
+          "nom": "Aerogest",
+          "description": "Réservation des avions et compte pilote.",
+          "lien": "https://online.aerogest.fr/connection/Logon",
+          "logo": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSU8lI8uw8UzMVXNFz0_8E9P8YBVIw1dRLGiA2_gBcAMzXaJDOsZy4FQySr&s=10"
+        }
+      ]
+    }
+  ]
+}

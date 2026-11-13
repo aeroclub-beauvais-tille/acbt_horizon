@@ -1,0 +1,289 @@
+---
+import { photo } from '../lib/photo';
+import Base from '../layouts/Base.astro';
+import Metar from '../components/Metar.astro';
+import { getCollection } from 'astro:content';
+import club from '../data/club.json';
+import pages from '../data/pages.json';
+import t from '../data/tarifs.json';
+import f from '../data/formations.json';
+import s from '../data/simulateur.json';
+import { url, asset, tarifEnVigueur } from '../lib/utils';
+
+const avions = (await getCollection('avions', (a) => a.data.actif)).sort((a, b) => a.data.ordre - b.data.ordre);
+const annees = new Date().getFullYear() - 1979;
+const pg = pages.accueil;
+const slides = pg.diaporama.map((d) => ({ img: d.image, legende: d.legende }));
+// Dernier mot (ou les deux derniers) en italique : c'est la signature typographique du style Horizon.
+const italique = (txt: string, n = 1) => {
+  const m = txt.trim().split(/\s+/);
+  return { debut: m.slice(0, -n).join(' '), fin: m.slice(-n).join(' ') };
+};
+const h1 = italique(pg.titre);
+const hB = italique(pg.bapteme.titre, 2);
+const hF = italique(pg.formation.titre, 2);
+const nf = (x: number) => x.toLocaleString('fr-FR');
+
+// Mini simulateur de l'accueil : mêmes données que le simulateur complet de la page « Devenir pilote ».
+const ecole = avions.map((a) => ({ a, t: tarifEnVigueur(a.data.tarifs).actuel })).find((x) => x.t?.prix_instruction);
+const ad = t.adhesion;
+const jeune = ad.colonnes.find((c) => /moins/i.test(c.public) && c.mise_en_avant) ?? ad.colonnes[0];
+const adulte = ad.colonnes.find((c) => !/moins/i.test(c.public)) ?? ad.colonnes[ad.colonnes.length - 1];
+const aide = (cle: string) => t.objectif_pilote?.lignes.find((l) => l.simulateur === cle)?.montant ?? 0;
+const mini = {
+  double: ecole?.t?.prix_instruction ?? 0,
+  solo: ecole?.t?.prix_heure ?? 0,
+  adh: { jeune: jeune.cotisation_acbt + ad.cotisation_ffa, adulte: adulte.cotisation_acbt + ad.cotisation_ffa },
+  fournitures: t.divers.filter((d) => d.simulateur).reduce((n, d) => n + (parseFloat(String(d.prix).replace(/\s/g, '').replace(',', '.')) || 0), 0),
+  aides: aide('lacher') + aide('licence'),
+  licences: Object.fromEntries(s.licences.map((l) => [l.code, [l.heures_double, l.heures_solo]])),
+  rythmes: Object.fromEntries(s.rythmes.map((r) => [r.libelle, r.heures_par_mois])),
+};
+const aidesMax = t.objectif_pilote?.intro.match(/([\d\s]+)\s*€/)?.[1]?.trim();
+---
+<Base title="Accueil">
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify({
+    '@context': 'https://schema.org', '@type': 'SportsClub', name: club.nom, alternateName: club.sigle,
+    url: new URL(url('/'), Astro.site).href, telephone: club.telephone, email: club.email, foundingDate: '1979',
+    image: new URL(asset('/partage.jpg'), Astro.site).href, sameAs: [club.facebook],
+    address: { '@type': 'PostalAddress', streetAddress: 'Aéroport de Beauvais-Tillé, zone aéroplaisance', postalCode: '60000', addressLocality: 'Tillé', addressCountry: 'FR' },
+    geo: { '@type': 'GeoCoordinates', latitude: club.latitude, longitude: club.longitude },
+  })} />
+
+  <section class="hero" aria-label="Présentation">
+    <div class="slides">
+      {slides.map((sl, i) => <img {...photo(sl.img, '100vw')} fetchpriority={i ? undefined : 'high'} alt={sl.legende} class:list={{ on: i === 0 }} loading={i ? 'lazy' : 'eager'} />)}
+    </div>
+    <div class="voile"></div>
+    <div class="hero-metar"><Metar sombre /></div>
+    <div class="hero-txt">
+      <h1 data-split="now">{h1.debut} <em>{h1.fin}</em></h1>
+      <div class="hero-cote" data-reveal data-delay="0.8">
+        <p>{pg.texte.replace('{annees}', String(annees))}</p>
+        <a class="btn btn-clair" href={url('/contact?objet=Baptême')}>Réserver un baptême</a>
+      </div>
+    </div>
+    <p class="hero-legende" id="slide-l">{slides[0]?.legende}</p>
+  </section>
+
+  <section class="manif" aria-label={pg.atouts_titre}>
+    <p class="manif-txt" data-split>{pg.atouts_titre}. <span>Depuis {annees} ans, nos instructeurs bénévoles font découvrir le vol et forment les pilotes de l'Oise.</span></p>
+    <div class="chiffres" data-stagger>
+      {pg.atouts.map((a) => {
+        const v = a.chiffre.replace('{avions}', String(avions.length));
+        const m = v.match(/^(\d+)\s*(%?)$/);
+        return (
+          <div>
+            <strong {...(m ? { 'data-count': m[1], 'data-suffix': m[2] ? ' %' : undefined, 'data-from': +m[1] > 1000 ? String(+m[1] - 80) : undefined } : {})}>{v}</strong>
+            <span>{a.texte}{a.lien && <> <a href={url(a.lien)}>{a.lien_texte || 'En savoir plus'}</a></>}</span>
+          </div>
+        );
+      })}
+    </div>
+  </section>
+
+  <section class="bapteme" id="bapteme">
+    <div class="b-photo" data-clip><img {...photo(pg.bapteme.image, '(min-width: 900px) 55vw, 100vw')} alt="" loading="lazy" /></div>
+    <div class="bloc">
+      <div class="label">Baptême de l'air</div>
+      <h2 data-split>{hB.debut} <em>{hB.fin}</em></h2>
+      <p class="lead" data-reveal>{pg.bapteme.texte}</p>
+      <ul class="formules" data-stagger>
+        {t.formules.map((x) => (
+          <li><b>{x.titre}</b><small>{x.texte}</small><strong>{x.prix.length > 1 && <i>dès</i>}{nf(Math.min(...x.prix.map((p) => p.prix)))} €</strong></li>
+        ))}
+      </ul>
+      <div class="btns">
+        <a class="btn btn-primary" href={url('/contact?objet=Baptême')}>Réserver mon vol</a>
+        <a class="btn btn-outline" href={url('/contact?objet=Bon cadeau')}>Offrir un bon cadeau</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="pilote dark" id="pilote">
+    <div class="label">Devenir pilote</div>
+    <div class="p-haut">
+      <h2 data-split>{hF.debut} <em>{hF.fin}</em></h2>
+      <p class="lead" data-reveal>{pg.formation.texte}</p>
+    </div>
+    <ol class="etapes" data-stagger>
+      {f.parcours.map((e, i) => <li><span>{String(i + 1).padStart(2, '0')}</span>{e.titre}</li>)}
+    </ol>
+    <div class="p-bas">
+      <div class="p-photo" data-clip><img {...photo(pg.formation.image, '(min-width: 900px) 45vw, 100vw')} alt="" loading="lazy" /></div>
+      <div class="mini" data-mini={JSON.stringify(mini)}>
+        <div class="label">Simulateur</div>
+        <h3>{s.titre}</h3>
+        <div class="q"><span>Votre âge</span><div class="seg"><button type="button" data-q="age" data-v="jeune" class="on">Moins de 21 ans</button><button type="button" data-q="age" data-v="adulte">21 ans et plus</button></div></div>
+        <div class="q"><span>La licence visée</span><div class="seg">{s.licences.map((l, i) => <button type="button" data-q="licence" data-v={l.code} class:list={{ on: i === s.licences.length - 1 }}>{l.nom}</button>)}</div></div>
+        <div class="q"><span>Votre rythme</span><div class="seg">{s.rythmes.map((r, i) => <button type="button" data-q="rythme" data-v={r.libelle} class:list={{ on: i === 1 }}>{r.libelle}</button>)}</div></div>
+        <div class="m-pied">
+          <div><small>Budget estimé</small><strong class="m-total">—</strong><p class="m-detail"></p></div>
+          <a class="btn btn-primary" href={url('/formations#simulateur')}>Le calcul détaillé</a>
+        </div>
+        {aidesMax && <p class="m-note">Moins de 21 ans : jusqu'à {aidesMax} € d'aides de la Fédération au fil des étapes.</p>}
+      </div>
+    </div>
+  </section>
+
+  <section class="flotte" id="flotte">
+    <div class="f-tete">
+      <div><div class="label">La flotte</div><h2 data-split>{avions.length} avions, <em>une famille.</em></h2></div>
+      <a class="btn btn-outline" href={url('/club/flotte')}>Voir la flotte</a>
+    </div>
+    <div class="rail" data-stagger>
+      {avions.map((a) => (
+        <a class="avion" href={url('/club/flotte')}>
+          <div class="a-photo"><img {...photo(a.data.photos[0], '(min-width: 900px) 25vw, 76vw')} alt="" loading="lazy" /></div>
+          <div class="a-nom"><strong>{a.data.immatriculation}</strong><span>{a.data.nom}</span></div>
+        </a>
+      ))}
+    </div>
+  </section>
+</Base>
+
+<script>
+  // Diaporama de la photo d'accueil (photos choisies dans le back-office)
+  const imgs = [...document.querySelectorAll<HTMLImageElement>('.slides img')];
+  const l = document.getElementById('slide-l');
+  let i = 0;
+  if (imgs.length > 1 && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    setInterval(() => {
+      imgs[i].classList.remove('on');
+      i = (i + 1) % imgs.length;
+      imgs[i].loading = 'eager';
+      imgs[i].classList.add('on');
+      if (l) l.textContent = imgs[i].alt;
+    }, 7000);
+  }
+
+  // Mini simulateur : estimation immédiate, le détail est sur la page « Devenir pilote »
+  const box = document.querySelector<HTMLElement>('.mini');
+  if (box) {
+    const d = JSON.parse(box.dataset.mini!);
+    const etat: Record<string, string> = {};
+    box.querySelectorAll<HTMLButtonElement>('.seg button.on').forEach((b) => (etat[b.dataset.q!] = b.dataset.v!));
+    const total = box.querySelector('.m-total')!, detail = box.querySelector('.m-detail')!;
+    const calc = () => {
+      const [hd, hs] = d.licences[etat.licence];
+      const j = etat.age === 'jeune';
+      const n = hd * d.double + hs * d.solo + (j ? d.adh.jeune : d.adh.adulte) + d.fournitures - (j ? d.aides : 0);
+      total.textContent = `${(Math.round(n / 50) * 50).toLocaleString('fr-FR')} €`;
+      const mois = Math.ceil((hd + hs) / d.rythmes[etat.rythme]);
+      detail.textContent = `environ ${mois} mois · ${hd + hs} h de vol${j ? ` · ${d.aides.toLocaleString('fr-FR')} € d'aides déduites` : ''}`;
+    };
+    box.querySelectorAll<HTMLButtonElement>('.seg button').forEach((b) => b.addEventListener('click', () => {
+      box.querySelectorAll<HTMLButtonElement>(`[data-q="${b.dataset.q}"]`).forEach((x) => x.classList.toggle('on', x === b));
+      etat[b.dataset.q!] = b.dataset.v!;
+      calc();
+    }));
+    calc();
+  }
+</script>
+
+<style>
+  .g { padding-inline: clamp(20px, 4vw, 56px); }
+  /* Ouverture plein écran */
+  .hero { position: relative; height: 100svh; min-height: 600px; max-height: 980px; color: #fff; background: var(--nuit); overflow: hidden; }
+  .slides { position: absolute; inset: 0; }
+  .slides img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; opacity: 0; transform: scale(1.08); transition: opacity 1.6s ease, transform 12s ease-out; }
+  .slides img.on { opacity: 1; transform: scale(1); }
+  .voile { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,14,.5) 0%, rgba(10,10,14,0) 28%, rgba(10,10,14,0) 48%, rgba(10,10,14,.72) 100%); }
+  .hero-metar { position: absolute; z-index: 2; top: 84px; left: clamp(20px, 4vw, 56px); right: clamp(20px, 4vw, 56px); opacity: .9; }
+  .hero-txt { position: absolute; z-index: 2; left: clamp(20px, 4vw, 56px); right: clamp(20px, 4vw, 56px); bottom: clamp(36px, 7vh, 72px); display: grid; grid-template-columns: 1fr auto; gap: 28px; align-items: end; }
+  .hero h1 { color: #fff; font-size: clamp(3.2rem, 8.6vw, 8.4rem); line-height: .92; letter-spacing: -.05em; max-width: 11ch; margin: 0; }
+  .hero h1 em { font-size: 1.06em; }
+  .hero-cote { max-width: 330px; display: grid; gap: 18px; justify-items: start; }
+  .hero-cote p { margin: 0; font-size: .98rem; color: rgba(255,255,255,.9); }
+  .btn-clair { background: #fff; color: var(--ink); }
+  .btn-clair:hover { background: var(--paper); color: var(--ink); }
+  .hero-legende { position: absolute; z-index: 2; right: clamp(20px, 4vw, 56px); top: 84px; margin: 0; font-family: var(--font-title); font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; opacity: .75; }
+
+  /* Manifeste */
+  .manif { padding: clamp(72px, 11vw, 160px) clamp(20px, 4vw, 56px) clamp(56px, 7vw, 96px); max-width: 1440px; margin: 0 auto; }
+  .manif-txt { font-family: var(--font-title); font-weight: 300; font-size: clamp(1.9rem, 4.2vw, 4rem); line-height: 1.06; letter-spacing: -.035em; color: var(--ink); max-width: 21ch; margin: 0; }
+  .manif-txt span { color: var(--muted); }
+  .chiffres { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: clamp(48px, 7vw, 96px); border-top: 1px solid var(--line); }
+  .chiffres > div { padding: 22px 24px 0 0; display: grid; gap: 8px; align-content: start; }
+  .chiffres > div + div { padding-left: 24px; border-left: 1px solid var(--line); }
+  .chiffres strong { font-family: var(--font-title); font-weight: 300; font-size: clamp(2.8rem, 5.4vw, 5rem); letter-spacing: -.045em; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
+  .chiffres span { color: var(--muted); font-size: .92rem; max-width: 30ch; }
+
+  /* Baptême */
+  .bapteme { display: grid; grid-template-columns: 1.15fr 1fr; gap: clamp(32px, 5vw, 88px); padding: clamp(24px, 4vw, 48px) clamp(20px, 4vw, 56px) clamp(88px, 10vw, 150px); max-width: 1440px; margin: 0 auto; }
+  .b-photo { aspect-ratio: 4 / 5; border-radius: var(--radius); overflow: hidden; }
+  .b-photo img, .p-photo img, .a-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .bloc { align-self: center; }
+  .bloc h2 { margin-bottom: .4em; }
+  .formules { list-style: none; margin: 36px 0 34px; padding: 0; border-top: 1px solid var(--line); }
+  .formules li { display: grid; grid-template-columns: 1fr auto; gap: 2px 20px; padding: 20px 0; border-bottom: 1px solid var(--line); }
+  .formules b { font-family: var(--font-title); font-weight: 500; font-size: 1.2rem; color: var(--ink); letter-spacing: -.01em; }
+  .formules small { grid-column: 1; color: var(--muted); font-size: .9rem; line-height: 1.4; }
+  .formules strong { grid-row: 1 / 3; grid-column: 2; align-self: center; font-family: var(--font-title); font-weight: 300; font-size: clamp(2rem, 3.2vw, 3rem); letter-spacing: -.04em; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .formules i { font-style: normal; font-size: .8rem; letter-spacing: .04em; color: var(--muted); margin-right: 6px; vertical-align: middle; }
+
+  /* Devenir pilote, sur fond de nuit */
+  .pilote { background: var(--nuit); color: #b9b5aa; padding: clamp(88px, 10vw, 150px) clamp(20px, 4vw, 56px); }
+  .pilote :global(.label) { color: #9a968c; }
+  .p-haut { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 5vw, 88px); align-items: end; }
+  .pilote h2 { color: #f2ede4; font-size: clamp(2.8rem, 6.4vw, 6.4rem); margin: 0; }
+  .pilote .lead { color: #a9a59b; margin: 0; }
+  .etapes { list-style: none; display: grid; grid-template-columns: repeat(5, 1fr); margin: clamp(52px, 7vw, 96px) 0; padding: 0; border-top: 1px solid rgba(255,255,255,.16); }
+  .etapes li { position: relative; padding: 20px 18px 0 0; font-family: var(--font-title); font-size: 1.05rem; line-height: 1.25; color: #f2ede4; }
+  .etapes li::before { content: ''; position: absolute; top: -4px; left: 0; width: 7px; height: 7px; border-radius: 50%; background: #f2ede4; }
+  .etapes li:first-child::before { background: #ffb27a; box-shadow: 0 0 0 5px rgba(255,178,122,.2); }
+  .etapes span { display: block; color: #8d897f; font-size: .74rem; letter-spacing: .14em; margin-bottom: 8px; }
+  .p-bas { display: grid; grid-template-columns: 1fr 1.1fr; gap: clamp(16px, 2.4vw, 32px); }
+  .p-photo { border-radius: var(--radius); overflow: hidden; min-height: 460px; }
+  .mini { background: #1d222d; border-radius: var(--radius); padding: clamp(24px, 3vw, 44px); display: grid; gap: 22px; align-content: start; }
+  .mini :global(.label) { margin: 0; }
+  .mini h3 { color: #f2ede4; font-weight: 300; font-size: clamp(1.7rem, 2.6vw, 2.4rem); letter-spacing: -.03em; margin: 0; }
+  .q { display: grid; gap: 10px; }
+  .q > span { font-size: .82rem; color: #9a968c; }
+  .seg { display: flex; flex-wrap: wrap; gap: 8px; }
+  .seg button { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,.22); background: none; color: #e9e5dc; font: inherit; font-family: var(--font-title); font-size: .95rem; cursor: pointer; transition: background-color .2s, color .2s; }
+  .seg button:hover { border-color: #e9e5dc; }
+  .seg button.on { background: #e9e5dc; color: var(--nuit); border-color: #e9e5dc; }
+  .seg button:focus-visible { outline: 2px solid #ffb27a; outline-offset: 2px; }
+  .m-pied { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.12); }
+  .m-pied small { display: block; color: #9a968c; font-size: .82rem; }
+  .m-total { display: block; font-family: var(--font-title); font-weight: 300; font-size: clamp(2.8rem, 4.6vw, 4rem); letter-spacing: -.045em; line-height: 1.05; color: #ffc58f; font-variant-numeric: tabular-nums; }
+  .m-detail { margin: 2px 0 0; font-size: .84rem; color: #a9a59b; }
+  .m-note { margin: 0; font-size: .84rem; color: #8d897f; }
+
+  /* Flotte */
+  .flotte { padding: clamp(88px, 10vw, 150px) 0 clamp(64px, 8vw, 110px); }
+  .f-tete { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; padding: 0 clamp(20px, 4vw, 56px); margin-bottom: 40px; }
+  .f-tete h2 { margin: 0; }
+  .rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 1fr); gap: 16px; padding: 0 clamp(20px, 4vw, 56px); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+  .rail::-webkit-scrollbar { display: none; }
+  .avion { display: grid; gap: 14px; text-decoration: none; color: inherit; scroll-snap-align: start; }
+  .a-photo { aspect-ratio: 3 / 4; border-radius: var(--radius); overflow: hidden; }
+  .a-photo img { transition: transform .9s cubic-bezier(.2,.7,.2,1); }
+  .avion:hover .a-photo img { transform: scale(1.04); }
+  .a-nom { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .a-nom strong { font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 1.9rem; line-height: 1; color: var(--ink); }
+  .a-nom span { color: var(--muted); font-size: .86rem; text-align: right; }
+
+  @media (max-width: 900px) {
+    .hero { max-height: none; }
+    .hero-txt { grid-template-columns: 1fr; }
+    .hero-legende { display: none; }
+    .hero-metar { top: 76px; }
+    .chiffres { grid-template-columns: 1fr; }
+    .chiffres > div { grid-template-columns: auto 1fr; align-items: baseline; gap: 16px; padding: 18px 0; }
+    .chiffres > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
+    .chiffres strong { font-size: 2.6rem; white-space: nowrap; min-width: 2.4em; }
+    .bapteme, .p-haut, .p-bas { grid-template-columns: 1fr; }
+    .b-photo { aspect-ratio: 4 / 3; }
+    .etapes { grid-template-columns: 1fr; border-top: 0; border-left: 1px solid rgba(255,255,255,.16); margin-left: 4px; }
+    .etapes li { padding: 0 0 22px 24px; }
+    .etapes li::before { top: 6px; left: -4px; }
+    .p-photo { min-height: 0; aspect-ratio: 4 / 3; }
+    .rail { grid-auto-columns: 76%; }
+  }
+  @media (max-width: 560px) {
+    .formules small { display: none; }
+    .bapteme .btns .btn, .m-pied .btn { flex: 1 1 auto; justify-content: center; }
+  }
+</style>
