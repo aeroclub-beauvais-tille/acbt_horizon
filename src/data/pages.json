@@ -108,7 +108,8 @@
   },
   "contact": {
     "titre": "Nous contacter",
-    "texte": "Pour un baptême, une inscription ou une simple question, écrivez-nous ou passez au club."
+    "texte": "Pour un baptême, une inscription ou une simple question, écrivez-nous ou passez au club.",
+    "image": "/uploads/avions/20250407_160705.jpg"
   },
   "membre": {
     "titre": "Espace membre",

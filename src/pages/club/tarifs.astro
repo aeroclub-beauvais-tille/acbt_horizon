@@ -114,27 +114,27 @@ import pages from '../../data/pages.json';
   .sommaire a { color: #fff; text-decoration: none; font-size: .9rem; padding: 8px 16px; border-radius: 999px; border: 1px solid rgba(255,255,255,.35); backdrop-filter: blur(6px); }
   .sommaire a:hover { background: #fff; color: var(--ink); }
 
-  .blocs { margin-top: 24px; display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 1px; background: var(--ink); border-radius: var(--radius); overflow: hidden; }
-  .blocs > div { background: var(--ink); color: #fff; padding: 22px 26px; display: flex; flex-direction: column; justify-content: center; }
-  .blocs-titre strong { font-family: var(--font-title); font-size: 1.35rem; font-weight: 600; }
-  .blocs-titre span { color: #9fb0c6; font-size: .9rem; }
+  .blocs { margin-top: 40px; display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 1px; background: var(--nuit); border-radius: var(--radius); overflow: hidden; }
+  .blocs > div { background: var(--nuit); color: #fff; padding: 22px 26px; display: flex; flex-direction: column; justify-content: center; }
+  .blocs-titre strong { font-family: var(--font-title); font-size: 1.5rem; font-weight: 300; letter-spacing: -.02em; }
+  .blocs-titre span { color: #a8a296; font-size: .9rem; }
   .bloc { border-left: 1px solid rgba(255,255,255,.12); }
-  .bloc .h { font-size: .75rem; text-transform: uppercase; letter-spacing: .12em; color: #9fb0c6; }
-  .bloc .o { font-family: var(--font-title); font-size: 1.4rem; color: #7fd6bb; }
+  .bloc .h { font-size: .75rem; text-transform: uppercase; letter-spacing: .12em; color: #a8a296; }
+  .bloc .o { font-family: var(--font-serif); font-style: italic; font-size: 1.7rem; color: #e9b48a; }
   @media (max-width: 760px) { .blocs { grid-template-columns: 1fr; } .bloc { border-left: 0; border-top: 1px solid rgba(255,255,255,.12); } }
 
   .formules { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); align-items: stretch; }
-  .formule { position: relative; border: 1px solid var(--line); border-radius: var(--radius); padding: 28px 24px; background: var(--paper); display: flex; flex-direction: column; }
-  .formule.vedette { background: var(--ink); color: #cfd6e0; border-color: var(--ink); }
+  .formule { position: relative; border: 1px solid var(--line); border-radius: var(--radius); padding: 30px 26px; background: var(--paper); display: flex; flex-direction: column; }
+  .formule.vedette { background: var(--nuit); color: #c9c4b8; border-color: var(--ink); }
   .formule.vedette h3, .formule.vedette .total { color: #fff; }
   .formule.vedette li { border-color: rgba(255,255,255,.12); }
   .formule.vedette b { color: #fff; }
   .formule.temporaire { background: transparent; border-style: dashed; }
   .ruban { position: absolute; top: -12px; left: 24px; background: var(--accent); color: #fff; font-size: .7rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: 5px 12px; border-radius: 999px; }
-  .public { font-size: .75rem; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; color: var(--accent); }
-  .vedette .public { color: #7fd6bb; }
-  .formule h3 { margin: 6px 0 14px; }
-  .total { font-family: var(--font-title); font-size: 3rem; font-weight: 600; color: var(--ink); line-height: 1; margin: 0 0 20px; }
+  .public { font-family: var(--font-title); font-size: .72rem; text-transform: uppercase; letter-spacing: .16em; font-weight: 500; color: var(--muted); }
+  .vedette .public { color: #e9b48a; }
+  .formule h3 { margin: 8px 0 18px; font-size: 1.5rem; font-weight: 300; }
+  .total { font-family: var(--font-title); font-size: clamp(3.2rem, 5vw, 4.4rem); font-weight: 300; letter-spacing: -.05em; color: var(--ink); line-height: 1; margin: 0 0 22px; font-variant-numeric: tabular-nums; }
   .total small { font-family: var(--font-body); font-size: .95rem; font-weight: 500; color: var(--muted); }
   .formule ul, .lignes { list-style: none; margin: 0; padding: 0; }
   .formule li, .lignes li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: .93rem; }
@@ -142,17 +142,18 @@ import pages from '../../data/pages.json';
   .lignes { margin-top: auto; }
   .lignes b { white-space: nowrap; color: var(--ink); }
   .aides { margin-top: 32px; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-  .aides div { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border-radius: var(--radius); background: color-mix(in srgb, var(--accent) 8%, white); }
+  .aides div { display: flex; flex-direction: column; gap: 6px; padding: 18px 0 0; border-top: 1px solid var(--line); }
+  .aides strong { font-family: var(--font-title); font-weight: 400; font-size: 1.15rem; letter-spacing: -.01em; }
   .aides span { font-size: .9rem; color: var(--muted); }
 
-  .objectif { margin-top: 40px; display: grid; gap: 32px; grid-template-columns: 1fr 1.4fr; align-items: start; padding: 32px; border-radius: var(--radius); background: #fff; border: 1px solid var(--line); }
+  .objectif { margin-top: 56px; display: grid; gap: 40px; grid-template-columns: 1fr 1.4fr; align-items: start; padding: 32px 0 0; border-top: 1px solid var(--ink); }
   @media (max-width: 800px) { .objectif { grid-template-columns: 1fr; padding: 22px; } }
-  .objectif .public { font-size: .75rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
-  .objectif h3 { font-size: 1.6rem; margin: 6px 0 12px; }
+  .objectif .public { color: var(--accent-fonce); }
+  .objectif h3 { font-size: clamp(1.8rem, 3vw, 2.6rem); font-weight: 300; letter-spacing: -.035em; margin: 8px 0 14px; }
   .aides { width: 100%; align-self: center; }
   .aides summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; border-radius: var(--radius); background: var(--paper); border: 1px solid var(--line); font-weight: 600; }
   .aides summary::-webkit-details-marker { display: none; }
-  .aides summary span { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: #fff; font-size: 1.1rem; transition: transform .2s; }
+  .aides summary span { font-weight: 200; font-size: 1.8rem; line-height: 1; color: var(--accent); transition: transform .3s; }
   .aides[open] summary { margin-bottom: 18px; }
   .aides[open] summary span { transform: rotate(45deg); }
   .objectif-table { width: 100%; border-collapse: collapse; font-size: .95rem; }

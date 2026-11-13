@@ -41,25 +41,26 @@ const modeles = (g: typeof lignes) => [...new Set(g.map((l) => l.a.data.type.rep
 <style>
   /* Une carte par type d'avion (les avions aux tarifs identiques sont regroupés) */
   .groupes { display: grid; gap: 22px; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
-  .groupe { background: var(--white); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; }
+  .groupe { background: transparent; border-top: 1px solid var(--ink); overflow: hidden; display: flex; flex-direction: column; }
   .mosaique { display: grid; gap: 3px; height: 240px; overflow: hidden; grid-template-rows: 100%; }
   .mosaique[data-n='2'] { grid-template-columns: 1fr 1fr; }
   .mosaique[data-n='3'] { grid-template-columns: 2fr 1fr; grid-template-rows: repeat(2, minmax(0, 1fr)); }
   .mosaique[data-n='3'] img:first-child { grid-row: span 2; }
   .mosaique img { width: 100%; height: 100%; min-height: 0; object-fit: cover; }
-  .infos { padding: 26px 28px 28px; display: flex; flex-direction: column; flex: 1; }
-  .infos h3 { font-size: 1.8rem; margin: 0 0 2px; }
+  .infos { padding: 22px 0 8px; display: flex; flex-direction: column; flex: 1; }
+  .infos h3 { font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 300; letter-spacing: -.035em; margin: 0 0 4px; }
+  .mosaique { order: 2; margin-top: 4px; border-radius: var(--radius); }
   .immats { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 22px; }
-  .immats a { font-size: .78rem; font-weight: 700; letter-spacing: .08em; padding: 5px 12px; border-radius: 999px; border: 1.5px solid var(--ink); color: var(--ink); text-decoration: none; }
+  .immats a { font-size: .76rem; font-weight: 500; letter-spacing: .1em; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--ink); text-decoration: none; }
   .immats a:hover { background: var(--ink); color: #fff; }
   .prix2 { margin-top: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .prix2 > div { border-radius: var(--radius); padding: 16px 18px; background: var(--paper); display: flex; flex-direction: column; }
+  .prix2 > div { border-radius: var(--radius); padding: 16px 18px; background: var(--paper-2); display: flex; flex-direction: column; }
   .court { display: none; }
   .prix2 .inst .court, .prix2 .inst .long { opacity: 1; }
   @media (max-width: 700px) { .court { display: inline; } .long { display: none; } }
   .prix2 .inst { background: var(--ink); color: #fff; }
   .prix2 span { font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; font-weight: 600; opacity: .7; }
-  .prix2 b { font-family: var(--font-title); font-size: 2.8rem; font-weight: 600; line-height: 1.1; }
+  .prix2 b { font-family: var(--font-title); font-size: clamp(2.6rem, 4vw, 3.4rem); font-weight: 300; letter-spacing: -.045em; line-height: 1.05; font-variant-numeric: tabular-nums; }
   .prix2 small { font-size: .82rem; opacity: .7; }
 
 </style>

@@ -9,7 +9,7 @@ import pages from '../data/pages.json';
   <PageHead eyebrow="Contact" image={pages.contact.image || undefined} title={pages.contact.titre} lead={pages.contact.texte} />
   <section class="section">
     <div class="container grid grid-2">
-      <form id="contact" class="card" data-reveal="left"><div class="card-body">
+      <form id="contact" class="formulaire" data-reveal="left"><div>
         <label>Nom et prénom<input name="nom" required /></label>
         <label>E-mail<input type="email" name="email" required /></label>
         <label>Téléphone<input type="tel" name="tel" /></label>
@@ -47,6 +47,6 @@ import pages from '../data/pages.json';
 <style>
   .carte-contact { height: 320px; }
   .grid-2 > * { min-width: 0; }
-  label { display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: .92rem; margin-bottom: 14px; }
-  input, select, textarea { font: inherit; font-weight: 400; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--radius); }
+  .grid-2 { gap: clamp(48px, 7vw, 120px); }
+  .carte-contact { border-radius: var(--radius); overflow: hidden; margin-top: 28px; }
 </style>

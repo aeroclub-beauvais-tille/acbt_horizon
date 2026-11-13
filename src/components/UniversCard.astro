@@ -29,7 +29,7 @@ const { u, big = false, variante = 'photo' } = Astro.props;
   /* 1. Photo plein cadre : titre sur dégradé, flèche ronde */
   .photo { color: #fff; }
   .photo .img { position: absolute; inset: 0; z-index: -2; }
-  .photo::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 30%, rgba(10,18,31,.9) 100%); }
+  .photo::before { content: ''; position: absolute; inset: 0; z-index: -1; background: linear-gradient(180deg, transparent 30%, rgba(10,10,14,.9) 100%); }
   .photo .texte { margin-top: auto; padding: 26px 90px 26px 26px; }
   .photo h3 { color: #fff; font-size: clamp(1.7rem, 3vw, 2.3rem); }
   .photo.big h3 { font-size: clamp(2.2rem, 4.5vw, 3.2rem); }

@@ -80,15 +80,15 @@ const tel = `tel:${club.telephone.replace(/\s/g, '')}`;
   .offre-grid { display: grid; gap: 18px; grid-template-columns: 1fr; }
   @media (min-width: 900px) { .offre { padding: 28px 0 36px; } .offre-grid { grid-template-columns: .9fr 1.1fr; align-items: stretch; gap: 24px; } }
 
-  .intro .eyebrow { margin-bottom: .5em; color: var(--accent-fonce); }
-  .intro h1 { font-size: clamp(1.7rem, 4vw, 2.9rem); margin-bottom: .3em; max-width: 16ch; text-wrap: balance; }
+  .intro .eyebrow { margin-bottom: .8em; color: var(--accent-fonce); }
+  .intro h1 { font-size: clamp(1.7rem, 4.4vw, 3.8rem); margin-bottom: .3em; max-width: 16ch; text-wrap: balance; }
   .accroche { color: var(--muted); font-size: 1rem; margin: 0; max-width: 46ch; }
   .cta-large { display: none; }
   /* Tablette et ordinateur : la photo du club en fond du bloc de présentation */
   @media (min-width: 900px) {
     .intro { position: relative; display: flex; flex-direction: column; justify-content: flex-end; padding: 28px; border-radius: var(--radius); color: #fff; overflow: hidden; isolation: isolate;
-      background: linear-gradient(180deg, rgba(10,18,31,.05) 20%, rgba(10,18,31,.88) 100%), var(--img) center / cover no-repeat, var(--ink); min-height: 100%; }
-    .intro .eyebrow { color: #ffc59e; }
+      background: linear-gradient(180deg, rgba(10,10,14,.05) 20%, rgba(10,10,14,.88) 100%), var(--img) center / cover no-repeat, var(--ink); min-height: 100%; }
+    .intro .eyebrow { color: rgba(255,255,255,.75); }
     .intro h1 { color: #fff; }
     .accroche { color: rgba(255,255,255,.88); }
     .cta-large { display: flex; margin-top: 18px; }
@@ -97,34 +97,38 @@ const tel = `tel:${club.telephone.replace(/\s/g, '')}`;
   .btn-clair:hover { background: #fff; color: var(--ink); }
 
   .prix { display: grid; gap: 10px; align-content: start; }
-  .formule { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; }
+  /* Formules en filets, comme sur l'accueil : pas de boîte, de grands prix fins */
+  .prix { border-top: 1px solid var(--ink); gap: 0 !important; }
+  .formule { padding: 16px 0; border-bottom: 1px solid var(--line); }
   .f-tete { display: flex; justify-content: space-between; align-items: baseline; gap: 14px; }
   .multi .f-tete { align-items: center; }
-  .formule h2 { font-size: 1.15rem; margin: 0 0 2px; letter-spacing: -.01em; }
+  .formule h2 { font-size: 1.2rem; font-weight: 500; margin: 0 0 2px; letter-spacing: -.01em; }
   .formule p { margin: 0; color: var(--muted); font-size: .88rem; line-height: 1.4; }
   .montant { display: flex; align-items: baseline; gap: 8px; flex: none; text-align: right; }
-  .montant b, .tuiles b { font-family: var(--font-title); font-weight: 700; color: var(--accent-fonce); line-height: 1; }
-  .montant b { font-size: 1.75rem; }
+  .montant b, .tuiles b { font-family: var(--font-title); font-weight: 300; letter-spacing: -.04em; color: var(--ink); line-height: 1; font-variant-numeric: tabular-nums; }
+  .montant b { font-size: 2.2rem; }
   .montant span { font-size: .78rem !important; color: var(--muted); white-space: nowrap; order: -1; }
   .f-texte { margin-top: 4px !important; }
   .tuiles { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  .tuiles li { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border-radius: var(--radius); background: color-mix(in srgb, var(--accent) 8%, white); }
-  .tuiles b { font-size: 1.45rem; }
+  .tuiles li { display: flex; flex-direction: column; gap: 4px; padding: 4px 0 4px 12px; border-left: 1px solid var(--line); }
+  .tuiles b { font-size: 1.8rem; }
   .tuiles span { font-size: .82rem; color: var(--text); line-height: 1.25; }
   @media (min-width: 600px) { .tuiles { grid-template-columns: repeat(4, 1fr); } }
-  @media (min-width: 900px) { .formule { padding: 16px 20px; } .formule h2 { font-size: 1.3rem; } .formule p { font-size: .92rem; } .montant b { font-size: 2rem; } }
+  @media (min-width: 900px) { .formule { padding: 22px 0; } .formule h2 { font-size: 1.35rem; } .formule p { font-size: .92rem; } .montant b { font-size: 2.8rem; } }
   /* Petit téléphone : on va à l'essentiel pour que les trois formules tiennent à l'écran */
   @media (max-width: 599px) {
     .intro .eyebrow, .accroche { display: none; }
-    .intro h1 { font-size: 1.55rem; margin: 0; }
+    /* Téléphone : un bandeau photo court avec le titre, puis les prix tout de suite */
+    .intro { display: flex; align-items: flex-end; min-height: 128px; padding: 16px; border-radius: var(--radius); background: linear-gradient(180deg, rgba(10,10,14,.05) 10%, rgba(10,10,14,.78) 100%), var(--img) center / cover no-repeat, var(--nuit); }
+    .intro h1 { font-size: 1.7rem; margin: 0; color: #fff; }
     .offre { padding: 8px 0 20px; }
     .offre-grid { gap: 12px; }
     .prix { gap: 8px; }
-    .formule { padding: 12px 14px; border-radius: var(--radius); }
-    .montant b { font-size: 1.5rem; }
+    .formule { padding: 12px 0; }
+    .montant b { font-size: 1.9rem; }
     .tuiles { gap: 6px; margin-top: 8px; }
-    .tuiles li { flex-direction: row; align-items: baseline; gap: 8px; padding: 8px 10px; }
-    .tuiles b { font-size: 1.2rem; flex: none; }
+    .tuiles li { flex-direction: row; align-items: baseline; gap: 8px; padding: 2px 0 2px 10px; }
+    .tuiles b { font-size: 1.5rem; flex: none; }
     .tuiles span { font-size: .78rem; }
   }
   /* Très petits téléphones (iPhone SE…) : prix au-dessus du libellé pour éviter les retours à la ligne */
@@ -133,10 +137,10 @@ const tel = `tel:${club.telephone.replace(/\s/g, '')}`;
     .montant span { display: none; }
     .formule h2 { font-size: 1.05rem; }
   }
-  .bandeau-cadeau { display: block; background: var(--ink); color: #fff; text-decoration: none; transition: background-color .2s; }
-  .bandeau-cadeau:hover { background: #17263d; color: #fff; }
+  .bandeau-cadeau { display: block; background: var(--nuit); color: #fff; text-decoration: none; transition: background-color .2s; }
+  .bandeau-cadeau:hover { background: #2a2620; color: #fff; }
   .bandeau-cadeau .container { display: flex; align-items: center; gap: 12px; padding-top: 10px; padding-bottom: 10px; }
-  .bandeau-cadeau :global(svg) { flex: none; width: 20px; height: 20px; color: #ffb48a; }
+  .bandeau-cadeau :global(svg) { flex: none; width: 20px; height: 20px; color: #ffb27a; }
   .bc-texte { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; min-width: 0; font-size: .92rem; }
   .bc-texte b { font-family: var(--font-title); font-weight: 600; font-size: 1.02rem; }
   .bc-detail { color: rgba(255,255,255,.75); }

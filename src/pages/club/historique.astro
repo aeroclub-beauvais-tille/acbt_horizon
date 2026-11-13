@@ -15,7 +15,7 @@ import pages from '../../data/pages.json';
           <li data-reveal>
             <span class="annee">{e.annee}</span>
             <div class="contenu">
-              <h2>{e.titre}</h2>
+              <h2 data-sans-italique>{e.titre}</h2>
               <p>{e.texte}</p>
               {e.photos.length > 0 && (
                 <div class="gallery" data-stagger>{e.photos.map((p) => <a href={asset(p)} target="_blank"><img {...photo(p, '(min-width: 700px) 25vw, 50vw')} alt={`${e.titre}, ${e.annee}`} loading="lazy" /></a>)}</div>
@@ -28,17 +28,16 @@ import pages from '../../data/pages.json';
   </section>
 </Base>
 <style>
-  .contenu h2 { font-size: 1.3rem; }
-  .frise { list-style: none; padding: 0; margin: 0; position: relative; }
-  .frise::before { content: ''; position: absolute; left: 88px; top: 8px; bottom: 8px; width: 3px; border-radius: 3px; background: color-mix(in srgb, var(--accent, var(--sun)) 35%, var(--line)); }
-  .frise li { display: grid; grid-template-columns: 76px 1fr; gap: 36px; padding-bottom: 44px; position: relative; }
-  .frise li::before { content: ''; position: absolute; left: 82px; top: 8px; width: 15px; height: 15px; border-radius: 50%; background: var(--sun); border: 3px solid #fff; box-shadow: 0 0 0 2px var(--sun); }
-  .annee { font-family: var(--font-title); font-weight: 700; color: var(--ink); text-align: right; font-size: 1.05rem; padding-top: 2px; }
+  /* Frise : de grandes années en italique dans la marge, un filet par époque */
+  .frise { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--ink); }
+  .frise li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2.4fr); gap: clamp(20px, 5vw, 80px); padding: clamp(28px, 4vw, 52px) 0; border-bottom: 1px solid var(--line); }
+  .annee { font-family: var(--font-serif); font-style: italic; font-size: clamp(3.4rem, 8vw, 7rem); line-height: .9; color: var(--accent); letter-spacing: -.02em; }
   .contenu { max-width: 760px; }
+  .contenu h2 { font-size: clamp(1.6rem, 2.8vw, 2.4rem); margin-bottom: .45em; }
+  .contenu p { color: var(--muted); }
+  .gallery { margin-top: 20px; }
   @media (max-width: 640px) {
-    .frise::before { left: 6px; }
-    .frise li { grid-template-columns: 1fr; gap: 4px; padding-left: 30px; }
-    .frise li::before { left: 0; }
-    .annee { text-align: left; }
+    .frise li { grid-template-columns: 1fr; gap: 10px; }
+    .annee { font-size: 3.6rem; }
   }
 </style>

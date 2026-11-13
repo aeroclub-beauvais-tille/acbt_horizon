@@ -52,6 +52,19 @@ const partage = new URL(asset(image || '/partage.jpg'), Astro.site).href;
   <body data-univers={univers}>
     <Header><slot name="entete" slot="actions" /></Header>
     <main><slot /></main>
+    <script is:inline>
+      // Signature typographique d'Horizon : la fin de chaque grand titre en italique (comme sur l'accueil).
+      // Ne touche pas aux titres qui ont déjà leur italique ni à l'espace membre.
+      if (document.body.dataset.univers !== 'membres') document.querySelectorAll('main h1, main h2').forEach(function (h) {
+        if (h.querySelector('*') || h.closest('[data-sans-italique]')) return;
+        var m = h.textContent.trim().split(/\s+/);
+        if (m.length < 2) return;
+        var n = /^[?!:;.»]+$/.test(m[m.length - 1]) || m[m.length - 1].length <= 2 ? 2 : 1;
+        if (m.length - n < 1) return;
+        h.textContent = m.slice(0, -n).join(' ') + ' ';
+        var em = document.createElement('em'); em.textContent = m.slice(-n).join(' '); h.appendChild(em);
+      });
+    </script>
     <Footer />
     <script>import '../scripts/motion';</script>
   </body>

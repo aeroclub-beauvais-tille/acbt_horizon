@@ -9,34 +9,35 @@ import pages from '../../data/pages.json';
 ---
 <Base univers="voler" title="La flotte" description="Les avions de l'aéroclub de Beauvais-Tillé : Robin DR400, DR300 et Jodel D120.">
   <PageHead eyebrow="Notre flotte" image={pages.flotte.image} title={pages.flotte.titre.replace('{nombre}', String(avions.length))} lead={pages.flotte.texte} />
-  <section class="section">
-    <div class="container flotte" data-stagger>
-      {avions.map((a, i) => {
-        return (
-          <article class="avion" id={a.id}>
-            <div class="photo">
-              {a.data.photos[0] && <img class="main" {...photo(a.data.photos[0], '(min-width: 1100px) 33vw, (min-width: 640px) 50vw, 100vw')} alt={a.data.nom} loading={i < 3 ? 'eager' : 'lazy'} />}
-              {a.data.immatriculation && <span class="immat">{a.data.immatriculation}</span>}
-            </div>
+  <section class="flotte" aria-label="Les avions">
+    {avions.map((a, i) => (
+      <article class="avion" id={a.id}>
+        <div class="a-tete">
+          <span class="a-num">{String(i + 1).padStart(2, '0')} / {String(avions.length).padStart(2, '0')}</span>
+          {a.data.usage && <span class="a-usage">{a.data.usage}</span>}
+        </div>
+        {a.data.immatriculation && <p class="immat" data-split aria-hidden="true">{a.data.immatriculation}</p>}
+        <div class="a-grille">
+          <div class="a-photo" data-clip>
+            {a.data.photos[0] && <img {...photo(a.data.photos[0], '(min-width: 900px) 60vw, 100vw')} alt={a.data.nom} loading={i < 2 ? 'eager' : 'lazy'} />}
+          </div>
+          <div class="a-infos">
+            <h2 data-sans-italique>{a.data.nom}</h2>
+            <dl class="fiche">
+              {a.data.immatriculation && <div><dt>Immatriculation</dt><dd>{a.data.immatriculation}</dd></div>}
+              {a.data.puissance && <div><dt>Puissance</dt><dd>{a.data.puissance} ch</dd></div>}
+              {a.data.places && <div><dt>Places</dt><dd>{a.data.places}</dd></div>}
+            </dl>
+            {a.data.description && <p class="desc">{a.data.description}</p>}
             {a.data.photos.length > 1 && (
               <div class="vignettes">
-                {a.data.photos.slice(1, 4).map((p) => <a href={asset(p)} target="_blank" aria-label={`Photo de ${a.data.nom}`}><img {...photo(p, '160px')} alt="" loading="lazy" /></a>)}
+                {a.data.photos.slice(1, 4).map((p) => <a href={asset(p)} target="_blank" aria-label={`Photo de ${a.data.nom}`}><img {...photo(p, '200px')} alt="" loading="lazy" /></a>)}
               </div>
             )}
-            <div class="infos">
-              {a.data.usage && <span class="eyebrow">{a.data.usage}</span>}
-              <h2>{a.data.nom}</h2>
-              <ul class="puces">
-                {a.data.puissance && <li>{a.data.puissance} ch</li>}
-                {a.data.places && <li>{a.data.places} places</li>}
-                <li>{a.data.type}</li>
-              </ul>
-              {a.data.description && <p>{a.data.description}</p>}
-            </div>
-          </article>
-        );
-      })}
-    </div>
+          </div>
+        </div>
+      </article>
+    ))}
   </section>
   <section class="section">
     <div class="container" style="text-align:center">
@@ -46,39 +47,40 @@ import pages from '../../data/pages.json';
   </section>
 </Base>
 <style>
-  /* Une grille de cartes : 3 avions par ligne sur ordinateur, 2 sur tablette, 1 sur téléphone */
-  .flotte { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 330px), 1fr)); }
-  @media (min-width: 1100px) { .flotte { grid-template-columns: repeat(3, 1fr); } }
-  .avion { display: flex; flex-direction: column; background: #fff; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; scroll-margin-top: 80px; }
-  .photo { position: relative; aspect-ratio: 3 / 2; overflow: hidden; }
-  .main { width: 100%; height: 100%; object-fit: cover; }
-  .immat { position: absolute; left: 14px; bottom: 14px; background: var(--ink); color: #fff; font-family: var(--font-title); font-weight: 600; letter-spacing: .05em; padding: 4px 12px; border-radius: var(--radius); }
-  .vignettes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; }
+  /* Un avion = un chapitre : son immatriculation en très grand, une grande photo, une fiche en filets */
+  .flotte { padding: clamp(24px, 4vw, 56px) 0 0; }
+  .avion { width: min(var(--max), 100% - 2 * clamp(20px, 4vw, 56px)); margin: 0 auto; padding: clamp(32px, 5vw, 72px) 0; border-bottom: 1px solid var(--line); scroll-margin-top: 80px; }
+  .a-tete { display: flex; justify-content: space-between; gap: 16px; font-family: var(--font-title); font-size: .74rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); padding-bottom: 14px; border-bottom: 1px solid var(--ink); }
+  .immat { font-family: var(--font-title); font-weight: 200; font-size: clamp(4.2rem, 15vw, 13rem); letter-spacing: -.06em; line-height: .9; color: var(--ink); margin: clamp(18px, 3vw, 36px) 0 clamp(20px, 3vw, 40px); white-space: nowrap; }
+  .a-grille { display: grid; gap: clamp(24px, 4vw, 64px); grid-template-columns: 1.5fr 1fr; align-items: start; }
+  .avion:nth-child(even) .a-grille { grid-template-columns: 1fr 1.5fr; }
+  .avion:nth-child(even) .a-photo { order: 2; }
+  .a-photo { border-radius: var(--radius); overflow: hidden; aspect-ratio: 4 / 3; background: var(--paper-2); }
+  .a-photo img { width: 100%; height: 100%; object-fit: cover; }
+  .a-infos h2 { font-size: clamp(1.9rem, 3.2vw, 3rem); margin: 0 0 24px; }
+  .fiche { margin: 0 0 24px; border-top: 1px solid var(--line); }
+  .fiche div { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .fiche dt { color: var(--muted); font-size: .9rem; }
+  .fiche dd { margin: 0; font-family: var(--font-title); font-size: 1.05rem; color: var(--ink); text-align: right; }
+  .desc { color: var(--muted); max-width: 46ch; }
+  .vignettes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 24px; }
   .vignettes a { display: block; border-radius: var(--radius); overflow: hidden; }
-  .vignettes img { aspect-ratio: 4 / 3; width: 100%; object-fit: cover; transition: transform .3s; }
+  .vignettes img { aspect-ratio: 1; width: 100%; object-fit: cover; transition: transform .8s cubic-bezier(.2,.7,.2,1); }
   .vignettes a:hover img { transform: scale(1.06); }
-  .infos { display: flex; flex-direction: column; padding: 16px 20px 20px; flex: 1; }
-  .infos .eyebrow { margin-bottom: .4em; color: var(--accent-fonce); }
-  .infos h2 { font-size: 1.35rem; margin: 0 0 10px; }
-  .puces { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 0 12px; padding: 0; }
-  .puces li { font-size: .8rem; padding: 3px 10px; border-radius: 999px; background: var(--paper); color: var(--text); }
-  .infos p { margin: 0 0 14px; color: var(--muted); font-size: .93rem; }
-  /* Mêmes cases « Solo » / « Double commande » que sur la page Tarifs */
-  /* Téléphone : une carte avion entière tient dans l'écran, sans défiler */
+  @media (max-width: 899px) {
+    .a-grille, .avion:nth-child(even) .a-grille { grid-template-columns: 1fr; }
+    .avion:nth-child(even) .a-photo { order: 0; }
+  }
+  /* Téléphone : un avion par écran, le défilement s'arrête sur chacun */
   @media (max-width: 599px) {
-    /* Un avion par écran : la carte prend toute la hauteur visible sous le bandeau, et le défilement s'arrête sur chaque avion */
     :global(html) { scroll-snap-type: y proximity; }
-    .flotte { gap: 16px; }
-    .avion { height: calc(100svh - 60px - 24px); min-height: 440px; scroll-snap-align: start; scroll-margin-top: 72px; }
-    .photo { aspect-ratio: auto; flex: 1 1 auto; min-height: 150px; }
-    .immat { left: 10px; bottom: 10px; font-size: .9rem; padding: 3px 10px; }
-    .vignettes { gap: 3px; padding: 3px; }
-    .vignettes img { aspect-ratio: 16 / 9; }
-    .infos { padding: 10px 14px 14px; flex: none; }
-    .infos .eyebrow { display: none; }
-    .infos h2 { font-size: 1.15rem; margin-bottom: 6px; }
-    .puces { margin-bottom: 8px; }
-    .puces li:last-child { display: none; }
-    .infos p { font-size: .86rem; line-height: 1.45; margin-bottom: 10px; }
+    .avion { min-height: calc(100svh - 76px); padding: 20px 0 28px; scroll-snap-align: start; scroll-margin-top: 76px; }
+    .immat { font-size: 21vw; margin: 14px 0 16px; }
+    .a-photo { aspect-ratio: 4 / 3; }
+    .a-infos h2 { font-size: 1.7rem; margin-bottom: 14px; }
+    .fiche div { padding: 9px 0; }
+    
+    .desc { font-size: .95rem; margin-bottom: 0; }
+    .vignettes { gap: 6px; margin-top: 16px; }
   }
 </style>

@@ -62,12 +62,15 @@ p { margin: 0 0 1em; }
 .grid-4 { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
 
 /* Cartes : pas d'ombre ni de flottement, juste un filet ; la photo s'approche au survol */
-.card { background: var(--white); border-radius: var(--radius); overflow: hidden; display: flex; flex-direction: column; border: 1px solid var(--line); }
+.card { background: transparent; overflow: hidden; display: flex; flex-direction: column; border-top: 1px solid var(--ink); }
+.card:has(> img.cover), .card:has(> a > img.cover) { border-top: 0; }
+.card img.cover { border-radius: var(--radius); }
 a.card, .card a.stretched { color: inherit; text-decoration: none; }
 .card img.cover { aspect-ratio: 3 / 2; object-fit: cover; width: 100%; transition: transform .9s cubic-bezier(.2,.7,.2,1); }
 a.card:hover img.cover, .card:has(a.stretched:hover) img.cover { transform: scale(1.04); }
 a.card:hover h3, .card:has(a.stretched:hover) h3 { color: var(--accent-fonce); }
-.card-body { padding: 22px 22px 24px; flex: 1; display: flex; flex-direction: column; }
+.card-body { padding: 22px 0 8px; flex: 1; display: flex; flex-direction: column; }
+.card h3 { font-size: clamp(1.4rem, 2.2vw, 1.8rem); font-weight: 300; letter-spacing: -.03em; }
 .card-body > :last-child { margin-bottom: 0; }
 .tag { display: inline-block; align-self: flex-start; font-family: var(--font-title); font-size: .7rem; font-weight: 500; letter-spacing: .12em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
 .meta { color: var(--muted); font-size: .88rem; }
@@ -138,3 +141,9 @@ html.lenis, html.lenis body { height: auto; }
 @media (prefers-reduced-motion: reduce) { .marquee .piste { flex-wrap: wrap; width: auto; } }
 
 main { overflow-x: clip; }
+
+/* Formulaires : champs soulignés, sans boîte */
+.formulaire label { display: flex; flex-direction: column; gap: 6px; font-family: var(--font-title); font-size: .74rem; font-weight: 500; text-transform: uppercase; letter-spacing: .14em; color: var(--muted); margin-bottom: 22px; }
+.formulaire input:not([type=checkbox]):not([type=radio]), .formulaire select, .formulaire textarea { font: inherit; font-family: var(--font-body); font-size: 1.05rem; text-transform: none; letter-spacing: 0; color: var(--ink); background: transparent; border: 0; border-bottom: 1px solid var(--ink); border-radius: 0; padding: 10px 0; transition: border-color .2s; }
+.formulaire input:focus, .formulaire select:focus, .formulaire textarea:focus { outline: none; border-bottom-color: var(--accent); box-shadow: 0 1px 0 var(--accent); }
+.formulaire textarea { resize: vertical; }
