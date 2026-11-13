@@ -131,13 +131,19 @@ const aidesMax = t.objectif_pilote?.intro.match(/([\d\s]+)\s*€/)?.[1]?.trim();
       <div><div class="label">La flotte</div><h2 data-split>{avions.length} avions, <em>une famille.</em></h2></div>
       <a class="btn btn-outline" href={url('/club/flotte')}>Voir la flotte</a>
     </div>
-    <div class="rail" data-stagger>
+    <div class="rail" id="rail" data-stagger>
       {avions.map((a) => (
         <a class="avion" href={url('/club/flotte')}>
-          <div class="a-photo"><img {...photo(a.data.photos[0], '(min-width: 900px) 25vw, 76vw')} alt="" loading="lazy" /></div>
+          <div class="a-photo"><img {...photo(a.data.photos[0], '(min-width: 900px) 25vw, 90vw')} alt="" loading="lazy" /></div>
           <div class="a-nom"><strong>{a.data.immatriculation}</strong><span>{a.data.nom}</span></div>
         </a>
       ))}
+    </div>
+    <div class="rail-nav" id="rail-nav" hidden>
+      <button type="button" class="rn-btn" data-dir="-1" aria-label="Avion précédent">←</button>
+      <div class="rn-points">{avions.map((a, i) => <button type="button" class:list={['rn-point', { on: i === 0 }]} aria-label={`Voir ${a.data.immatriculation}`} />)}</div>
+      <span class="rn-compte"><b id="rn-n">1</b> / {avions.length}<span class="rn-aide"> · glissez pour voir les autres</span></span>
+      <button type="button" class="rn-btn" data-dir="1" aria-label="Avion suivant">→</button>
     </div>
   </section>
 </Base>
@@ -178,6 +184,30 @@ const aidesMax = t.objectif_pilote?.intro.match(/([\d\s]+)\s*€/)?.[1]?.trim();
       calc();
     }));
     calc();
+  }
+  // Flotte : sur téléphone un avion par écran ; points, flèches et compteur pour inviter à glisser
+  const rail = document.getElementById('rail');
+  const nav = document.getElementById('rail-nav');
+  if (rail && nav) {
+    const cartes = [...rail.children] as HTMLElement[];
+    const points = [...nav.querySelectorAll<HTMLButtonElement>('.rn-point')];
+    const n = document.getElementById('rn-n')!;
+    const pas = () => (cartes[1] ? cartes[1].offsetLeft - cartes[0].offsetLeft : rail.clientWidth);
+    const actuel = () => Math.round(rail.scrollLeft / pas());
+    const maj = () => {
+      nav.hidden = rail.scrollWidth <= rail.clientWidth + 4;
+      const k = Math.min(actuel(), cartes.length - 1);
+      points.forEach((p, i) => p.classList.toggle('on', i === k));
+      n.textContent = String(k + 1);
+      nav.querySelector<HTMLButtonElement>('[data-dir="-1"]')!.disabled = k === 0;
+      nav.querySelector<HTMLButtonElement>('[data-dir="1"]')!.disabled = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
+    };
+    const aller = (k: number) => rail.scrollTo({ left: k * pas(), behavior: 'smooth' });
+    nav.querySelectorAll<HTMLButtonElement>('.rn-btn').forEach((b) => b.addEventListener('click', () => aller(actuel() + Number(b.dataset.dir))));
+    points.forEach((p, i) => p.addEventListener('click', () => aller(i)));
+    rail.addEventListener('scroll', maj, { passive: true });
+    addEventListener('resize', maj);
+    maj();
   }
 </script>
 
@@ -257,6 +287,18 @@ const aidesMax = t.objectif_pilote?.intro.match(/([\d\s]+)\s*€/)?.[1]?.trim();
   .f-tete h2 { margin: 0; }
   .rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 1fr); gap: 16px; padding: 0 clamp(20px, 4vw, 56px); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
   .rail::-webkit-scrollbar { display: none; }
+  .rail { scroll-padding-inline: clamp(20px, 4vw, 56px); }
+  .rail-nav { display: flex; align-items: center; gap: 14px; padding: 22px clamp(20px, 4vw, 56px) 0; }
+  .rail-nav[hidden] { display: none; }
+  .rn-btn { width: 46px; height: 46px; flex: none; border-radius: 50%; border: 1px solid var(--ink); background: none; color: var(--ink); font-size: 1.1rem; cursor: pointer; transition: background-color .2s, color .2s, opacity .2s; }
+  .rn-btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
+  .rn-btn:disabled { opacity: .3; cursor: default; }
+  .rn-btn:focus-visible, .rn-point:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+  .rn-points { display: flex; gap: 8px; }
+  .rn-point { width: 8px; height: 8px; padding: 0; border-radius: 4px; border: 0; background: var(--line); cursor: pointer; transition: width .3s, background-color .3s; }
+  .rn-point.on { width: 26px; background: var(--ink); }
+  .rn-compte { margin-right: auto; font-family: var(--font-title); font-size: .9rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .rn-compte b { color: var(--ink); font-weight: 500; }
   .avion { display: grid; gap: 14px; text-decoration: none; color: inherit; scroll-snap-align: start; }
   .a-photo { aspect-ratio: 3 / 4; border-radius: var(--radius); overflow: hidden; }
   .a-photo img { transition: transform .9s cubic-bezier(.2,.7,.2,1); }
@@ -280,9 +322,18 @@ const aidesMax = t.objectif_pilote?.intro.match(/([\d\s]+)\s*€/)?.[1]?.trim();
     .etapes li { padding: 0 0 22px 24px; }
     .etapes li::before { top: 6px; left: -4px; }
     .p-photo { min-height: 0; aspect-ratio: 4 / 3; }
-    .rail { grid-auto-columns: 76%; }
+    .rail { grid-auto-columns: 100%; gap: 40px; }
+    .a-photo { aspect-ratio: 4 / 5; max-height: 58vh; }
+    .a-nom { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .a-nom strong { white-space: nowrap; font-size: 2.2rem; }
+    .a-nom span { text-align: left; }
   }
+  @media (min-width: 561px) { .rn-aide { display: none; } }
   @media (max-width: 560px) {
+    .rail-nav { flex-wrap: wrap; justify-content: space-between; }
+    .rn-points { order: 1; }
+    .rn-compte { order: 4; flex-basis: 100%; margin: 0; text-align: center; }
+    .rn-btn[data-dir='1'] { order: 2; }
     .formules small { display: none; }
     .bapteme .btns .btn, .m-pied .btn { flex: 1 1 auto; justify-content: center; }
   }
