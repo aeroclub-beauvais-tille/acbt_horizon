@@ -174,9 +174,10 @@ const aidesMax = t.objectif_pilote?.intro.match(/([\d\s]+)\s*€/)?.[1]?.trim();
       const [hd, hs] = d.licences[etat.licence];
       const j = etat.age === 'jeune';
       const n = hd * d.double + hs * d.solo + (j ? d.adh.jeune : d.adh.adulte) + d.fournitures - (j ? d.aides : 0);
-      total.textContent = `${(Math.round(n / 50) * 50).toLocaleString('fr-FR')} €`;
-      const mois = Math.ceil((hd + hs) / d.rythmes[etat.rythme]);
-      detail.textContent = `environ ${mois} mois · ${hd + hs} h de vol${j ? ` · ${d.aides.toLocaleString('fr-FR')} € d'aides déduites` : ''}`;
+      // Montant mis en avant : la dépense par mois ; le total reste indiqué en dessous.
+      const mois = Math.max(1, Math.ceil((hd + hs) / d.rythmes[etat.rythme]));
+      total.innerHTML = `${(Math.round(n / mois / 5) * 5).toLocaleString('fr-FR')} €<small> / mois</small>`;
+      detail.textContent = `pendant ${mois} mois, soit ${(Math.round(n / 50) * 50).toLocaleString('fr-FR')} € au total · ${hd + hs} h de vol${j ? ` · ${d.aides.toLocaleString('fr-FR')} € d'aides déduites` : ''}`;
     };
     box.querySelectorAll<HTMLButtonElement>('.seg button').forEach((b) => b.addEventListener('click', () => {
       box.querySelectorAll<HTMLButtonElement>(`[data-q="${b.dataset.q}"]`).forEach((x) => x.classList.toggle('on', x === b));
@@ -277,6 +278,7 @@ const aidesMax = t.objectif_pilote?.intro.match(/([\d\s]+)\s*€/)?.[1]?.trim();
   .seg button:focus-visible { outline: 2px solid #ffb27a; outline-offset: 2px; }
   .m-pied { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.12); }
   .m-pied small { display: block; color: #9a968c; font-size: .82rem; }
+  .m-total :global(small) { font-size: .4em; letter-spacing: 0; font-weight: 500; color: inherit; opacity: .8; }
   .m-total { display: block; font-family: var(--font-title); font-weight: 300; font-size: clamp(2.8rem, 4.6vw, 4rem); letter-spacing: -.045em; line-height: 1.05; color: #ffc58f; font-variant-numeric: tabular-nums; }
   .m-detail { margin: 2px 0 0; font-size: .84rem; color: #a9a59b; }
   .m-note { margin: 0; font-size: .84rem; color: #8d897f; }
