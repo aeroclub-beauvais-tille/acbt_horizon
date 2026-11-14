@@ -6,9 +6,7 @@ import { getCollection } from 'astro:content';
 import club from '../data/club.json';
 import pages from '../data/pages.json';
 import t from '../data/tarifs.json';
-import f from '../data/formations.json';
-import s from '../data/simulateur.json';
-import { url, asset, tarifEnVigueur } from '../lib/utils';
+import { url, asset, dateFr } from '../lib/utils';
 
 const avions = (await getCollection('avions', (a) => a.data.actif)).sort((a, b) => a.data.ordre - b.data.ordre);
 const annees = new Date().getFullYear() - 1979;
@@ -20,26 +18,18 @@ const italique = (txt: string, n = 1) => {
   return { debut: m.slice(0, -n).join(' '), fin: m.slice(-n).join(' ') };
 };
 const h1 = italique(pg.titre);
-const hB = italique(pg.bapteme.titre, 2);
-const hF = italique(pg.formation.titre, 2);
 const nf = (x: number) => x.toLocaleString('fr-FR');
 
-// Mini simulateur de l'accueil : mêmes données que le simulateur complet de la page « Devenir pilote ».
-const ecole = avions.map((a) => ({ a, t: tarifEnVigueur(a.data.tarifs).actuel })).find((x) => x.t?.prix_instruction);
-const ad = t.adhesion;
-const jeune = ad.colonnes.find((c) => /moins/i.test(c.public) && c.mise_en_avant) ?? ad.colonnes[0];
-const adulte = ad.colonnes.find((c) => !/moins/i.test(c.public)) ?? ad.colonnes[ad.colonnes.length - 1];
-const aide = (cle: string) => t.objectif_pilote?.lignes.find((l) => l.simulateur === cle)?.montant ?? 0;
-const mini = {
-  double: ecole?.t?.prix_instruction ?? 0,
-  solo: ecole?.t?.prix_heure ?? 0,
-  adh: { jeune: jeune.cotisation_acbt + ad.cotisation_ffa, adulte: adulte.cotisation_acbt + ad.cotisation_ffa },
-  fournitures: t.divers.filter((d) => d.simulateur).reduce((n, d) => n + (parseFloat(String(d.prix).replace(/\s/g, '').replace(',', '.')) || 0), 0),
-  aides: aide('lacher') + aide('licence'),
-  licences: Object.fromEntries(s.licences.map((l) => [l.code, [l.heures_double, l.heures_solo]])),
-  rythmes: Object.fromEntries(s.rythmes.map((r) => [r.libelle, r.heures_par_mois])),
-};
-const aidesMax = t.objectif_pilote?.intro.match(/([\d\s]+)\s*€/)?.[1]?.trim();
+// L'accueil est un sommaire : chaque rubrique du site y a un seul chapitre, qui renvoie vers sa page.
+// Le détail (prix, simulateur, fiches avions) ne figure que sur la page concernée.
+const prixMin = Math.min(...t.formules.flatMap((x) => x.prix.map((p) => p.prix)));
+const chapitres = [
+  { rubrique: "Baptême de l'air", titre: italique(pg.bapteme.titre, 2), texte: pg.bapteme.texte, fait: `Dès ${nf(prixMin)} €`, lien: 'Les formules et les prix', href: '/decouvrir-le-vol', image: pg.bapteme.image },
+  { rubrique: 'Devenir pilote', titre: italique(pg.formation.titre, 2), texte: pg.formation.texte, fait: 'Votre budget en une minute', lien: 'Le parcours et le simulateur', href: '/formations', image: pg.formation.image },
+  { rubrique: 'La flotte', titre: italique('Du premier vol au voyage', 2), texte: pages.flotte.texte, fait: `${avions.length} avions`, lien: 'Découvrir les avions', href: '/club/flotte', image: pages.flotte.image },
+  { rubrique: 'Le club', titre: italique('Une histoire commencée en 1979', 2), texte: pages.club.texte.replace('{fondation}', club.fondation), fait: 'Association loi 1901', lien: 'Le club, son histoire, ses actualités', href: '/club', image: pages.club.image },
+];
+const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
 ---
 <Base title="Accueil">
   <script slot="head" type="application/ld+json" set:html={JSON.stringify({
@@ -82,68 +72,41 @@ const aidesMax = t.objectif_pilote?.intro.match(/([\d\s]+)\s*€/)?.[1]?.trim();
     </div>
   </section>
 
-  <section class="bapteme" id="bapteme">
-    <div class="b-photo" data-clip><img {...photo(pg.bapteme.image, '(min-width: 900px) 55vw, 100vw')} alt="" loading="lazy" /></div>
-    <div class="bloc">
-      <div class="label">Baptême de l'air</div>
-      <h2 data-split>{hB.debut} <em>{hB.fin}</em></h2>
-      <p class="lead" data-reveal>{pg.bapteme.texte}</p>
-      <ul class="formules" data-stagger>
-        {t.formules.map((x) => (
-          <li><b>{x.titre}</b><small>{x.texte}</small><strong>{x.prix.length > 1 && <i>dès</i>}{nf(Math.min(...x.prix.map((p) => p.prix)))} €</strong></li>
-        ))}
-      </ul>
-      <div class="btns">
-        <a class="btn btn-primary" href={url('/contact?objet=Baptême')}>Réserver mon vol</a>
-        <a class="btn btn-outline" href={url('/contact?objet=Bon cadeau')}>Offrir un bon cadeau</a>
-      </div>
-    </div>
-  </section>
-
-  <section class="pilote dark" id="pilote">
-    <div class="label">Devenir pilote</div>
-    <div class="p-haut">
-      <h2 data-split>{hF.debut} <em>{hF.fin}</em></h2>
-      <p class="lead" data-reveal>{pg.formation.texte}</p>
-    </div>
-    <ol class="etapes" data-stagger>
-      {f.parcours.map((e, i) => <li><span>{String(i + 1).padStart(2, '0')}</span>{e.titre}</li>)}
-    </ol>
-    <div class="p-bas">
-      <div class="p-photo" data-clip><img {...photo(pg.formation.image, '(min-width: 900px) 45vw, 100vw')} alt="" loading="lazy" /></div>
-      <div class="mini" data-mini={JSON.stringify(mini)}>
-        <div class="label">Simulateur</div>
-        <h3>{s.titre}</h3>
-        <div class="q"><span>Votre âge</span><div class="seg"><button type="button" data-q="age" data-v="jeune" class="on">Moins de 21 ans</button><button type="button" data-q="age" data-v="adulte">21 ans et plus</button></div></div>
-        <div class="q"><span>La licence visée</span><div class="seg">{s.licences.map((l, i) => <button type="button" data-q="licence" data-v={l.code} class:list={{ on: i === s.licences.length - 1 }}>{l.nom}</button>)}</div></div>
-        <div class="q"><span>Votre rythme</span><div class="seg">{s.rythmes.map((r, i) => <button type="button" data-q="rythme" data-v={r.libelle} class:list={{ on: i === 1 }}>{r.libelle}</button>)}</div></div>
-        <div class="m-pied">
-          <div><small>Budget estimé</small><strong class="m-total">—</strong><p class="m-detail"></p></div>
-          <a class="btn btn-primary" href={url('/formations#simulateur')}>Le calcul détaillé</a>
+  <section class="sommaire" aria-label="Sommaire du site">
+    <div class="label">Au sommaire</div>
+    {chapitres.map((c, i) => (
+      <a class="chap" href={url(c.href)}>
+        <div class="c-tete"><span class="c-num">0{i + 1}</span><span class="c-rub">{c.rubrique}</span><span class="c-fait">{c.fait}</span></div>
+        <div class="c-corps">
+          <div class="c-txt">
+            <h2 data-split>{c.titre.debut} <em>{c.titre.fin}</em></h2>
+            <p>{c.texte}</p>
+            <span class="c-lien">{c.lien}</span>
+          </div>
+          <div class="c-photo" data-clip><img {...photo(c.image, '(min-width: 900px) 50vw, 100vw')} alt="" loading="lazy" /></div>
         </div>
-        {aidesMax && <p class="m-note">Moins de 21 ans : jusqu'à {aidesMax} € d'aides de la Fédération au fil des étapes.</p>}
-      </div>
-    </div>
+      </a>
+    ))}
   </section>
 
-  <section class="flotte" id="flotte">
-    <div class="f-tete">
-      <div><div class="label">La flotte</div><h2 data-split>Du premier vol <em>au voyage.</em></h2></div>
-      <a class="btn btn-outline" href={url('/club/flotte')}>Voir la flotte</a>
+  <section class="journal dark">
+    <div class="j-tete">
+      <div><div class="label">La vie du club</div><h2 data-split>Dernières <em>nouvelles.</em></h2></div>
+      <a class="btn btn-outline" href={url('/actualites')}>Toutes les actualités</a>
     </div>
-    <div class="rail" id="rail" data-stagger>
-      {avions.map((a) => (
-        <a class="avion" href={url('/club/flotte')}>
-          <div class="a-photo"><img {...photo(a.data.photos[0], '(min-width: 900px) 25vw, 90vw')} alt="" loading="lazy" /></div>
-          <div class="a-nom"><strong>{a.data.immatriculation}</strong><span>{a.data.nom}</span></div>
-        </a>
+    <ol class="j-liste" data-stagger>
+      {actus.map((a) => (
+        <li><a href={url(`/actualites/${a.id}`)}><span class="j-date">{dateFr(a.data.date, { day: 'numeric', month: 'long', year: 'numeric' })}</span><span class="j-titre">{a.data.titre}</span></a></li>
       ))}
-    </div>
-    <div class="rail-nav" id="rail-nav" hidden>
-      <button type="button" class="rn-btn" data-dir="-1" aria-label="Avion précédent">←</button>
-      <div class="rn-points">{avions.map((a, i) => <button type="button" class:list={['rn-point', { on: i === 0 }]} aria-label={`Voir ${a.data.immatriculation}`} />)}</div>
-      <span class="rn-compte"><b id="rn-n">1</b> / {avions.length}<span class="rn-aide"> · glissez pour voir les autres</span></span>
-      <button type="button" class="rn-btn" data-dir="1" aria-label="Avion suivant">→</button>
+    </ol>
+  </section>
+
+  <section class="venir">
+    <h2 data-split>On vous attend <em>au terrain.</em></h2>
+    <p>{club.adresse}</p>
+    <div class="btns">
+      <a class="btn btn-primary" href={url('/contact?objet=Baptême')}>Réserver un baptême</a>
+      <a class="btn btn-outline" href={url('/contact')}>Nous contacter</a>
     </div>
   </section>
 </Base>
@@ -163,53 +126,6 @@ const aidesMax = t.objectif_pilote?.intro.match(/([\d\s]+)\s*€/)?.[1]?.trim();
     }, 7000);
   }
 
-  // Mini simulateur : estimation immédiate, le détail est sur la page « Devenir pilote »
-  const box = document.querySelector<HTMLElement>('.mini');
-  if (box) {
-    const d = JSON.parse(box.dataset.mini!);
-    const etat: Record<string, string> = {};
-    box.querySelectorAll<HTMLButtonElement>('.seg button.on').forEach((b) => (etat[b.dataset.q!] = b.dataset.v!));
-    const total = box.querySelector('.m-total')!, detail = box.querySelector('.m-detail')!;
-    const calc = () => {
-      const [hd, hs] = d.licences[etat.licence];
-      const j = etat.age === 'jeune';
-      const n = hd * d.double + hs * d.solo + (j ? d.adh.jeune : d.adh.adulte) + d.fournitures - (j ? d.aides : 0);
-      // Montant mis en avant : la dépense par mois ; le total reste indiqué en dessous.
-      const mois = Math.max(1, Math.ceil((hd + hs) / d.rythmes[etat.rythme]));
-      total.innerHTML = `${(Math.round(n / mois / 5) * 5).toLocaleString('fr-FR')} €<small> / mois</small>`;
-      detail.textContent = `pendant ${mois} mois, soit ${(Math.round(n / 50) * 50).toLocaleString('fr-FR')} € au total · ${hd + hs} h de vol${j ? ` · ${d.aides.toLocaleString('fr-FR')} € d'aides déduites` : ''}`;
-    };
-    box.querySelectorAll<HTMLButtonElement>('.seg button').forEach((b) => b.addEventListener('click', () => {
-      box.querySelectorAll<HTMLButtonElement>(`[data-q="${b.dataset.q}"]`).forEach((x) => x.classList.toggle('on', x === b));
-      etat[b.dataset.q!] = b.dataset.v!;
-      calc();
-    }));
-    calc();
-  }
-  // Flotte : sur téléphone un avion par écran ; points, flèches et compteur pour inviter à glisser
-  const rail = document.getElementById('rail');
-  const nav = document.getElementById('rail-nav');
-  if (rail && nav) {
-    const cartes = [...rail.children] as HTMLElement[];
-    const points = [...nav.querySelectorAll<HTMLButtonElement>('.rn-point')];
-    const n = document.getElementById('rn-n')!;
-    const pas = () => (cartes[1] ? cartes[1].offsetLeft - cartes[0].offsetLeft : rail.clientWidth);
-    const actuel = () => Math.round(rail.scrollLeft / pas());
-    const maj = () => {
-      nav.hidden = rail.scrollWidth <= rail.clientWidth + 4;
-      const k = Math.min(actuel(), cartes.length - 1);
-      points.forEach((p, i) => p.classList.toggle('on', i === k));
-      n.textContent = String(k + 1);
-      nav.querySelector<HTMLButtonElement>('[data-dir="-1"]')!.disabled = k === 0;
-      nav.querySelector<HTMLButtonElement>('[data-dir="1"]')!.disabled = rail.scrollLeft + rail.clientWidth >= rail.scrollWidth - 4;
-    };
-    const aller = (k: number) => rail.scrollTo({ left: k * pas(), behavior: 'smooth' });
-    nav.querySelectorAll<HTMLButtonElement>('.rn-btn').forEach((b) => b.addEventListener('click', () => aller(actuel() + Number(b.dataset.dir))));
-    points.forEach((p, i) => p.addEventListener('click', () => aller(i)));
-    rail.addEventListener('scroll', maj, { passive: true });
-    addEventListener('resize', maj);
-    maj();
-  }
 </script>
 
 <style>
@@ -240,74 +156,41 @@ const aidesMax = t.objectif_pilote?.intro.match(/([\d\s]+)\s*€/)?.[1]?.trim();
   .chiffres strong { font-family: var(--font-title); font-weight: 300; font-size: clamp(2.8rem, 5.4vw, 5rem); letter-spacing: -.045em; line-height: 1; color: var(--ink); font-variant-numeric: tabular-nums; }
   .chiffres span { color: var(--muted); font-size: .92rem; max-width: 30ch; }
 
-  /* Baptême */
-  .bapteme { display: grid; grid-template-columns: 1.15fr 1fr; gap: clamp(32px, 5vw, 88px); padding: clamp(24px, 4vw, 48px) clamp(20px, 4vw, 56px) clamp(88px, 10vw, 150px); max-width: 1440px; margin: 0 auto; }
-  .b-photo { aspect-ratio: 4 / 5; border-radius: var(--radius); overflow: hidden; }
-  .b-photo img, .p-photo img, .a-photo img { width: 100%; height: 100%; object-fit: cover; }
-  .bloc { align-self: center; }
-  .bloc h2 { margin-bottom: .4em; }
-  .formules { list-style: none; margin: 36px 0 34px; padding: 0; border-top: 1px solid var(--line); }
-  .formules li { display: grid; grid-template-columns: 1fr auto; gap: 2px 20px; padding: 20px 0; border-bottom: 1px solid var(--line); }
-  .formules b { font-family: var(--font-title); font-weight: 500; font-size: 1.2rem; color: var(--ink); letter-spacing: -.01em; }
-  .formules small { grid-column: 1; color: var(--muted); font-size: .9rem; line-height: 1.4; }
-  .formules strong { grid-row: 1 / 3; grid-column: 2; align-self: center; font-family: var(--font-title); font-weight: 300; font-size: clamp(2rem, 3.2vw, 3rem); letter-spacing: -.04em; color: var(--ink); white-space: nowrap; font-variant-numeric: tabular-nums; }
-  .formules i { font-style: normal; font-size: .8rem; letter-spacing: .04em; color: var(--muted); margin-right: 6px; vertical-align: middle; }
+  /* Sommaire : un chapitre par rubrique, un filet, un numéro, une grande photo */
+  .sommaire { max-width: 1440px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 56px) clamp(64px, 8vw, 120px); }
+  .chap { display: block; padding: 22px 0 clamp(44px, 6vw, 88px); border-top: 1px solid var(--ink); color: inherit; text-decoration: none; }
+  .c-tete { display: grid; grid-template-columns: 4.5em 1fr auto; gap: 16px; align-items: baseline; font-family: var(--font-title); font-size: .74rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: clamp(24px, 4vw, 56px); }
+  .c-num { font-family: var(--font-serif); font-style: italic; font-size: 1.9rem; letter-spacing: 0; text-transform: none; color: var(--accent); line-height: 1; }
+  .c-rub { color: var(--ink); }
+  .c-corps { display: grid; grid-template-columns: 1fr 1.15fr; gap: clamp(28px, 5vw, 88px); align-items: end; }
+  .chap:nth-of-type(even) .c-txt { order: 2; }
+  .chap h2 { font-size: clamp(2.4rem, 5.2vw, 5.2rem); margin: 0 0 .35em; max-width: 12ch; transition: color .3s; }
+  .c-txt p { color: var(--muted); font-size: 1.08rem; max-width: 44ch; margin: 0 0 28px; }
+  .c-lien { display: inline-flex; align-items: center; gap: .6em; min-height: 48px; padding: 0 24px; border-radius: 999px; border: 1px solid var(--ink); font-family: var(--font-title); font-weight: 500; font-size: .98rem; color: var(--ink); transition: background-color .25s, color .25s; }
+  .c-lien::after { content: '→'; transition: transform .25s; }
+  .chap:hover .c-lien { background: var(--ink); color: var(--paper); }
+  .chap:hover .c-lien::after { transform: translateX(4px); }
+  .c-photo { aspect-ratio: 4 / 3; border-radius: var(--radius); overflow: hidden; }
+  .c-photo img { width: 100%; height: 100%; object-fit: cover; transition: transform 1.1s cubic-bezier(.2,.7,.2,1); }
+  .chap:hover .c-photo img { transform: scale(1.04); }
+  .chap:focus-visible { outline: 2px solid var(--accent); outline-offset: 6px; }
 
-  /* Devenir pilote, sur fond de nuit */
-  .pilote { background: var(--nuit); color: #b9b5aa; padding: clamp(88px, 10vw, 150px) clamp(20px, 4vw, 56px); }
-  .pilote :global(.label) { color: #9a968c; }
-  .p-haut { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 5vw, 88px); align-items: end; }
-  .pilote h2 { color: #f2ede4; font-size: clamp(2.8rem, 6.4vw, 6.4rem); margin: 0; }
-  .pilote .lead { color: #a9a59b; margin: 0; }
-  .etapes { list-style: none; display: grid; grid-template-columns: repeat(5, 1fr); margin: clamp(52px, 7vw, 96px) 0; padding: 0; border-top: 1px solid rgba(255,255,255,.16); }
-  .etapes li { position: relative; padding: 20px 18px 0 0; font-family: var(--font-title); font-size: 1.05rem; line-height: 1.25; color: #f2ede4; }
-  .etapes li::before { content: ''; position: absolute; top: -4px; left: 0; width: 7px; height: 7px; border-radius: 50%; background: #f2ede4; }
-  .etapes li:first-child::before { background: #ffb27a; box-shadow: 0 0 0 5px rgba(255,178,122,.2); }
-  .etapes span { display: block; color: #8d897f; font-size: .74rem; letter-spacing: .14em; margin-bottom: 8px; }
-  .p-bas { display: grid; grid-template-columns: 1fr 1.1fr; gap: clamp(16px, 2.4vw, 32px); }
-  .p-photo { border-radius: var(--radius); overflow: hidden; min-height: 460px; }
-  .mini { background: #1d222d; border-radius: var(--radius); padding: clamp(24px, 3vw, 44px); display: grid; gap: 22px; align-content: start; }
-  .mini :global(.label) { margin: 0; }
-  .mini h3 { color: #f2ede4; font-weight: 300; font-size: clamp(1.7rem, 2.6vw, 2.4rem); letter-spacing: -.03em; margin: 0; }
-  .q { display: grid; gap: 10px; }
-  .q > span { font-size: .82rem; color: #9a968c; }
-  .seg { display: flex; flex-wrap: wrap; gap: 8px; }
-  .seg button { min-height: 44px; padding: 0 18px; border-radius: 999px; border: 1px solid rgba(255,255,255,.22); background: none; color: #e9e5dc; font: inherit; font-family: var(--font-title); font-size: .95rem; cursor: pointer; transition: background-color .2s, color .2s; }
-  .seg button:hover { border-color: #e9e5dc; }
-  .seg button.on { background: #e9e5dc; color: var(--nuit); border-color: #e9e5dc; }
-  .seg button:focus-visible { outline: 2px solid #ffb27a; outline-offset: 2px; }
-  .m-pied { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; padding-top: 22px; border-top: 1px solid rgba(255,255,255,.12); }
-  .m-pied small { display: block; color: #9a968c; font-size: .82rem; }
-  .m-total :global(small) { font-size: .4em; letter-spacing: 0; font-weight: 500; color: inherit; opacity: .8; }
-  .m-total { display: block; font-family: var(--font-title); font-weight: 300; font-size: clamp(2.8rem, 4.6vw, 4rem); letter-spacing: -.045em; line-height: 1.05; color: #ffc58f; font-variant-numeric: tabular-nums; }
-  .m-detail { margin: 2px 0 0; font-size: .84rem; color: #a9a59b; }
-  .m-note { margin: 0; font-size: .84rem; color: #8d897f; }
+  /* Dernières nouvelles, sur fond de nuit */
+  .journal { background: var(--nuit); color: #b9b5aa; padding: clamp(72px, 9vw, 130px) clamp(20px, 4vw, 56px); }
+  .journal :global(.label) { color: #9a968c; }
+  .j-tete { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: clamp(32px, 4vw, 56px); }
+  .journal h2 { color: #f2ede4; margin: 0; }
+  .j-liste { list-style: none; margin: 0; padding: 0; border-top: 1px solid rgba(255,255,255,.16); }
+  .j-liste a { display: grid; grid-template-columns: 13em 1fr; gap: 24px; align-items: baseline; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,.16); color: inherit; text-decoration: none; }
+  .j-date { font-family: var(--font-title); font-size: .74rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: #8d897f; }
+  .j-titre { font-family: var(--font-title); font-weight: 300; font-size: clamp(1.2rem, 2.2vw, 1.9rem); letter-spacing: -.03em; line-height: 1.15; color: #f2ede4; transition: color .2s, transform .4s cubic-bezier(.2,.7,.2,1); }
+  .j-liste a:hover .j-titre { color: #ffb27a; transform: translateX(6px); }
 
-  /* Flotte */
-  .flotte { padding: clamp(88px, 10vw, 150px) 0 clamp(64px, 8vw, 110px); }
-  .f-tete { display: flex; justify-content: space-between; align-items: flex-end; gap: 20px; flex-wrap: wrap; padding: 0 clamp(20px, 4vw, 56px); margin-bottom: 40px; }
-  .f-tete h2 { margin: 0; }
-  .rail { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 1fr); gap: 16px; padding: 0 clamp(20px, 4vw, 56px); overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
-  .rail::-webkit-scrollbar { display: none; }
-  .rail { scroll-padding-inline: clamp(20px, 4vw, 56px); }
-  .rail-nav { display: flex; align-items: center; gap: 14px; padding: 22px clamp(20px, 4vw, 56px) 0; }
-  .rail-nav[hidden] { display: none; }
-  .rn-btn { width: 46px; height: 46px; flex: none; border-radius: 50%; border: 1px solid var(--ink); background: none; color: var(--ink); font-size: 1.1rem; cursor: pointer; transition: background-color .2s, color .2s, opacity .2s; }
-  .rn-btn:hover:not(:disabled) { background: var(--ink); color: var(--paper); }
-  .rn-btn:disabled { opacity: .3; cursor: default; }
-  .rn-btn:focus-visible, .rn-point:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-  .rn-points { display: flex; gap: 8px; }
-  .rn-point { width: 8px; height: 8px; padding: 0; border-radius: 4px; border: 0; background: var(--line); cursor: pointer; transition: width .3s, background-color .3s; }
-  .rn-point.on { width: 26px; background: var(--ink); }
-  .rn-compte { margin-right: auto; font-family: var(--font-title); font-size: .9rem; color: var(--muted); font-variant-numeric: tabular-nums; }
-  .rn-compte b { color: var(--ink); font-weight: 500; }
-  .avion { display: grid; gap: 14px; text-decoration: none; color: inherit; scroll-snap-align: start; }
-  .a-photo { aspect-ratio: 3 / 4; border-radius: var(--radius); overflow: hidden; }
-  .a-photo img { transition: transform .9s cubic-bezier(.2,.7,.2,1); }
-  .avion:hover .a-photo img { transform: scale(1.04); }
-  .a-nom { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-top: 1px solid var(--line); padding-top: 12px; }
-  .a-nom strong { font-family: var(--font-serif); font-style: italic; font-weight: 400; font-size: 1.9rem; line-height: 1; color: var(--ink); }
-  .a-nom span { color: var(--muted); font-size: .86rem; text-align: right; }
+  /* Fin de page */
+  .venir { padding: clamp(80px, 11vw, 160px) clamp(20px, 4vw, 56px); text-align: center; display: grid; justify-items: center; gap: 8px; }
+  .venir h2 { font-size: clamp(2.6rem, 7vw, 6.4rem); margin: 0 0 .15em; }
+  .venir p { color: var(--muted); margin: 0 0 24px; }
+  .venir .btns { justify-content: center; }
 
   @media (max-width: 900px) {
     .hero { max-height: none; }
@@ -318,25 +201,14 @@ const aidesMax = t.objectif_pilote?.intro.match(/([\d\s]+)\s*€/)?.[1]?.trim();
     .chiffres > div { grid-template-columns: auto 1fr; align-items: baseline; gap: 16px; padding: 18px 0; }
     .chiffres > div + div { padding-left: 0; border-left: 0; border-top: 1px solid var(--line); }
     .chiffres strong { font-size: 2.6rem; white-space: nowrap; min-width: 2.4em; }
-    .bapteme, .p-haut, .p-bas { grid-template-columns: 1fr; }
-    .b-photo { aspect-ratio: 4 / 3; }
-    .etapes { grid-template-columns: 1fr; border-top: 0; border-left: 1px solid rgba(255,255,255,.16); margin-left: 4px; }
-    .etapes li { padding: 0 0 22px 24px; }
-    .etapes li::before { top: 6px; left: -4px; }
-    .p-photo { min-height: 0; aspect-ratio: 4 / 3; }
-    .rail { grid-auto-columns: 100%; gap: 40px; }
-    .a-photo { aspect-ratio: 4 / 5; max-height: 58vh; }
-    .a-nom { flex-direction: column; align-items: flex-start; gap: 4px; }
-    .a-nom strong { white-space: nowrap; font-size: 2.2rem; }
-    .a-nom span { text-align: left; }
+    .c-corps { grid-template-columns: 1fr; gap: 22px; align-items: start; }
+    .c-photo, .chap:nth-of-type(even) .c-txt { order: 0; }
+    .c-photo { order: -1 !important; }
+    .c-tete { grid-template-columns: 3em 1fr; margin-bottom: 18px; }
+    .c-fait { grid-column: 2; }
+    .j-liste a { grid-template-columns: 1fr; gap: 6px; padding: 16px 0; }
   }
-  @media (min-width: 561px) { .rn-aide { display: none; } }
   @media (max-width: 560px) {
-    .rail-nav { flex-wrap: wrap; justify-content: space-between; }
-    .rn-points { order: 1; }
-    .rn-compte { order: 4; flex-basis: 100%; margin: 0; text-align: center; }
-    .rn-btn[data-dir='1'] { order: 2; }
-    .formules small { display: none; }
-    .bapteme .btns .btn, .m-pied .btn { flex: 1 1 auto; justify-content: center; }
+    .venir .btns .btn { flex: 1 1 auto; justify-content: center; }
   }
 </style>
