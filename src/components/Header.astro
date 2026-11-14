@@ -30,7 +30,7 @@ const membre = path.startsWith(url('/membre'));
       <ul>
         {nav.map((n, i) => (
           <li>
-            <a href={url(n.href)} aria-current={actif(n.href) ? 'page' : undefined}><span class="n-num">0{i + 1}</span>{n.label}</a>
+            <a href={url(n.href)} aria-current={actif(n.href) ? 'page' : undefined}>{n.label}</a>
             {n.href === '/club' && <span class="sous">{sousClub.map((x) => <a href={url(x.href)} aria-current={path.startsWith(url(x.href)) ? 'page' : undefined}>{x.label}</a>)}</span>}
           </li>
         ))}
@@ -70,7 +70,7 @@ const membre = path.startsWith(url('/membre'));
   nav a:hover { color: var(--fg); opacity: 1; }
   nav a:hover::after, nav a[aria-current]::after { transform: scaleX(1); }
   nav a.member { opacity: .7; font-size: .88rem; }
-  .nav-pied, .sous, .n-num { display: none; }
+  .nav-pied, .sous { display: none; }
   .nav-toggle { position: absolute; opacity: 0; pointer-events: none; }
   .reserver { margin-left: 12px; display: inline-flex; align-items: center; height: 42px; padding: 0 20px; border-radius: 999px; background: var(--fg); color: var(--paper); font-family: var(--font-title); font-weight: 500; font-size: .92rem; text-decoration: none; white-space: nowrap; transition: background-color .25s, color .25s; }
   :global(body:has(main > .hero:first-child, main > .page-head.has-img:first-child)) .site-header:not(.defile) .reserver { color: var(--ink); }
@@ -89,7 +89,6 @@ const membre = path.startsWith(url('/membre'));
     nav li { border-bottom: 1px solid rgba(255,255,255,.12); }
     nav li.li-membre { border: 0; }
     nav a { display: flex; align-items: baseline; gap: 16px; color: #f2ede4; font-weight: 300; font-size: clamp(1.8rem, 8vw, 2.6rem); letter-spacing: -.04em; padding: 9px 0; opacity: 1; }
-    .n-num { display: inline; font-family: var(--font-serif); font-style: italic; font-size: 1.05rem; letter-spacing: 0; color: #ffb27a; min-width: 1.6em; }
     .sous { display: flex; flex-wrap: wrap; gap: 4px 20px; padding: 0 0 12px calc(1.05rem * 1.6 + 16px); }
     .sous a { font-size: 1rem; letter-spacing: 0; color: #b9b5aa; padding: 2px 0; }
     .sous a::after, nav a::after { display: none; }
