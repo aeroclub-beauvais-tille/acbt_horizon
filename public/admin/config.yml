@@ -463,61 +463,15 @@ singletons:
         required: false
       required: false
       hint: Choisissez de préférence des photos horizontales (format paysage).
-    - name: cartes
-      label: 'Les 3 choix sous la photo d''accueil (dans l''ordre : baptême, devenir pilote, déjà pilote). Le prix « dès … € » du baptême est ajouté automatiquement'
-      widget: list
-      fields:
-      - name: titre
-        label: Titre
-        widget: string
-        required: false
-      - name: texte
-        label: Texte
-        widget: string
-        required: false
-      - name: image
-        label: Photo
-        widget: image
-        required: false
-      required: false
-    - name: bapteme
-      label: Bloc « Baptême de l'air » (les prix viennent de la rubrique Tarifs)
-      widget: object
-      fields:
-      - name: titre
-        label: Titre
-        widget: string
-        required: false
-      - name: texte
-        label: Texte
-        widget: text
-        required: false
-      - name: image
-        label: Photo
-        widget: image
-        required: false
-      required: false
-    - name: formation
-      label: Bloc « Devenir pilote » (les étapes viennent de la page Devenir pilote)
-      widget: object
-      fields:
-      - name: titre
-        label: Titre
-        widget: string
-        required: false
-      - name: texte
-        label: Texte
-        widget: text
-        required: false
-      - name: image
-        label: Photo
-        widget: image
-        required: false
-      required: false
     - name: atouts_titre
       label: Titre du bloc des chiffres clés
       widget: string
       required: false
+    - name: manifeste
+      label: Phrase à côté du titre des chiffres clés
+      widget: text
+      required: false
+      hint: Écrivez {annees} pour afficher automatiquement l'âge du club.
     - name: atouts
       label: Les 3 chiffres clés
       widget: list
@@ -541,6 +495,49 @@ singletons:
         required: false
         hint: 'Exemple : /club/historique'
       required: false
+    - name: chapitres
+      label: 'Les 4 grands chapitres du sommaire (dans l''ordre : Baptême, Devenir pilote, La flotte, Le club)'
+      widget: list
+      fields:
+      - name: rubrique
+        label: Nom de la rubrique (petit texte en haut)
+        widget: string
+        required: false
+      - name: titre
+        label: Titre
+        widget: string
+        required: false
+      - name: texte
+        label: Texte
+        widget: text
+        required: false
+      - name: fait
+        label: Petit repère à droite
+        widget: string
+        required: false
+        hint: 'Exemple : Dès {prix_bapteme} €'
+      - name: lien
+        label: Texte du lien
+        widget: string
+        required: false
+      - name: image
+        label: Photo
+        widget: image
+        required: false
+      required: false
+      hint: 'Chaque chapitre renvoie vers sa page. Mots automatiques possibles : {prix_bapteme}, {avions}, {annees}, {fondation}. Les deux derniers mots du titre s''affichent en italique.'
+    - name: journal_titre
+      label: Titre du bloc des dernières actualités
+      widget: string
+      required: false
+    - name: fin_titre
+      label: Titre du bandeau de fin de page
+      widget: string
+      required: false
+    - name: fin_texte
+      label: Texte du bandeau de fin de page
+      widget: string
+      required: false
     required: false
   - name: decouvrir
     label: Baptême de l'air
@@ -553,6 +550,15 @@ singletons:
     - name: image
       label: Photo d'en-tête
       widget: image
+      required: false
+    - name: intertitres
+      label: Titres des parties de la page
+      widget: object
+      fields:
+      - name: savoir
+        label: Titre « Bon à savoir »
+        widget: string
+        required: false
       required: false
     required: false
   - name: formations
@@ -571,6 +577,19 @@ singletons:
       label: Photo d'en-tête
       widget: image
       required: false
+    - name: intertitres
+      label: Titres des parties de la page
+      widget: object
+      fields:
+      - name: licences
+        label: Titre du comparatif des licences
+        widget: string
+        required: false
+      - name: avant
+        label: Titre des questions fréquentes
+        widget: string
+        required: false
+      required: false
     required: false
   - name: flotte
     label: La flotte
@@ -587,6 +606,15 @@ singletons:
     - name: image
       label: Photo d'en-tête
       widget: image
+      required: false
+    - name: intertitres
+      label: Titres des parties de la page
+      widget: object
+      fields:
+      - name: fin
+        label: Titre en bas de page
+        widget: string
+        required: false
       required: false
     required: false
   - name: tarifs
@@ -605,6 +633,27 @@ singletons:
       label: Photo d'en-tête
       widget: image
       required: false
+    - name: intertitres
+      label: Titres des parties de la page
+      widget: object
+      fields:
+      - name: heures
+        label: Titre des heures de vol
+        widget: string
+        required: false
+      - name: adhesion
+        label: Titre de l'adhésion
+        widget: string
+        required: false
+      - name: formules
+        label: Titre des vols découverte
+        widget: string
+        required: false
+      - name: divers
+        label: Titre des tarifs divers
+        widget: string
+        required: false
+      required: false
     required: false
   - name: club
     label: Le club
@@ -621,6 +670,31 @@ singletons:
     - name: image
       label: Photo d'en-tête
       widget: image
+      required: false
+    - name: intertitres
+      label: Titres des parties de la page
+      widget: object
+      fields:
+      - name: locaux
+        label: Titre « Nos locaux »
+        widget: string
+        required: false
+      - name: comite
+        label: Titre « Le comité »
+        widget: string
+        required: false
+      - name: histoire
+        label: Titre « Notre histoire »
+        widget: string
+        required: false
+      - name: vie
+        label: Titre des actualités
+        widget: string
+        required: false
+      - name: fin
+        label: Titre du bandeau de fin
+        widget: string
+        required: false
       required: false
     required: false
   - name: historique
@@ -669,6 +743,15 @@ singletons:
       label: Photo d'en-tête
       widget: image
       required: false
+    - name: intertitres
+      label: Titres des parties de la page
+      widget: object
+      fields:
+      - name: carte
+        label: Titre au-dessus de la carte
+        widget: string
+        required: false
+      required: false
     required: false
   - name: membre
     label: Espace membre
@@ -687,6 +770,41 @@ singletons:
       widget: image
       required: false
     required: false
+- name: cadrage
+  label: Cadrage des photos
+  icon: crop
+  file: src/data/cadrage.json
+  format: json
+  fields:
+  - name: photos
+    label: Photos recadrées
+    widget: list
+    fields:
+    - name: image
+      label: Photo
+      widget: image
+      required: false
+    - name: position
+      label: Partie à garder visible
+      widget: select
+      options:
+      - Centre
+      - Haut
+      - Bas
+      - Gauche
+      - Droite
+      - Haut gauche
+      - Haut droite
+      - Bas gauche
+      - Bas droite
+      required: false
+    - name: zoom
+      label: Zoom en % (100 = sans zoom, 150 = une fois et demie)
+      widget: number
+      value_type: float
+      required: false
+    required: false
+    hint: Ajoutez une photo déjà utilisée sur le site, puis choisissez la partie à garder visible quand elle est coupée, et un zoom si besoin. Le réglage s'applique partout où la photo apparaît.
 - name: decouvrir
   label: Page Découvrir
   icon: redeem

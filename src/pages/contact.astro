@@ -23,7 +23,7 @@ import pages from '../data/pages.json';
         <p class="meta" style="margin-top:10px">Le message s'ouvre dans votre logiciel de messagerie.</p>
       </div></form>
       <div data-reveal="right" data-delay="0.15">
-        <h2>Où nous trouver</h2>
+        <h2>{pages.contact.intertitres.carte}</h2>
         <p>{club.adresse}{club.acces.map((l) => <><br /><span class="meta">→ {l}</span></>)}</p>
         <p><strong>Téléphone</strong> : <a href={`tel:${club.telephone.replace(/\s/g, '')}`}>{club.telephone}</a><br />
           <strong>E-mail</strong> : <a href={`mailto:${club.email}`}>{club.email}</a><br />

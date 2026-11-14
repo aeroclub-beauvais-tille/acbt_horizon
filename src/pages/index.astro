@@ -23,12 +23,15 @@ const nf = (x: number) => x.toLocaleString('fr-FR');
 // L'accueil est un sommaire : chaque rubrique du site y a un seul chapitre, qui renvoie vers sa page.
 // Le détail (prix, simulateur, fiches avions) ne figure que sur la page concernée.
 const prixMin = Math.min(...t.formules.flatMap((x) => x.prix.map((p) => p.prix)));
-const chapitres = [
-  { rubrique: "Baptême de l'air", titre: italique(pg.bapteme.titre, 2), texte: pg.bapteme.texte, fait: `Dès ${nf(prixMin)} €`, lien: 'Les formules et les prix', href: '/decouvrir-le-vol', image: pg.bapteme.image },
-  { rubrique: 'Devenir pilote', titre: italique(pg.formation.titre, 2), texte: pg.formation.texte, fait: 'Votre budget en une minute', lien: 'Le parcours et le simulateur', href: '/formations', image: pg.formation.image },
-  { rubrique: 'La flotte', titre: italique('Du premier vol au voyage', 2), texte: pages.flotte.texte, fait: `${avions.length} avions`, lien: 'Découvrir les avions', href: '/club/flotte', image: pages.flotte.image },
-  { rubrique: 'Le club', titre: italique('Une histoire commencée en 1979', 2), texte: pages.club.texte.replace('{fondation}', club.fondation), fait: 'Association loi 1901', lien: 'Le club, son histoire, ses actualités', href: '/club', image: pages.club.image },
-];
+const HREFS = ['/decouvrir-le-vol', '/formations', '/club/flotte', '/club'];
+const remplir = (txt: string) => txt
+  .replace('{prix_bapteme}', nf(prixMin)).replace('{avions}', String(avions.length))
+  .replace('{annees}', String(annees)).replace('{fondation}', club.fondation);
+const chapitres = pg.chapitres.slice(0, 4).map((c, i) => ({
+  rubrique: c.rubrique, titre: italique(c.titre, 2), texte: remplir(c.texte), fait: remplir(c.fait), lien: c.lien, href: HREFS[i], image: c.image,
+}));
+const jt = italique(pg.journal_titre);
+const ft = italique(pg.fin_titre, 2);
 const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a, b) => b.data.date.getTime() - a.data.date.getTime()).slice(0, 4);
 ---
 <Base title="Accueil">
@@ -57,7 +60,7 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
   </section>
 
   <section class="manif" aria-label={pg.atouts_titre}>
-    <p class="manif-txt" data-split>{pg.atouts_titre}. <span>Depuis {annees} ans, nos instructeurs bénévoles font découvrir le vol et forment les pilotes de l'Oise.</span></p>
+    <p class="manif-txt" data-split>{pg.atouts_titre}. <span>{remplir(pg.manifeste)}</span></p>
     <div class="chiffres" data-stagger>
       {pg.atouts.map((a) => {
         const v = a.chiffre.replace('{avions}', String(avions.length));
@@ -91,7 +94,7 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
 
   <section class="journal dark">
     <div class="j-tete">
-      <div><div class="label">La vie du club</div><h2 data-split>Dernières <em>nouvelles.</em></h2></div>
+      <div><div class="label">La vie du club</div><h2 data-split>{jt.debut} <em>{jt.fin}</em></h2></div>
       <a class="btn btn-outline" href={url('/actualites')}>Toutes les actualités</a>
     </div>
     <ol class="j-liste" data-stagger>
@@ -102,8 +105,8 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
   </section>
 
   <section class="venir">
-    <h2 data-split>On vous attend <em>au terrain.</em></h2>
-    <p>{club.adresse}</p>
+    <h2 data-split>{ft.debut} <em>{ft.fin}</em></h2>
+    {pg.fin_texte && <p>{remplir(pg.fin_texte)}</p>}
     <div class="btns">
       <a class="btn btn-primary" href={url('/contact?objet=Baptême')}>Réserver un baptême</a>
       <a class="btn btn-outline" href={url('/contact')}>Nous contacter</a>

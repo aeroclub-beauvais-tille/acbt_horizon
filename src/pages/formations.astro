@@ -34,7 +34,7 @@ const pg = pages.formations;
   <section class="section" id="licences">
     <div class="container">
       <span class="eyebrow">Les licences</span>
-      <h2 data-split>Quelle licence choisir ?</h2>
+      <h2 data-split>{pages.formations.intertitres.licences}</h2>
     </div>
     <div class="container grid grid-3" data-stagger>
       {formations.map((f) => (
@@ -126,7 +126,7 @@ const pg = pages.formations;
     <section class="section">
       <div class="container">
         <span class="eyebrow">Questions fréquentes</span>
-        <h2 data-split>Avant de vous lancer</h2>
+        <h2 data-split>{pages.formations.intertitres.avant}</h2>
         <Faq questions={f.questions} />
       </div>
     </section>

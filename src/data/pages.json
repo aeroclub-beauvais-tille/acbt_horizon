@@ -24,33 +24,6 @@
         "legende": "Jodel D120 Paris-Nice"
       }
     ],
-    "cartes": [
-      {
-        "titre": "Faire un baptême de l'air",
-        "texte": "Un vol pour le plaisir ou à offrir, avec un pilote du club",
-        "image": "/uploads/avions/dr400-120-03.jpg"
-      },
-      {
-        "titre": "Devenir pilote",
-        "texte": "Estimez le coût de votre formation en trois questions",
-        "image": "/uploads/actualites/2022/lache-elisa/01.jpg"
-      },
-      {
-        "titre": "Déjà pilote ?",
-        "texte": "Rejoignez le club et volez sur nos avions",
-        "image": "/uploads/avions/IMG-20251113-WA0049.jpg"
-      }
-    ],
-    "bapteme": {
-      "titre": "Voir Beauvais d'en haut",
-      "texte": "En passager avec un pilote du club, ou aux commandes avec un instructeur. À vivre ou à offrir en bon cadeau.",
-      "image": "/uploads/avions/IMG-20240913-WA0013.jpg"
-    },
-    "formation": {
-      "titre": "Et si vous deveniez pilote ?",
-      "texte": "À votre rythme, avec des instructeurs bénévoles. Commencez par un vol d'initiation, puis estimez votre budget en une minute.",
-      "image": "/uploads/actualites/2022/lache-elisa/01.jpg"
-    },
     "atouts_titre": "Un club de passionnés",
     "atouts": [
       {
@@ -71,31 +44,92 @@
         "lien_texte": "La flotte",
         "lien": "/club/flotte"
       }
-    ]
+    ],
+    "manifeste": "Depuis {annees} ans, nos instructeurs bénévoles font découvrir le vol et forment les pilotes de l'Oise.",
+    "chapitres": [
+      {
+        "rubrique": "Baptême de l'air",
+        "titre": "Voir Beauvais d'en haut",
+        "texte": "En passager avec un pilote du club, ou aux commandes avec un instructeur. À vivre ou à offrir en bon cadeau.",
+        "fait": "Dès {prix_bapteme} €",
+        "lien": "Les formules et les prix",
+        "image": "/uploads/avions/IMG-20240913-WA0013.jpg"
+      },
+      {
+        "rubrique": "Devenir pilote",
+        "titre": "Et si vous deveniez pilote ?",
+        "texte": "À votre rythme, avec des instructeurs bénévoles. Commencez par un vol d'initiation, puis estimez votre budget en une minute.",
+        "fait": "Votre budget en une minute",
+        "lien": "Le parcours et le simulateur",
+        "image": "/uploads/actualites/2022/lache-elisa/01.jpg"
+      },
+      {
+        "rubrique": "La flotte",
+        "titre": "Du premier vol au voyage",
+        "texte": "Des Robin robustes pour l'école et le voyage, et un Jodel à train classique pour se perfectionner.",
+        "fait": "{avions} avions",
+        "lien": "Découvrir les avions",
+        "image": "/uploads/avions/1e79623a-67a3-4a4d-be42-d1293fb5cc46-copied-media~2.jpg"
+      },
+      {
+        "rubrique": "Le club",
+        "titre": "Une histoire commencée en 1979",
+        "texte": "Fondé le {fondation}, l'ACBT est une association loi 1901 dédiée à la formation au pilotage et au vol de loisir. Ses instructeurs sont bénévoles.",
+        "fait": "Association loi 1901",
+        "lien": "Le club, son histoire, ses actualités",
+        "image": "/uploads/historique/2012-locaux-10.jpg"
+      }
+    ],
+    "journal_titre": "Dernières nouvelles.",
+    "fin_titre": "On vous attend au terrain.",
+    "fin_texte": "Aéroport de Beauvais-Tillé, zone aéroplaisance, 60000 Tillé"
   },
   "decouvrir": {
     "titre": "Votre premier vol, au-dessus de Beauvais",
-    "image": "/uploads/avions/dr400-petit-prince-02.jpg"
+    "image": "/uploads/avions/dr400-petit-prince-02.jpg",
+    "intertitres": {
+      "savoir": "Bon à savoir"
+    }
   },
   "formations": {
     "titre": "Devenez pilote à Beauvais-Tillé",
     "texte": "Nos instructeurs bénévoles vous accompagnent du premier vol jusqu'à la licence. Théorie, pratique et examen : tout se prépare au club.",
-    "image": "/uploads/actualites/2022/lache-elisa/01.jpg"
+    "image": "/uploads/actualites/2022/lache-elisa/01.jpg",
+    "intertitres": {
+      "licences": "Quelle licence choisir ?",
+      "avant": "Avant de vous lancer"
+    }
   },
   "flotte": {
     "titre": "{nombre} avions pour apprendre et voyager",
     "texte": "Des Robin robustes pour l'école et le voyage, et un Jodel à train classique pour se perfectionner.",
-    "image": "/uploads/avions/1e79623a-67a3-4a4d-be42-d1293fb5cc46-copied-media~2.jpg"
+    "image": "/uploads/avions/1e79623a-67a3-4a4d-be42-d1293fb5cc46-copied-media~2.jpg",
+    "intertitres": {
+      "fin": "Envie de voler avec nous ?"
+    }
   },
   "tarifs": {
     "titre": "Les tarifs du club",
     "texte": "Une association de passionnés : nos tarifs couvrent l'entretien des avions et le fonctionnement du club. Les instructeurs sont bénévoles.",
-    "image": "/uploads/avions/dr400-120-02.jpg"
+    "image": "/uploads/avions/dr400-120-02.jpg",
+    "intertitres": {
+      "heures": "Le prix de l'heure de vol",
+      "adhesion": "Devenir membre du club",
+      "formules": "Vols découverte et initiation",
+      "divers": "Fournitures et services"
+    }
   },
   "club": {
     "titre": "Une association de passionnés",
     "texte": "Fondé le {fondation}, l'ACBT est une association loi 1901 dédiée à la formation au pilotage et au vol de loisir. Ses instructeurs sont bénévoles.",
-    "image": "/uploads/historique/2012-locaux-10.jpg"
+    "image": "/uploads/historique/2012-locaux-10.jpg",
+    "intertitres": {
+      "locaux": "Nos locaux",
+      "comite": "Le comité",
+      "histoire": "Notre histoire",
+      "vie": "La vie du club",
+      "fin": "Passez nous voir au terrain"
+    }
   },
   "historique": {
     "titre": "Notre histoire",
@@ -109,7 +143,10 @@
   "contact": {
     "titre": "Nous contacter",
     "texte": "Pour un baptême, une inscription ou une simple question, écrivez-nous ou passez au club.",
-    "image": "/uploads/avions/20250407_160705.jpg"
+    "image": "/uploads/avions/20250407_160705.jpg",
+    "intertitres": {
+      "carte": "Où nous trouver"
+    }
   },
   "membre": {
     "titre": "Espace membre",

@@ -160,29 +160,8 @@ content:
             fields:
               - { name: image, label: Photo, type: image }
               - { name: legende, label: Légende, type: string }
-          - name: cartes
-            label: "Les 3 choix sous la photo d'accueil (dans l'ordre : baptême, devenir pilote, déjà pilote). Le prix « dès … € » du baptême est ajouté automatiquement"
-            type: object
-            list: true
-            fields:
-              - { name: titre, label: Titre, type: string }
-              - { name: texte, label: Texte, type: string }
-              - { name: image, label: Photo, type: image }
-          - name: bapteme
-            label: Bloc « Baptême de l'air » (les prix viennent de la rubrique Tarifs)
-            type: object
-            fields:
-              - { name: titre, label: Titre, type: string }
-              - { name: texte, label: Texte, type: text }
-              - { name: image, label: Photo, type: image }
-          - name: formation
-            label: Bloc « Devenir pilote » (les étapes viennent de la page Devenir pilote)
-            type: object
-            fields:
-              - { name: titre, label: Titre, type: string }
-              - { name: texte, label: Texte, type: text }
-              - { name: image, label: Photo, type: image }
           - { name: atouts_titre, label: Titre du bloc des chiffres clés, type: string }
+          - { name: manifeste, label: Phrase à côté du titre des chiffres clés, type: text, description: "Écrivez {annees} pour afficher automatiquement l'âge du club." }
           - name: atouts
             label: Les 3 chiffres clés
             type: object
@@ -192,12 +171,32 @@ content:
               - { name: texte, label: Texte, type: string }
               - { name: lien_texte, label: Texte du lien (facultatif), type: string }
               - { name: lien, label: Adresse du lien (facultatif), type: string, description: "Exemple : /club/historique" }
+          - name: chapitres
+            label: "Les 4 grands chapitres du sommaire (dans l'ordre : Baptême, Devenir pilote, La flotte, Le club)"
+            description: "Chaque chapitre renvoie vers sa page. Mots automatiques possibles : {prix_bapteme}, {avions}, {annees}, {fondation}. Les deux derniers mots du titre s'affichent en italique."
+            type: object
+            list: true
+            fields:
+              - { name: rubrique, label: Nom de la rubrique (petit texte en haut), type: string }
+              - { name: titre, label: Titre, type: string }
+              - { name: texte, label: Texte, type: text }
+              - { name: fait, label: Petit repère à droite, type: string, description: "Exemple : Dès {prix_bapteme} €" }
+              - { name: lien, label: Texte du lien, type: string }
+              - { name: image, label: Photo, type: image }
+          - { name: journal_titre, label: Titre du bloc des dernières actualités, type: string }
+          - { name: fin_titre, label: Titre du bandeau de fin de page, type: string }
+          - { name: fin_texte, label: Texte du bandeau de fin de page, type: string }
       - name: decouvrir
         label: Baptême de l'air
         type: object
         fields:
           - { name: titre, label: Grand titre, type: string }
           - { name: image, label: Photo d'en-tête, type: image }
+          - name: intertitres
+            label: Titres des parties de la page
+            type: object
+            fields:
+              - { name: savoir, label: "Titre « Bon à savoir »", type: string }
       - name: formations
         label: Apprendre (formations)
         type: object
@@ -205,6 +204,12 @@ content:
           - { name: titre, label: Grand titre, type: string }
           - { name: texte, label: Texte sous le titre, type: text }
           - { name: image, label: Photo d'en-tête, type: image }
+          - name: intertitres
+            label: Titres des parties de la page
+            type: object
+            fields:
+              - { name: licences, label: "Titre du comparatif des licences", type: string }
+              - { name: avant, label: "Titre des questions fréquentes", type: string }
       - name: flotte
         label: La flotte
         type: object
@@ -212,6 +217,11 @@ content:
           - { name: titre, label: Grand titre, type: string }
           - { name: texte, label: Texte sous le titre, type: text }
           - { name: image, label: Photo d'en-tête, type: image }
+          - name: intertitres
+            label: Titres des parties de la page
+            type: object
+            fields:
+              - { name: fin, label: "Titre en bas de page", type: string }
       - name: tarifs
         label: Tarifs
         type: object
@@ -219,6 +229,14 @@ content:
           - { name: titre, label: Grand titre, type: string }
           - { name: texte, label: Texte sous le titre, type: text }
           - { name: image, label: Photo d'en-tête, type: image }
+          - name: intertitres
+            label: Titres des parties de la page
+            type: object
+            fields:
+              - { name: heures, label: "Titre des heures de vol", type: string }
+              - { name: adhesion, label: "Titre de l'adhésion", type: string }
+              - { name: formules, label: "Titre des vols découverte", type: string }
+              - { name: divers, label: "Titre des tarifs divers", type: string }
       - name: club
         label: Le club
         type: object
@@ -226,6 +244,15 @@ content:
           - { name: titre, label: Grand titre, type: string }
           - { name: texte, label: Texte sous le titre, type: text }
           - { name: image, label: Photo d'en-tête, type: image }
+          - name: intertitres
+            label: Titres des parties de la page
+            type: object
+            fields:
+              - { name: locaux, label: "Titre « Nos locaux »", type: string }
+              - { name: comite, label: "Titre « Le comité »", type: string }
+              - { name: histoire, label: "Titre « Notre histoire »", type: string }
+              - { name: vie, label: "Titre des actualités", type: string }
+              - { name: fin, label: "Titre du bandeau de fin", type: string }
       - name: historique
         label: Notre histoire
         type: object
@@ -246,6 +273,11 @@ content:
           - { name: titre, label: Grand titre, type: string }
           - { name: texte, label: Texte sous le titre, type: text }
           - { name: image, label: Photo d'en-tête, type: image }
+          - name: intertitres
+            label: Titres des parties de la page
+            type: object
+            fields:
+              - { name: carte, label: "Titre au-dessus de la carte", type: string }
       - name: membre
         label: Espace membre
         type: object
@@ -253,6 +285,25 @@ content:
           - { name: titre, label: Grand titre, type: string }
           - { name: texte, label: Texte sous le titre, type: text }
           - { name: image, label: Photo d'en-tête, type: image }
+
+  - name: cadrage
+    label: "✂️ Cadrage des photos : choisir la partie visible et zoomer"
+    type: file
+    path: src/data/cadrage.json
+    format: json
+    fields:
+      - name: photos
+        label: Photos recadrées
+        description: "Ajoutez une photo déjà utilisée sur le site, puis choisissez la partie à garder visible quand elle est coupée, et un zoom si besoin. Le réglage s'applique partout où la photo apparaît."
+        type: object
+        list: true
+        fields:
+          - { name: image, label: Photo, type: image }
+          - name: position
+            label: Partie à garder visible
+            type: select
+            options: { values: [Centre, Haut, Bas, Gauche, Droite, Haut gauche, Haut droite, Bas gauche, Bas droite] }
+          - { name: zoom, label: "Zoom en % (100 = sans zoom, 150 = une fois et demie)", type: number }
 
   - name: decouvrir
     label: "🎁 Page Découvrir : textes, déroulé du vol, questions"

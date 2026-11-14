@@ -32,9 +32,9 @@ import pages from '../../data/pages.json';
     <div class="container grid grid-2 presentation">
       <div class="prose">
         <span class="label">Le club</span>
-        <h2 data-split>Nos locaux</h2>
+        <h2 data-split>{pages.club.intertitres.locaux}</h2>
         <p data-reveal>Le club est installé depuis septembre 2012 dans la zone aéroplaisance de l'aéroport de Beauvais-Tillé. Les membres y disposent d'une salle de briefing, d'une salle de cours, d'un espace détente et du hangar des avions.</p>
-        <h2 data-split>Le comité</h2>
+        <h2 data-split>{pages.club.intertitres.comite}</h2>
         <p data-reveal>Le club est administré par un comité élu en assemblée générale : président, secrétaires, trésoriers, responsables techniques, administrateur et correspondant sécurité.</p>
         <p class="notice" data-reveal>Maquette : les photos des instructeurs et du comité restent à reprendre du site actuel.</p>
       </div>
@@ -49,7 +49,7 @@ import pages from '../../data/pages.json';
   <section class="section dark" id="histoire">
     <div class="container">
       <div class="section-head">
-        <div><span class="label">Depuis 1979</span><h2 data-split>Notre histoire</h2></div>
+        <div><span class="label">Depuis 1979</span><h2 data-split>{pages.club.intertitres.histoire}</h2></div>
         <a class="btn btn-ghost" href={url('/club/historique')}>Toute notre histoire</a>
       </div>
       <p class="lead intro" data-reveal>{h.intro}</p>
@@ -70,7 +70,7 @@ import pages from '../../data/pages.json';
   <section class="section" id="actualites">
     <div class="container">
       <div class="section-head">
-        <div><span class="label">Actualités</span><h2 data-split>La vie du club</h2></div>
+        <div><span class="label">Actualités</span><h2 data-split>{pages.club.intertitres.vie}</h2></div>
         <a class="btn btn-outline" href={url('/actualites')}>Les {actus.length} actualités</a>
       </div>
       <div class="grid grid-3" data-stagger>
@@ -81,7 +81,7 @@ import pages from '../../data/pages.json';
 
   <section class="section venir">
     <div class="container">
-      <h2 data-split>Passez nous voir au terrain</h2>
+      <h2 data-split>{pages.club.intertitres.fin}</h2>
       <p class="lead" data-reveal>{club.adresse}. {club.horaires}</p>
       <div class="btns" data-stagger>
         <a class="btn btn-primary" href={url('/contact')}>Adresse, plan et contact</a>

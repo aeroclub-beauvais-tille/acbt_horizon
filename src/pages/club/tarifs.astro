@@ -22,7 +22,7 @@ import pages from '../../data/pages.json';
   <section class="section" id="heures">
     <div class="container">
       <div class="section-head">
-        <div><span class="label">Heures de vol</span><h2 data-split>Le prix de l'heure de vol</h2></div>
+        <div><span class="label">Heures de vol</span><h2 data-split>{pages.tarifs.intertitres.heures}</h2></div>
         <p class="lead" style="max-width:42ch;margin:0">En solo une fois lâché, ou en double commande avec un instructeur pendant la formation.</p>
       </div>
       <div data-reveal><HeuresVol avions={avions} /></div>
@@ -36,7 +36,7 @@ import pages from '../../data/pages.json';
   <section class="section white" id="adhesion">
     <div class="container">
       <div class="section-head">
-        <div><span class="label">Adhésion {t.annee}</span><h2 data-split>Devenir membre du club</h2></div>
+        <div><span class="label">Adhésion {t.annee}</span><h2 data-split>{pages.tarifs.intertitres.adhesion}</h2></div>
         <p class="lead" style="max-width:42ch;margin:0">L'adhésion annuelle comprend la cotisation au club et la licence FFA avec son assurance.</p>
       </div>
       <div class="formules" data-stagger>
@@ -87,7 +87,7 @@ import pages from '../../data/pages.json';
   <section class="section" id="decouvrir">
     <div class="container">
       <div class="section-head">
-        <div><span class="label">Découvrir le vol</span><h2 data-split>Vols découverte et initiation</h2></div>
+        <div><span class="label">Découvrir le vol</span><h2 data-split>{pages.tarifs.intertitres.formules}</h2></div>
         <a class="btn btn-outline" href={url('/contact?objet=Baptême')}>Réserver un vol</a>
       </div>
       <div class="grid grid-3" data-stagger>
@@ -104,7 +104,7 @@ import pages from '../../data/pages.json';
 
   <section class="section white" id="divers">
     <div class="container divers">
-      <div><span class="label">Divers</span><h2 data-split>Fournitures et services</h2><p class="lead">Le matériel du pilote est disponible au club.</p></div>
+      <div><span class="label">Divers</span><h2 data-split>{pages.tarifs.intertitres.divers}</h2><p class="lead">Le matériel du pilote est disponible au club.</p></div>
       <ul class="lignes grandes" data-stagger>{t.divers.map((d) => <li><span>{d.libelle}</span><b>{d.prix}</b></li>)}</ul>
     </div>
   </section>
