@@ -73,8 +73,7 @@ import pages from '../../data/pages.json';
   }
   /* Téléphone : un avion par écran, le défilement s'arrête sur chacun */
   @media (max-width: 599px) {
-    :global(html) { scroll-snap-type: y proximity; }
-    .avion { min-height: calc(100svh - 76px); padding: 20px 0 28px; scroll-snap-align: start; scroll-margin-top: 76px; }
+    .avion { min-height: calc(100svh - 76px); padding: 20px 0 28px; scroll-margin-top: 76px; }
     .immat { font-size: 21vw; margin: 14px 0 16px; }
     .a-photo { aspect-ratio: 4 / 3; }
     .a-infos h2 { font-size: 1.7rem; margin-bottom: 14px; }
