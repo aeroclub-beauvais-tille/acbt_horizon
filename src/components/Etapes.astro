@@ -1,6 +1,6 @@
 ---
 // Étapes numérotées (déroulement d'un vol, parcours de formation).
-// trajectoire : trace la route d'un petit avion qui relie les étapes (sur grand écran).
+// trajectoire : un petit avion vole le long de la route qui relie les étapes (grand écran).
 interface Props { etapes: { titre: string; texte: string }[]; trajectoire?: boolean }
 const { etapes, trajectoire = false } = Astro.props;
 const N = etapes.length;
@@ -8,7 +8,7 @@ const N = etapes.length;
 const pts = etapes.map((_, i) => {
   const x = ((i + 0.5) / N) * 100;
   const y = 50 + (i % 2 === 0 ? -14 : 14);
-  return [x, y];
+  return [x, y] as [number, number];
 });
 const d = pts
   .map(([x, y], i) => {
@@ -19,15 +19,46 @@ const d = pts
   })
   .join(' ');
 const [ex, ey] = pts[N - 1];
+
+// Échantillonnage de la courbe pour faire voler l'avion exactement sur le tracé.
+const SEG = 10;
+const samples: [number, number][] = [];
+for (let i = 1; i < N; i++) {
+  const [px, py] = pts[i - 1];
+  const [x, y] = pts[i];
+  const cx = (px + x) / 2;
+  for (let s = i === 1 ? 0 : 1; s <= SEG; s++) {
+    const t = s / SEG, mt = 1 - t;
+    const bx = mt * mt * mt * px + 3 * mt * mt * t * cx + 3 * mt * t * t * cx + t * t * t * x;
+    const by = mt * mt * mt * py + 3 * mt * mt * t * py + 3 * mt * t * t * y + t * t * t * y;
+    samples.push([bx, by]);
+  }
+}
+const M = samples.length;
+const sx = 11, sy = 0.64; // échelle approx. px pour orienter le nez de l'avion
+const uid = Math.random().toString(36).slice(2, 8);
+const anim = `vole-${uid}`;
+const keyframes = samples.map((pt, idx) => {
+  const next = samples[Math.min(idx + 1, M - 1)];
+  const prev = samples[Math.max(idx - 1, 0)];
+  const ang = Math.atan2((next[1] - prev[1]) * sy, (next[0] - prev[0]) * sx) * 180 / Math.PI;
+  const rot = (90 + ang).toFixed(1);
+  const p = ((idx / (M - 1)) * 100).toFixed(2);
+  return `${p}%{left:${pt[0].toFixed(2)}%;top:${pt[1].toFixed(2)}%;transform:translate(-50%,-50%) rotate(${rot}deg)}`;
+}).join('');
+const planeCss = `@media (min-width:760px){.motion .avion-${uid}{animation:${anim} 3.4s cubic-bezier(.45,.05,.35,1) .35s both}}@keyframes ${anim}{${keyframes}}`;
 ---
 <div class:list={['etapes-zone', { 'a-route': trajectoire }]}>
   {trajectoire && N > 1 && (
-    <svg class="route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-      <path class="route-trace" d={d} pathLength="1" />
-      <g class="route-avion" style={`--x: ${ex}; --y: ${ey}`}>
-        <path d="M-3.2 0 L2 0 M2 -1.7 L4.6 0 L2 1.7 M-3.2 -1.1 L-3.2 1.1" />
-      </g>
-    </svg>
+    <div class="route-zone" aria-hidden="true">
+      <svg class="route" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <path class="route-trace" d={d} pathLength="1" />
+      </svg>
+      <span class={`avion avion-${uid}`} style={`left:${ex}%;top:${ey}%`}>
+        <svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" /></svg>
+      </span>
+      <style is:inline set:html={planeCss}></style>
+    </div>
   )}
   <ol class="etapes" style={`--n: ${N}`} data-stagger>
     {etapes.map((e, i) => (
@@ -53,17 +84,18 @@ const [ex, ey] = pts[N - 1];
     .num { grid-row: span 2; font-size: 2rem; margin: 0; }
   }
 
-  /* Route de l'avion qui relie les étapes (grand écran seulement) */
+  /* Route + avion qui relie les étapes (grand écran seulement) */
   .etapes-zone { position: relative; }
   .a-route .etapes { border-top: 0; }
   .a-route .etapes::before { content: ''; position: absolute; left: 0; right: 0; top: 0; border-top: 1px solid var(--ink); }
-  .route { display: none; }
+  .route-zone { display: none; }
   @media (min-width: 760px) {
-    .a-route .route { display: block; position: absolute; left: 6%; right: 6%; top: -10px; width: 88%; height: 64px; overflow: visible; pointer-events: none; z-index: 2; }
-    .route-trace { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-dasharray: 2.4 2.4; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: .55; }
-    .route-avion { transform: translate(calc(var(--x) * 1%), calc(var(--y) * 1%)); }
-    .route-avion path { stroke: var(--accent); stroke-width: 1.4; fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-    :global(.motion) .route-trace { animation: route-dash 1.6s ease-out .2s both; }
-    @keyframes route-dash { from { stroke-dashoffset: 40; opacity: 0; } to { stroke-dashoffset: 0; opacity: .55; } }
+    .a-route .route-zone { display: block; position: absolute; left: 6%; top: -10px; width: 88%; height: 64px; pointer-events: none; z-index: 2; }
+    .route { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+    .route-trace { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-dasharray: 2.4 2.4; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: .5; }
+    .avion { position: absolute; width: 22px; height: 22px; transform: translate(-50%, -50%) rotate(90deg); z-index: 3; }
+    .avion svg { width: 100%; height: 100%; display: block; fill: var(--accent); filter: drop-shadow(0 1px 1.5px rgba(16, 32, 59, .18)); }
+    .motion .route-trace { animation: route-dash 1.6s ease-out .2s both; }
+    @keyframes route-dash { from { stroke-dashoffset: 40; opacity: 0; } to { stroke-dashoffset: 0; opacity: .5; } }
   }
 </style>
