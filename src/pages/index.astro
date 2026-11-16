@@ -84,9 +84,9 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
     <div class="label">Au sommaire</div>
     {chapitres.map((c, i) => (
       <a class="chap" href={url(c.href)}>
-        <div class="c-tete"><span class="c-num">0{i + 1}</span><span class="c-rub">{c.rubrique}</span><span class="c-fait">{c.fait}</span></div>
         <div class="c-corps">
           <div class="c-txt">
+            <p class="c-eti"><span>{c.rubrique}</span>{c.fait && <> · {c.fait}</>}</p>
             <h2 data-split>{c.titre.debut} <em>{c.titre.fin}</em></h2>
             <p>{c.texte}</p>
             <span class="c-lien">{c.lien}</span>
@@ -175,9 +175,8 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
   /* Sommaire : un chapitre par rubrique, un filet, un numéro, une grande photo */
   .sommaire { max-width: 1440px; margin: 0 auto; padding: 0 clamp(20px, 4vw, 56px) clamp(64px, 8vw, 120px); }
   .chap { display: block; padding: 22px 0 clamp(44px, 6vw, 88px); border-top: 1px solid var(--ink); color: inherit; text-decoration: none; }
-  .c-tete { display: grid; grid-template-columns: 4.5em 1fr auto; gap: 16px; align-items: baseline; font-family: var(--font-title); font-size: .74rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin-bottom: clamp(24px, 4vw, 56px); }
-  .c-num { font-family: var(--font-serif); font-style: italic; font-size: 1.9rem; letter-spacing: 0; text-transform: none; color: var(--accent); line-height: 1; }
-  .c-rub { color: var(--ink); }
+  .c-eti { font-family: var(--font-title); font-size: .74rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
+  .c-eti span { color: var(--accent); }
   .c-corps { display: grid; grid-template-columns: 1fr 1.15fr; gap: clamp(28px, 5vw, 88px); align-items: end; }
   .chap:nth-of-type(even) .c-txt { order: 2; }
   .chap h2 { font-size: clamp(2.4rem, 5.2vw, 5.2rem); margin: 0 0 .35em; max-width: 12ch; transition: color .3s; }
@@ -220,8 +219,6 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
     .c-corps { grid-template-columns: 1fr; gap: 22px; align-items: start; }
     .c-photo, .chap:nth-of-type(even) .c-txt { order: 0; }
     .c-photo { order: -1 !important; }
-    .c-tete { grid-template-columns: 3em 1fr; margin-bottom: 18px; }
-    .c-fait { grid-column: 2; }
     .j-liste a { grid-template-columns: 1fr; gap: 6px; padding: 16px 0; }
   }
   @media (max-width: 560px) {
