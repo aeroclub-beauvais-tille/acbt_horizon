@@ -41,10 +41,10 @@ const [ex, ey] = pts[N - 1];
 </div>
 
 <style>
-  /* Étapes éditoriales : un filet, un grand numéro en italique, pas de boîte */
+  /* Étapes éditoriales : un filet, un grand numéro net, pas de boîte */
   .etapes { list-style: none; margin: clamp(32px, 4vw, 52px) 0 0; padding: 0; display: grid; gap: 0 28px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); border-top: 1px solid var(--ink); }
   li { position: relative; padding: 22px 0 28px; border-bottom: 1px solid var(--line); }
-  .num { display: block; font-family: var(--font-serif); font-style: italic; font-size: 2.6rem; line-height: 1; color: var(--accent); margin-bottom: 18px; }
+  .num { display: block; font-family: var(--font-title); font-weight: 600; font-size: 2.3rem; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; color: var(--accent); margin-bottom: 18px; }
   .num::before { content: '0'; }
   h3 { font-size: 1.3rem; font-weight: 400; letter-spacing: -.02em; margin: 0 0 8px; }
   p { margin: 0; color: var(--muted); font-size: .95rem; max-width: 40ch; }

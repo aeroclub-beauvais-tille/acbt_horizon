@@ -106,15 +106,15 @@ import pages from '../../data/pages.json';
   .locaux figure:hover img { transform: scale(1.05); }
   .locaux figcaption { position: absolute; left: 10px; bottom: 10px; padding: 3px 10px; border-radius: 999px; background: rgba(20,18,14,.7); color: #fff; font-size: .8rem; backdrop-filter: blur(6px); }
 
-  .intro { color: #a8a296; margin-bottom: 36px; }
+  .intro { color: #9fb0c8; margin-bottom: 36px; }
   .reperes { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; grid-template-columns: repeat(5, 1fr); }
   @media (max-width: 1000px) { .reperes { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); } }
   .reperes a { display: flex; flex-direction: column; gap: 6px; color: #fff; text-decoration: none; }
   .reperes .photo { aspect-ratio: 4 / 3; border-radius: var(--radius); overflow: hidden; background: var(--ink-2); margin-bottom: 8px; }
-  .reperes img { width: 100%; height: 100%; object-fit: cover; filter: sepia(.25) saturate(.9); transition: filter .4s, transform .8s cubic-bezier(.2,.7,.2,1); }
+  .reperes img { width: 100%; height: 100%; object-fit: cover; filter: saturate(.95); transition: filter .4s, transform .8s cubic-bezier(.2,.7,.2,1); }
   .reperes a:hover img { filter: none; transform: scale(1.05); }
   .reperes .annee { font-family: var(--font-title); font-size: 2rem; font-weight: 700; line-height: 1; color: var(--accent); }
-  .reperes strong { font-weight: 500; color: #c9c4b8; line-height: 1.35; }
+  .reperes strong { font-weight: 500; color: #c3cedf; line-height: 1.35; }
   .reperes a:hover strong { color: #fff; }
 
   .venir { text-align: center; }
