@@ -1,6 +1,7 @@
 ---
 // Pied de page compact : trois lignes sur téléphone (club, contact, mentions).
 import club from '../data/club.json';
+import Logo from './Logo.astro';
 import { url } from '../lib/utils';
 const liens = [
   { label: 'Baptême', href: '/decouvrir-le-vol' },
@@ -16,9 +17,9 @@ const liens = [
 ---
 <footer class="site-footer">
   <div class="haut">
-    <a class="ident" href={url('/')}>
-      <img src={url('/uploads/logo/logo-acbt.png')} alt="" width="40" height="29" loading="lazy" />
-      <span><strong>ACBT</strong><small>{club.adresse}</small></span>
+    <a class="ident" href={url('/')} aria-label="ACBT — Aéroclub de Beauvais-Tillé, accueil">
+      <Logo class="logo-mark" />
+      <small>{club.adresse}</small>
     </a>
     <nav class="liens" aria-label="Plan du site">{liens.map((l) => <a href={url(l.href)}>{l.label}</a>)}</nav>
     <div class="joindre">
@@ -39,10 +40,7 @@ const liens = [
   a { color: var(--ink); text-decoration: none; }
   a:hover { color: var(--accent-fonce); }
   .haut { display: grid; grid-template-columns: auto 1fr auto; gap: 14px 40px; align-items: center; }
-  .ident { display: flex; align-items: center; gap: 12px; }
-  .ident img { width: 40px; height: auto; background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 2px; }
-  .ident span { display: flex; flex-direction: column; line-height: 1.25; }
-  .ident strong { font-family: var(--font-title); font-weight: 600; letter-spacing: .08em; }
+  .ident { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; text-decoration: none; color: var(--ink); --logo-h: 42px; --logo-rouge: #EC091D; }
   .ident small { color: var(--muted); font-size: .78rem; }
   .liens { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 22px; }
   .liens a { color: var(--muted); }

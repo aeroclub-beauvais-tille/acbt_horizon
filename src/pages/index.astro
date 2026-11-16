@@ -199,9 +199,9 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
   .journal h2 { color: #eef3fb; margin: 0; }
   .j-liste { list-style: none; margin: 0; padding: 0; border-top: 1px solid rgba(255,255,255,.16); }
   .j-liste a { display: grid; grid-template-columns: 13em 1fr; gap: 24px; align-items: baseline; padding: 20px 0; border-bottom: 1px solid rgba(255,255,255,.16); color: inherit; text-decoration: none; }
-  .j-date { font-family: var(--font-title); font-size: .74rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: #8d897f; }
+  .j-date { font-family: var(--font-title); font-size: .74rem; font-weight: 500; letter-spacing: .14em; text-transform: uppercase; color: #8ea3c0; }
   .j-titre { font-family: var(--font-title); font-weight: 300; font-size: clamp(1.2rem, 2.2vw, 1.9rem); letter-spacing: -.03em; line-height: 1.15; color: #eef3fb; transition: color .2s, transform .4s cubic-bezier(.2,.7,.2,1); }
-  .j-liste a:hover .j-titre { color: #ffb27a; transform: translateX(6px); }
+  .j-liste a:hover .j-titre { color: var(--sun-clair); transform: translateX(6px); }
 
   /* Fin de page */
   .venir { padding: clamp(80px, 11vw, 160px) clamp(20px, 4vw, 56px); text-align: center; display: grid; justify-items: center; gap: 8px; }

@@ -220,36 +220,36 @@ const initiation = t.formules.find((f) => f.prix.length === 1)?.prix[0];
   .case small { color: var(--muted); }
   @media (prefers-reduced-motion: reduce) { .case i, .case i::after { transition: none; } }
   [hidden] { display: none !important; }
-  .mini { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 40; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius); background: var(--ink); color: #c9c4b8; text-decoration: none; box-shadow: 0 12px 30px rgba(20,18,14,.3); font-size: .85rem; }
-  .mini b { font-family: var(--font-title); font-size: 1.4rem; color: #ffb27a; }
+  .mini { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 40; display: flex; align-items: center; gap: 12px; padding: 12px 16px; border-radius: var(--radius); background: var(--ink); color: #c3cedf; text-decoration: none; box-shadow: 0 12px 30px rgba(20,18,14,.3); font-size: .85rem; }
+  .mini b { font-family: var(--font-title); font-size: 1.4rem; color: var(--sun-clair); }
   .mini .voir { margin-left: auto; color: #fff; }
   @media (min-width: 900px) { .mini { display: none !important; } }
   .aide-choix { display: inline-block; margin-top: 4px; padding: 8px 0; font-size: .9rem; color: var(--accent-fonce); }
 
-  .resultat { background: var(--ink); color: #c9c4b8; border-radius: var(--radius); padding: clamp(20px, 3vw, 30px); }
+  .resultat { background: var(--ink); color: #c3cedf; border-radius: var(--radius); padding: clamp(20px, 3vw, 30px); }
   .r-label { margin: 0; font-size: .95rem; }
   .r-label span { color: #fff; font-weight: 600; }
   .r-total { margin: 2px 0 4px; font-family: var(--font-title); font-weight: 700; font-size: clamp(2.4rem, 5vw, 3rem); line-height: 1; color: #fff; }
-  .r-total b { color: #ffb27a; }
-  .r-total small, .mini small { font-size: .45em; font-weight: 500; color: #c9c4b8; }
+  .r-total b { color: var(--sun-clair); }
+  .r-total small, .mini small { font-size: .45em; font-weight: 500; color: #c3cedf; }
   .mini small { font-size: .6em; }
-  .r-etale { margin: 0 0 6px; font-size: .95rem; color: #ece7dc; }
+  .r-etale { margin: 0 0 6px; font-size: .95rem; color: #dfe7f2; }
   .r-etale b { color: #fff; }
-  .r-sous { margin: 0 0 16px; font-size: .88rem; color: #a8a296; }
+  .r-sous { margin: 0 0 16px; font-size: .88rem; color: #9fb0c8; }
   .r-lignes { list-style: none; margin: 0 0 14px; padding: 0; font-size: .9rem; }
   .r-lignes li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid rgba(255,255,255,.1); }
-  .r-lignes small { display: block; color: #8d897f; font-size: .78rem; }
+  .r-lignes small { display: block; color: #8ea3c0; font-size: .78rem; }
   .r-lignes b { color: #fff; white-space: nowrap; font-weight: 600; }
-  .r-lignes .moins { color: #e9b48a; }
-  .r-lignes .aides span { color: #e9b48a; }
-  .r-astuce { margin: 0 0 16px; padding: 10px 12px; border-radius: var(--radius); background: rgba(255,255,255,.07); font-size: .88rem; color: #ece7dc; }
+  .r-lignes .moins { color: var(--sun-clair); }
+  .r-lignes .aides span { color: var(--sun-clair); }
+  .r-astuce { margin: 0 0 16px; padding: 10px 12px; border-radius: var(--radius); background: rgba(255,255,255,.07); font-size: .88rem; color: #dfe7f2; }
   .resultat .btns { margin-bottom: 10px; }
   .resultat .btn-primary { background: var(--accent); color: #fff; }
   .resultat .btn-primary:hover { background: var(--accent-fonce); color: #fff; }
   .r-essai { display: inline-block; margin-bottom: 14px; font-size: .9rem; color: #fff; text-decoration-color: rgba(255,255,255,.4); }
-  .r-essai:hover { color: #ffb27a; }
+  .r-essai:hover { color: var(--sun-clair); }
   .r-lignes.detail { margin: 10px 0 0; }
   .r-plus { border-top: 1px solid rgba(255,255,255,.1); padding-top: 12px; }
-  .r-plus summary { cursor: pointer; font-size: .85rem; color: #a8a296; }
-  .r-plus p { font-size: .82rem; color: #a8a296; margin: 8px 0 0; }
+  .r-plus summary { cursor: pointer; font-size: .85rem; color: #9fb0c8; }
+  .r-plus p { font-size: .82rem; color: #9fb0c8; margin: 8px 0 0; }
 </style>

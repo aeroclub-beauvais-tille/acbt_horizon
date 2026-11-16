@@ -1,5 +1,6 @@
 ---
 import { url } from '../lib/utils';
+import Logo from './Logo.astro';
 const nav = [
   { label: 'Baptême', href: '/decouvrir-le-vol' },
   { label: 'Devenir pilote', href: '/formations' },
@@ -16,9 +17,8 @@ const membre = path.startsWith(url('/membre'));
 ---
 <header class:list={['site-header', { membre }]}>
   <div class="bar">
-    <a class="logo" href={url('/')}>
-      <img src={url('/uploads/logo/logo-acbt.png')} alt="" width="50" height="36" />
-      <span><strong>ACBT</strong><small>Aéroclub de Beauvais-Tillé</small></span>
+    <a class="logo" href={url('/')} aria-label="ACBT — Aéroclub de Beauvais-Tillé, accueil">
+      <Logo class="logo-mark" />
     </a>
     <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Ouvrir le menu" />
     <nav aria-label="Navigation principale">
@@ -46,6 +46,7 @@ const membre = path.startsWith(url('/membre'));
   /* En-tête posé sur la page ; transparent et en blanc quand la page commence par une grande photo */
   .site-header { --fg: var(--ink); position: fixed; top: 0; left: 0; right: 0; z-index: 50; color: var(--fg); transition: transform .5s cubic-bezier(.2,.7,.2,1), background-color .35s, color .35s, border-color .35s; border-bottom: 1px solid transparent; }
   :global(body:has(main > .hero:first-child, main > .page-head.has-img:first-child)) .site-header:not(.defile) { --fg: #fff; }
+  :global(body:has(main > .hero:first-child, main > .page-head.has-img:first-child)) .site-header:not(.defile) .logo { --logo-rouge: currentColor; filter: drop-shadow(0 2px 12px rgba(0,0,0,.45)); }
   .site-header.defile { background: color-mix(in srgb, var(--paper) 92%, transparent); backdrop-filter: saturate(1.3) blur(14px); border-bottom-color: var(--line); }
   .site-header.cache { transform: translateY(-100%); }
   .site-header.membre { position: sticky; background: var(--paper); border-bottom-color: var(--line); }
@@ -53,11 +54,7 @@ const membre = path.startsWith(url('/membre'));
   :global(body:has(.site-header.membre) main) { padding-top: 0; }
   .progression { position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; background: var(--accent); transform: scaleX(0); transform-origin: left; pointer-events: none; }
   .bar { display: flex; align-items: center; gap: 10px; height: 76px; padding: 0 clamp(20px, 4vw, 56px); }
-  .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; color: var(--fg); margin-right: auto; }
-  .logo img { height: 34px; width: auto; background: #fff; border-radius: 6px; padding: 2px 3px; }
-  .logo span { display: flex; flex-direction: column; line-height: 1.1; }
-  .logo strong { font-family: var(--font-title); font-weight: 600; font-size: 1.05rem; letter-spacing: .08em; }
-  .logo small { font-size: .74rem; opacity: .75; }
+  .logo { display: flex; align-items: center; text-decoration: none; color: var(--fg); margin-right: auto; --logo-h: 46px; --logo-rouge: #EC091D; }
   nav ul { display: flex; align-items: center; gap: 2px; list-style: none; margin: 0; padding: 0; }
   nav a { position: relative; display: block; padding: 8px 14px; color: var(--fg); text-decoration: none; font-family: var(--font-title); font-size: .96rem; white-space: nowrap; opacity: .9; }
   nav a::after { content: ''; position: absolute; left: 14px; right: 14px; bottom: 2px; height: 1px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform .35s cubic-bezier(.2,.7,.2,1); }
@@ -73,7 +70,7 @@ const membre = path.startsWith(url('/membre'));
   .b-fermer { display: none; }
   .nav-toggle:focus-visible ~ .burger, .reserver:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .actions { display: flex; align-items: center; }
-  @media (max-width: 1240px) { .reserver span { display: none; } nav a { padding: 8px 10px; } .logo small { display: none; } }
+  @media (max-width: 1240px) { .reserver span { display: none; } nav a { padding: 8px 10px; } }
   @media (max-width: 1020px) {
     .burger { display: inline-flex; }
     .reserver { margin-left: 0; }
@@ -84,12 +81,12 @@ const membre = path.startsWith(url('/membre'));
     nav li.li-membre { border: 0; }
     nav a { display: flex; align-items: baseline; gap: 16px; color: #eef3fb; font-weight: 300; font-size: clamp(1.8rem, 8vw, 2.6rem); letter-spacing: -.04em; padding: 9px 0; opacity: 1; }
     nav a::after { display: none; }
-    nav a[aria-current] { color: #ffb27a; }
+    nav a[aria-current] { color: #86b4e6; }
     nav a::after { left: 0; right: auto; width: 40px; bottom: 10px; }
     nav a:hover { color: #eef3fb; }
     .li-membre { margin-top: 18px; }
-    nav a.member { font-size: 1rem; letter-spacing: 0; color: #9a968c; }
-    .nav-pied { display: block; margin: 30px 0 0; color: #9a968c; font-size: .9rem; }
+    nav a.member { font-size: 1rem; letter-spacing: 0; color: #8ea3c0; }
+    .nav-pied { display: block; margin: 30px 0 0; color: #8ea3c0; font-size: .9rem; }
     .nav-toggle:checked ~ nav { display: flex; animation: menu-in .35s cubic-bezier(.2,.7,.2,1); }
     .nav-toggle:checked ~ .burger { --fg: #eef3fb; color: #eef3fb; }
     .nav-toggle:checked ~ .burger .b-ouvrir { display: none; }
@@ -97,8 +94,9 @@ const membre = path.startsWith(url('/membre'));
     .nav-toggle:checked ~ .reserver { visibility: hidden; }
     .site-header:has(.nav-toggle:checked) { background: transparent; border-color: transparent; backdrop-filter: none; }
     .site-header:has(.nav-toggle:checked) .logo { color: #eef3fb; position: relative; z-index: 2; }
+    .site-header:has(.nav-toggle:checked) .logo { --logo-rouge: currentColor; }
   }
-  @media (max-width: 420px) { .logo small { display: none; } .bar { height: 68px; } }
+  @media (max-width: 420px) { .logo { --logo-h: 40px; } .bar { height: 68px; } }
   @keyframes menu-in { from { opacity: 0; } }
   @media (prefers-reduced-motion: reduce) { nav a::after { transition: none; } .nav-toggle:checked ~ nav { animation: none; } }
 </style>
