@@ -1,5 +1,5 @@
 ---
-import { photo } from '../lib/photo';
+import { photo, photoUrl } from '../lib/photo';
 import Base from '../layouts/Base.astro';
 import Metar from '../components/Metar.astro';
 import { getCollection } from 'astro:content';
@@ -46,6 +46,11 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
   <section class="hero" aria-label="Présentation">
     <div class="slides">
       {slides.map((sl, i) => <img {...photo(sl.img, '100vw')} fetchpriority={i ? undefined : 'high'} alt={sl.legende} class:list={{ on: i === 0 }} loading={i ? 'lazy' : 'eager'} />)}
+      {pg.video && (
+        <video class="h-video" autoplay muted loop playsinline preload="metadata" poster={photoUrl(slides[0]?.img)} aria-hidden="true">
+          <source src={asset(pg.video)} type="video/mp4" />
+        </video>
+      )}
     </div>
     <div class="voile"></div>
     <div class="hero-metar"><Metar sombre /></div>
@@ -56,7 +61,7 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
         <a class="btn btn-clair" href={url('/contact?objet=Baptême')}>Réserver un baptême</a>
       </div>
     </div>
-    <p class="hero-legende" id="slide-l">{slides[0]?.legende}</p>
+    {!pg.video && <p class="hero-legende" id="slide-l">{slides[0]?.legende}</p>}
   </section>
 
   <section class="manif" aria-label={pg.atouts_titre}>
@@ -131,11 +136,19 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
 
 </script>
 
+
+<script>
+  // Vidéo de fond : coupée si le visiteur a demandé moins d'animations
+  const v = document.querySelector<HTMLVideoElement>('.h-video');
+  if (v && matchMedia('(prefers-reduced-motion: reduce)').matches) { v.removeAttribute('autoplay'); v.pause(); }
+</script>
+
 <style>
   .g { padding-inline: clamp(20px, 4vw, 56px); }
   /* Ouverture plein écran */
   .hero { position: relative; height: 100svh; min-height: 600px; max-height: 980px; color: #fff; background: var(--nuit); overflow: hidden; }
   .slides { position: absolute; inset: 0; }
+  .h-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .slides img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; opacity: 0; transform: scale(1.08); transition: opacity 1.6s ease, transform 12s ease-out; }
   .slides img.on { opacity: 1; transform: scale(1); }
   .voile { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,14,.5) 0%, rgba(10,10,14,0) 28%, rgba(10,10,14,0) 48%, rgba(10,10,14,.72) 100%); }

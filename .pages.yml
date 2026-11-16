@@ -160,6 +160,7 @@ content:
             fields:
               - { name: image, label: Photo, type: image }
               - { name: legende, label: Légende, type: string }
+          - { name: video, label: Vidéo de fond (facultatif), type: file, description: "Fichier MP4 court (10 à 30 secondes), sans son, de préférence moins de 15 Mo. Elle passe en boucle par-dessus les photos. Laissez vide pour garder les photos qui défilent." }
           - { name: atouts_titre, label: Titre du bloc des chiffres clés, type: string }
           - { name: manifeste, label: Phrase à côté du titre des chiffres clés, type: text, description: "Écrivez {annees} pour afficher automatiquement l'âge du club." }
           - name: atouts
