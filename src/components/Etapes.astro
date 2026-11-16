@@ -1,17 +1,45 @@
 ---
 // Étapes numérotées (déroulement d'un vol, parcours de formation).
-interface Props { etapes: { titre: string; texte: string }[] }
-const { etapes } = Astro.props;
+// trajectoire : trace la route d'un petit avion qui relie les étapes (sur grand écran).
+interface Props { etapes: { titre: string; texte: string }[]; trajectoire?: boolean }
+const { etapes, trajectoire = false } = Astro.props;
+const N = etapes.length;
+// Points par lesquels passe la route : au centre de chaque colonne, à une hauteur qui ondule.
+const pts = etapes.map((_, i) => {
+  const x = ((i + 0.5) / N) * 100;
+  const y = 50 + (i % 2 === 0 ? -14 : 14);
+  return [x, y];
+});
+const d = pts
+  .map(([x, y], i) => {
+    if (i === 0) return `M ${x} ${y}`;
+    const [px, py] = pts[i - 1];
+    const cx = (px + x) / 2;
+    return `C ${cx} ${py} ${cx} ${y} ${x} ${y}`;
+  })
+  .join(' ');
+const [ex, ey] = pts[N - 1];
 ---
-<ol class="etapes" style={`--n: ${etapes.length}`} data-stagger>
-  {etapes.map((e, i) => (
-    <li>
-      <span class="num">{i + 1}</span>
-      <h3>{e.titre}</h3>
-      <p>{e.texte}</p>
-    </li>
-  ))}
-</ol>
+<div class:list={['etapes-zone', { 'a-route': trajectoire }]}>
+  {trajectoire && N > 1 && (
+    <svg class="route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <path class="route-trace" d={d} pathLength="1" />
+      <g class="route-avion" style={`--x: ${ex}; --y: ${ey}`}>
+        <path d="M-3.2 0 L2 0 M2 -1.7 L4.6 0 L2 1.7 M-3.2 -1.1 L-3.2 1.1" />
+      </g>
+    </svg>
+  )}
+  <ol class="etapes" style={`--n: ${N}`} data-stagger>
+    {etapes.map((e, i) => (
+      <li>
+        <span class="num">{i + 1}</span>
+        <h3>{e.titre}</h3>
+        <p>{e.texte}</p>
+      </li>
+    ))}
+  </ol>
+</div>
+
 <style>
   /* Étapes éditoriales : un filet, un grand numéro en italique, pas de boîte */
   .etapes { list-style: none; margin: clamp(32px, 4vw, 52px) 0 0; padding: 0; display: grid; gap: 0 28px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); border-top: 1px solid var(--ink); }
@@ -23,5 +51,19 @@ const { etapes } = Astro.props;
   @media (max-width: 640px) {
     li { display: grid; grid-template-columns: 52px 1fr; gap: 0 8px; padding: 18px 0 20px; }
     .num { grid-row: span 2; font-size: 2rem; margin: 0; }
+  }
+
+  /* Route de l'avion qui relie les étapes (grand écran seulement) */
+  .etapes-zone { position: relative; }
+  .a-route .etapes { border-top: 0; }
+  .a-route .etapes::before { content: ''; position: absolute; left: 0; right: 0; top: 0; border-top: 1px solid var(--ink); }
+  .route { display: none; }
+  @media (min-width: 760px) {
+    .a-route .route { display: block; position: absolute; left: 6%; right: 6%; top: -10px; width: 88%; height: 64px; overflow: visible; pointer-events: none; z-index: 2; }
+    .route-trace { fill: none; stroke: var(--accent); stroke-width: 1.4; stroke-dasharray: 2.4 2.4; stroke-linecap: round; vector-effect: non-scaling-stroke; opacity: .55; }
+    .route-avion { transform: translate(calc(var(--x) * 1%), calc(var(--y) * 1%)); }
+    .route-avion path { stroke: var(--accent); stroke-width: 1.4; fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+    :global(.motion) .route-trace { animation: route-dash 1.6s ease-out .2s both; }
+    @keyframes route-dash { from { stroke-dashoffset: 40; opacity: 0; } to { stroke-dashoffset: 0; opacity: .55; } }
   }
 </style>
