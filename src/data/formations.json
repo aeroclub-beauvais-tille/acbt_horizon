@@ -217,20 +217,28 @@
   ],
   "questions": [
     {
-      "question": "Combien de temps dure la formation ?",
-      "reponse": "Tout dépend de votre disponibilité. La formation se fait à votre rythme, vol après vol, sans calendrier imposé : plus vous volez régulièrement, plus vous progressez vite."
+      "question": "Combien d'heures faut-il pour obtenir le PPL(A) ?",
+      "reponse": "La réglementation européenne impose un minimum de 45 heures de vol pour le PPL(A), dont au moins 25 heures en double commande et 10 heures en solo. Dans la pratique, la majorité des élèves obtiennent leur licence entre 55 et 70 heures."
     },
     {
-      "question": "Combien coûte une licence ?",
-      "reponse": "Le budget dépend surtout du nombre d'heures de vol. Comptez l'adhésion annuelle et les heures en double commande puis en solo : tous les prix sont sur la page Tarifs. Les instructeurs sont bénévoles, et des aides existent pour les jeunes."
+      "question": "Peut-on commencer à piloter sans expérience ?",
+      "reponse": "Oui, aucune expérience n'est requise. La formation débute par un vol de découverte, puis progresse selon votre rythme. L'âge minimum pour le premier vol solo est de 16 ans, la délivrance de la licence intervenant à partir de 17 ans."
     },
     {
-      "question": "Faut-il passer une visite médicale ?",
-      "reponse": "Oui. Un certificat médical délivré par un médecin agréé aéronautique est nécessaire avant votre premier vol en solo. Nous vous indiquons les médecins agréés de la région."
+      "question": "Faut-il une visite médicale pour passer la licence ?",
+      "reponse": "Oui. Pour le PPL(A) ou LAPL(A), une visite médicale de classe 2 est requise. Elle peut être réalisée auprès d'un médecin aéronautique (AeMC) ou, pour le LAPL, auprès d'un médecin agréé. La visite se fait idéalement avant le début de la formation."
     },
     {
-      "question": "Comment se prépare l'examen théorique ?",
-      "reponse": "En e-learning à la maison, avec le soutien des instructeurs du club. L'examen se passe ensuite en ligne dans un centre agréé."
+      "question": "L'ACBT propose-t-il des cours théoriques ?",
+      "reponse": "Votre instructeur vous prépare à l'examen théorique (9 matières pour le PPL) lors des briefings sol. Des supports pédagogiques approuvés par la DGAC sont mis à disposition. L'examen théorique se passe dans un centre agréé."
+    },
+    {
+      "question": "Combien coûte la formation pilote à l'ACBT ?",
+      "reponse": "Le coût total dépend de votre nombre d'heures de vol. En comptant le tarif horaire de l'avion, l'instruction et les cotisations, un PPL(A) se situe généralement entre 8 000 et 12 000 €. Pour un LAPL(A), comptez entre 5 500 et 8 000 €."
+    },
+    {
+      "question": "L'ACBT forme-t-il les pilotes de ligne ?",
+      "reponse": "Non, l'ACBT est un aéroclub associatif : nous formons au vol de loisir et de voyage, pas au métier de pilote de ligne (formation ATPL en école professionnelle). Cela dit, la quasi-totalité des pilotes de ligne ont commencé par le brevet de pilote privé (PPL) : c'est la première brique du parcours, et vous pouvez l'obtenir chez nous avant de rejoindre une école professionnelle."
     }
   ]
 }

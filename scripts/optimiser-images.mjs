@@ -11,7 +11,7 @@ import sharp from 'sharp';
 const SOURCE = 'public/uploads';
 const SORTIE = 'public/opt';
 const IGNORER = ['membre', 'documents']; // espace membre et fichiers à télécharger : laissés tels quels
-const LARGEURS = [480, 960, 1600];
+const LARGEURS = [480, 960, 1600, 2400];
 const QUALITE = 72;
 
 async function lister(dossier) {
@@ -35,8 +35,15 @@ async function traiter(fichier) {
   // Empreinte du contenu : une photo inchangée n'est jamais retraitée, même après une nouvelle copie du dépôt
   const empreinte = createHash('sha1').update(await readFile(fichier)).digest('hex').slice(0, 16);
   const deja = ancien[cle];
+  // Largeurs attendues pour cette photo (selon son original déjà connu) : on ne réutilise le cache
+  // que si l'empreinte ET la liste des largeurs correspondent, pour régénérer si LARGEURS change.
+  const voulues0 = cle.startsWith('/uploads/actualites/') ? LARGEURS.slice(0, 2) : LARGEURS;
   if (deja && deja.e === empreinte) {
-    try { await Promise.all(deja.l.map((l) => stat(join('public', sortie(cle, l))))); manifeste[cle] = deja; return; } catch {}
+    const att = voulues0.filter((l) => l < deja.w);
+    if (att.length < voulues0.length) att.push(deja.w);
+    if (att.length === deja.l.length && att.every((l, i) => l === deja.l[i])) {
+      try { await Promise.all(deja.l.map((l) => stat(join('public', sortie(cle, l))))); manifeste[cle] = deja; return; } catch {}
+    }
   }
   try {
     const image = sharp(fichier, { failOn: 'none' }).rotate();
@@ -44,7 +51,7 @@ async function traiter(fichier) {
     const tourne = (meta.orientation ?? 1) >= 5;
     const w = tourne ? meta.height : meta.width, h = tourne ? meta.width : meta.height;
     // Les photos d'actualités (plus d'un millier) n'ont pas besoin de la très grande taille
-    const voulues = cle.startsWith('/uploads/actualites/') ? LARGEURS.slice(0, 2) : LARGEURS;
+    const voulues = voulues0;
     const largeurs = voulues.filter((l) => l < w);
     if (largeurs.length < voulues.length) largeurs.push(w);
     await mkdir(dirname(join('public', sortie(cle, 0))), { recursive: true });

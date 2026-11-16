@@ -1,10 +1,12 @@
 ---
-import { photo, photoUrl, positionFond } from '../lib/photo';
-import { asset } from '../lib/utils';
+import { photo } from '../lib/photo';
 interface Props { eyebrow?: string; title: string; lead?: string; image?: string }
 const { eyebrow, title, lead, image } = Astro.props;
+const bg = image ? photo(image, '100vw') : undefined;
 ---
-<section class:list={['page-head', { 'has-img': image }]} style={image ? `--img: url('${photoUrl(image)}'); --img-pos: ${positionFond(image)}` : undefined}>
+<section class:list={['page-head', { 'has-img': image }]}>
+  {bg && <img class="ph-bg" {...bg} alt="" aria-hidden="true" fetchpriority="high" />}
+  {image && <div class="ph-voile" aria-hidden="true"></div>}
   <div class="container">
     {eyebrow && <span class="eyebrow" data-reveal data-delay="0.1">{eyebrow}</span>}
     <h1 data-split="now">{title}</h1>
