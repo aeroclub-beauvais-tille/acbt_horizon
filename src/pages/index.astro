@@ -55,6 +55,7 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
     <div class="voile"></div>
     <div class="hero-metar"><Metar sombre /></div>
     <div class="hero-txt">
+      <p class="hero-oaci">LFOB · Beauvais-Tillé · Depuis 1979</p>
       <h1 data-split="now">{h1.debut} <em>{h1.fin}</em></h1>
       <div class="hero-cote" data-reveal data-delay="0.8">
         <p>{pg.texte.replace('{annees}', String(annees))}</p>
@@ -153,6 +154,7 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
   .slides img.on { opacity: 1; transform: scale(1); }
   .voile { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,14,.5) 0%, rgba(10,10,14,0) 28%, rgba(10,10,14,0) 48%, rgba(10,10,14,.72) 100%); }
   .hero-metar { position: absolute; z-index: 2; top: 84px; left: clamp(20px, 4vw, 56px); right: clamp(20px, 4vw, 56px); opacity: .9; }
+  .hero-oaci { grid-column: 1 / -1; margin: 0 0 14px; font-family: var(--font-title); font-size: .78rem; font-weight: 500; letter-spacing: .2em; text-transform: uppercase; color: rgba(255,255,255,.85); }
   .hero-txt { position: absolute; z-index: 2; left: clamp(20px, 4vw, 56px); right: clamp(20px, 4vw, 56px); bottom: clamp(36px, 7vh, 72px); display: grid; grid-template-columns: 1fr auto; gap: 28px; align-items: end; }
   .hero h1 { color: #fff; font-size: clamp(3.2rem, 8.6vw, 8.4rem); line-height: .92; letter-spacing: -.05em; max-width: 11ch; margin: 0; }
   .hero h1 em { font-size: 1.06em; }
