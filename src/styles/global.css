@@ -12,6 +12,7 @@
   --muted: #5e6b82;
   --line: #d5dfee;
   --sun: #1e5fa8;
+  --sun-clair: #86b4e6;
   --sky: #3e5b78;
   --accent: var(--sun);
   --radius: 4px;
@@ -139,7 +140,7 @@ html.lenis, html.lenis body { height: auto; }
 .marquee .piste { display: flex; width: max-content; }
 .marquee span { display: inline-flex; align-items: center; gap: .5em; padding-right: .5em; font-family: var(--font-title); font-weight: 300; font-size: clamp(2.2rem, 7vw, 5.6rem); line-height: 1; letter-spacing: -.04em; white-space: nowrap; }
 .marquee span em { font-family: var(--font-serif); font-style: italic; }
-.marquee span i { font-style: normal; color: var(--sun); font-size: .5em; }
+.marquee span i { font-style: normal; color: var(--sun-clair); font-size: .5em; }
 @media (prefers-reduced-motion: reduce) { .marquee .piste { flex-wrap: wrap; width: auto; } }
 
 main { overflow-x: clip; }
