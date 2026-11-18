@@ -113,7 +113,12 @@
       "simulateur": false
     },
     {
-      "libelle": "Casque, carte, porte-clés",
+      "libelle": "Casque avion FlightCom",
+      "prix": "180 €",
+      "simulateur": false
+    },
+    {
+      "libelle": "Carte, porte-clés",
       "prix": "Sur demande",
       "simulateur": false
     }

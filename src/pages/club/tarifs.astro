@@ -5,7 +5,6 @@ import HeuresVol from '../../components/HeuresVol.astro';
 import { getCollection } from 'astro:content';
 import club from '../../data/club.json';
 import t from '../../data/tarifs.json';
-import { url } from '../../lib/utils';
 const avions = (await getCollection('avions', (a) => a.data.actif)).sort((a, b) => a.data.ordre - b.data.ordre);
 const ad = t.adhesion;
 const n = (x: number) => x.toLocaleString('fr-FR');
@@ -15,7 +14,7 @@ import pages from '../../data/pages.json';
 <Base univers="voler" title="Tarifs" description={`Tarifs ${t.annee} de l'aéroclub de Beauvais-Tillé : heures de vol, adhésion, vols découverte.`}>
   <PageHead eyebrow="Tarifs" image={pages.tarifs.image} title={pages.tarifs.titre} lead={pages.tarifs.texte}>
     <nav class="sommaire" aria-label="Sommaire des tarifs">
-      <a href="#heures">Heures de vol</a><a href="#adhesion">Adhésion</a><a href="#decouvrir">Vols découverte</a><a href="#divers">Divers</a>
+      <a href="#heures">Heures de vol</a><a href="#adhesion">Adhésion</a><a href="#divers">Divers</a>
     </nav>
   </PageHead>
 
@@ -45,7 +44,7 @@ import pages from '../../data/pages.json';
             {c.mise_en_avant && <span class="ruban">Pour bien démarrer</span>}
             <span class="public">{c.public}</span>
             <h3>{c.titre}</h3>
-            <p class="total">{n(c.cotisation_acbt + ad.cotisation_ffa)}<small> € / an</small></p>
+            <p class="total">{n(c.cotisation_acbt + ad.cotisation_ffa)}<small>€/an</small></p>
             <ul>
               <li><span>Cotisation ACBT</span><b>{n(c.cotisation_acbt)} €</b></li>
               <li><span>Licence et assurance FFA</span><b>{n(ad.cotisation_ffa)} €</b></li>
@@ -56,7 +55,7 @@ import pages from '../../data/pages.json';
         <div class="formule temporaire">
           <span class="public">Pour {t.temporaire.duree}</span>
           <h3>{t.temporaire.titre}</h3>
-          <p class="total">{n(t.temporaire.prix)}<small> €</small></p>
+          <p class="total">{n(t.temporaire.prix)}<small>€</small></p>
           <p class="meta">{t.temporaire.texte}</p>
         </div>
       </div>
@@ -84,25 +83,7 @@ import pages from '../../data/pages.json';
     </div>
   </section>
 
-  <section class="section" id="decouvrir">
-    <div class="container">
-      <div class="section-head">
-        <div><span class="label">Découvrir le vol</span><h2 data-split>{pages.tarifs.intertitres.formules}</h2></div>
-        <a class="btn btn-outline" href={url('/contact?objet=Baptême')}>Réserver un vol</a>
-      </div>
-      <div class="grid grid-3" data-stagger>
-        {t.formules.map((f) => (
-          <div class="card"><div class="card-body">
-            <h3>{f.titre}</h3>
-            <p>{f.texte}</p>
-            <ul class="lignes">{f.prix.map((p) => <li><span>{p.libelle}</span><b>{n(p.prix)} €</b></li>)}</ul>
-          </div></div>
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <section class="section white" id="divers">
+  <section class="section" id="divers">
     <div class="container divers">
       <div><span class="label">Divers</span><h2 data-split>{pages.tarifs.intertitres.divers}</h2><p class="lead">Le matériel du pilote est disponible au club.</p></div>
       <ul class="lignes grandes" data-stagger>{t.divers.map((d) => <li><span>{d.libelle}</span><b>{d.prix}</b></li>)}</ul>
@@ -135,7 +116,8 @@ import pages from '../../data/pages.json';
   .vedette .public { color: #86b4e6; }
   .formule h3 { margin: 8px 0 18px; font-size: 1.5rem; font-weight: 300; }
   .total { font-family: var(--font-title); font-size: clamp(3.2rem, 5vw, 4.4rem); font-weight: 300; letter-spacing: -.05em; color: var(--ink); line-height: 1; margin: 0 0 22px; font-variant-numeric: tabular-nums; }
-  .total small { font-family: var(--font-body); font-size: .95rem; font-weight: 500; color: var(--muted); }
+  .total small { margin-left: 6px; font-family: var(--font-body); font-size: 1rem; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+  .formule.vedette .total small { color: #9fb0c8; }
   .formule ul, .lignes { list-style: none; margin: 0; padding: 0; }
   .formule li, .lignes li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid var(--line); font-size: .93rem; }
   .formule li.option { opacity: .75; }
