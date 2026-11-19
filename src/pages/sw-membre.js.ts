@@ -60,6 +60,20 @@ self.addEventListener('fetch', (e) => {
   const u = new URL(req.url);
   const ici = u.origin === self.location.origin;
 
+  // Données en direct de l'espace membre (ex. MAA reçus par mail) : le réseau d'abord, la dernière réponse si hors ligne
+  if (ici && u.pathname.startsWith(C.membre + 'api/')) {
+    e.respondWith((async () => {
+      try {
+        const rep = await fetch(req);
+        if (rep.ok && !rep.redirected) (await caches.open(APP)).put(u.pathname, rep.clone());
+        return rep;
+      } catch {
+        return (await caches.match(u.pathname)) || Response.error();
+      }
+    })());
+    return;
+  }
+
   // Pages de l'espace membre : la version en ligne d'abord, la copie gardée si pas de réseau
   if (req.mode === 'navigate' && ici && u.pathname.startsWith(C.membre)) {
     e.respondWith((async () => {

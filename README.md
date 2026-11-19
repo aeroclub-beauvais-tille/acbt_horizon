@@ -38,6 +38,9 @@ Décocher « Avion affiché sur le site » pour le masquer en gardant sa fiche, 
   Réglages du projet : secrets `MOT_DE_PASSE_MEMBRES` (espace membres), `ARCHIVE_PASSWORD` (archives des fiches Perfs),
   `OPENAIP_KEY` (pistes des aérodromes dans Perfs), et la base D1 liée sous le nom `DB` (archives des fiches).
   `cloudflare-republier.yml` republie chaque nuit via le secret GitHub `CLOUDFLARE_DEPLOY_HOOK`.
+- MAA par mail : `scripts/maa-gmail.gs` (Google Apps Script sur la boîte Gmail qui reçoit les MAA) envoie chaque PDF
+  à `POST /api/maa` (clé secrète `MAA_CLE`). Le site lit numéro, motif et validité dans le PDF, le range dans la base D1
+  (table `maa`) et l'appli l'affiche via `/membre/api/maa` (réservé aux membres). Code : `functions/_maa.js`.
 - GitHub Pages (démonstration) : `.github/workflows/deploy.yml` à chaque push sur `main`.
 - Perfs : `scripts/importer-perfs.mjs` (lancé par `npm run build`) copie la dernière version du dépôt
   calculateurperformances dans `public/membre/perfs/`. Ses fonctions serveur sont copiées dans
