@@ -1,0 +1,29 @@
+name: Republier sur Cloudflare
+
+# Le site sur Cloudflare Pages se republie tout seul à chaque modification (push sur main).
+# Ce fichier ajoute :
+#  - une republication chaque nuit (tarifs planifiés, documents qui expirent, date du jour) ;
+# (Quand l'appli Perfs change, le dépôt calculateurperformances appelle le même Deploy hook.)
+# Il faut la variable secrète CLOUDFLARE_DEPLOY_HOOK (Settings > Secrets and variables > Actions) :
+# l'adresse du « Deploy hook » créé dans Cloudflare (projet Pages > Settings > Builds > Deploy hooks).
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  republier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Demander une republication à Cloudflare
+        env:
+          HOOK: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::notice::CLOUDFLARE_DEPLOY_HOOK n'est pas encore réglé : rien à faire."
+            exit 0
+          fi
+          curl -fsS -X POST "$HOOK" > /dev/null && echo "Republication demandée."

@@ -1,0 +1,130 @@
+---
+// Fenêtre « Ajouter / Modifier un document » du mode admin de l'espace membre (voir scripts/membre-admin.ts).
+---
+<dialog class="adm-modale" id="adm-modale" aria-labelledby="adm-titre">
+  <form method="dialog">
+    <div class="a-head">
+      <h3 id="adm-titre">Ajouter un document</h3>
+      <button type="button" class="a-x" data-fermer aria-label="Fermer">✕</button>
+    </div>
+
+    <div class="a-corps">
+      <div class="a-avion"><span>Avion</span><b id="adm-avion">—</b></div>
+
+      <button type="button" class="a-zone" id="adm-fichier-zone">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8z" /><path d="M14 3v5h5M12 18v-6M9 15l3-3 3 3" /></svg>
+        <span id="adm-fichier-nom">Aucun fichier choisi</span>
+        <small>Glissez le fichier ici ou touchez pour choisir</small>
+      </button>
+      <input type="file" id="adm-fichier" hidden />
+
+      <div class="a-seg" role="radiogroup" aria-label="Genre de document">
+        <label><input type="radio" name="adm-genre" value="officiel" checked /><span>Document officiel</span></label>
+        <label><input type="radio" name="adm-genre" value="technique" /><span>Manuel, check-list…</span></label>
+      </div>
+
+      <div class="si-officiel">
+        <label for="adm-type">Type de document</label>
+        <select id="adm-type"></select>
+        <div class="a-dates">
+          <div><label for="adm-debut">Valable du</label><input type="date" id="adm-debut" /></div>
+          <div><label for="adm-fin">Jusqu'au <span class="a-opt">(facultatif)</span></label><input type="date" id="adm-fin" /></div>
+        </div>
+        <label class="a-remp" id="adm-remplace" hidden>
+          <input type="checkbox" id="adm-remplace-case" checked />
+          <span id="adm-remplace-txt"></span>
+        </label>
+      </div>
+
+      <div class="si-technique">
+        <label for="adm-rubrique">Rubrique</label>
+        <select id="adm-rubrique"></select>
+        <label for="adm-nom">Nom affiché</label>
+        <input type="text" id="adm-nom" placeholder="Ex. Manuel de vol DR400" />
+      </div>
+
+      <p class="a-apercu">Nom dans l'appli : <b id="adm-apercu"></b></p>
+      <p class="a-erreur" id="adm-erreur" role="alert" hidden></p>
+    </div>
+
+    <div class="a-pied">
+      <button type="button" class="a-sec" data-fermer>Annuler</button>
+      <button type="button" class="a-pri" id="adm-publier">Publier</button>
+    </div>
+  </form>
+</dialog>
+
+<style>
+  .adm-modale { width: min(460px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); border: 0; border-radius: 20px; padding: 0; background: var(--surface); color: var(--ink); box-shadow: 0 30px 70px rgba(14,26,43,.35); }
+  .adm-modale::backdrop { background: rgba(8,16,36,.4); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); }
+  form { display: flex; flex-direction: column; max-height: calc(100dvh - 40px); }
+  .a-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  .a-head h3 { margin: 0; font-size: 1.12rem; }
+  .a-x { border: 0; background: var(--surface-2); color: var(--muted); width: 34px; height: 34px; border-radius: 10px; font-size: 1rem; cursor: pointer; }
+  .a-corps { padding: 16px 18px; overflow-y: auto; overflow-x: hidden; display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; }
+  .a-corps *, .a-corps *::before { box-sizing: border-box; }
+  .a-dates > div, .si-officiel > *, .si-technique > * { min-width: 0; }
+  .a-corps label { font-weight: 650; font-size: .88rem; margin-top: 6px; display: block; }
+  .a-opt { font-weight: 500; color: var(--muted); font-size: .78rem; }
+  .a-avion { display: flex; align-items: center; justify-content: space-between; background: var(--accent-soft); border-radius: 12px; padding: 10px 14px; }
+  .a-avion span { font-size: .82rem; color: var(--accent); font-weight: 600; }
+  .a-avion b { font-family: var(--mono); font-weight: 700; font-size: 1.05rem; }
+  .a-zone { display: grid; justify-items: center; gap: 3px; padding: 16px 12px; border: 1.5px dashed var(--line); border-radius: 14px; background: var(--surface-2); color: var(--ink); font: inherit; cursor: pointer; text-align: center; }
+  .a-zone svg { width: 28px; height: 28px; color: var(--accent); }
+  .a-zone span { font-weight: 700; font-size: .95rem; word-break: break-all; }
+  .a-zone small { color: var(--muted); font-size: .8rem; }
+  .a-zone:global(.survol), .a-zone:global(.plein) { border-color: var(--accent); background: var(--accent-soft); }
+  .a-seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--surface-2); border-radius: 12px; margin-top: 6px; }
+  .a-seg label { margin: 0; }
+  .a-seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .a-seg span { display: block; text-align: center; padding: 9px 6px; border-radius: 9px; font-size: .86rem; font-weight: 650; color: var(--muted); cursor: pointer; }
+  .a-seg input:checked + span { background: var(--surface); color: var(--ink); box-shadow: 0 1px 4px rgba(14,26,43,.12); }
+  .a-seg input:focus-visible + span { outline: 2px solid var(--accent); }
+  select, input[type='date'], input[type='text'] { width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; font: inherit; font-size: 1rem; background: var(--surface); color: var(--ink); }
+  select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  .a-dates { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+  .a-dates label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  input[type='date'] { min-width: 0; -webkit-appearance: none; appearance: none; }
+  .a-remp { display: flex !important; gap: 9px; align-items: flex-start; background: var(--warn-bg); border: 1px solid var(--warn-line); border-radius: 10px; padding: 10px 12px; font-weight: 600 !important; font-size: .86rem !important; margin-top: 10px !important; }
+  .a-remp input { margin-top: 2px; width: 17px; height: 17px; flex: none; }
+  .si-officiel, .si-technique { display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; }
+  dialog:not([data-genre='technique']) .si-technique, dialog[data-genre='technique'] .si-officiel { display: none; }
+  .a-apercu { margin: 8px 0 0; font-size: .85rem; color: var(--muted); }
+  .a-apercu b { color: var(--ink); }
+  .a-erreur { margin: 4px 0 0; color: var(--bad); background: var(--bad-bg); border: 1px solid var(--bad-line); border-radius: 10px; padding: 9px 12px; font-size: .88rem; }
+  .a-pied { display: flex; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--line); padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  .a-sec, .a-pri { flex: 1; padding: 13px; border-radius: 12px; font: inherit; font-weight: 700; font-size: .98rem; cursor: pointer; }
+  .a-sec { border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+  .a-pri { border: 0; background: var(--navy); color: #fff; }
+  .a-pri:disabled { opacity: .7; cursor: wait; }
+  [hidden] { display: none !important; }
+</style>
+
+<style is:global>
+  /* Éléments ajoutés par le mode admin sur les fiches avion */
+  .adm-barre, .adm-depot { display: none !important; }
+  body.admin .adm-barre { display: flex !important; }
+  body.admin .adm-depot:not([hidden]) { display: flex !important; }
+  body.admin .adm-lien { display: none; }
+  .adm-barre { align-items: center; gap: 10px; background: var(--navy); color: #fff; border-radius: 12px; padding: 7px 8px 7px 10px; margin: 0 0 14px; }
+  .adm-pill { background: var(--yellow); color: #0b1e4f; font-weight: 800; font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; border-radius: 6px; padding: 3px 7px; }
+  .adm-barre-txt { flex: 1; min-width: 0; font-size: .82rem; opacity: .85; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .adm-barre button { border: 1px solid rgba(255,255,255,.35); background: transparent; color: #fff; font: inherit; font-weight: 700; font-size: .82rem; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  .adm-attente { margin: -4px 0 14px; font-size: .85rem; color: var(--accent); background: var(--accent-soft); border-radius: 10px; padding: 9px 12px; font-weight: 600; }
+  .adm-depot { width: 100%; align-items: center; gap: 12px; margin: 0 0 14px; padding: 13px 14px; border: 1.5px dashed var(--accent); border-radius: 14px; background: var(--accent-soft); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+  .adm-depot svg { width: 24px; height: 24px; flex: none; color: var(--accent); }
+  .adm-depot b { display: block; font-size: .95rem; }
+  .adm-depot small { color: var(--muted); font-size: .8rem; }
+  .fiche.adm-survol { outline: 3px solid var(--accent); outline-offset: 2px; }
+  .fiche.adm-survol .adm-depot { background: var(--accent); color: #fff; }
+  .fiche.adm-survol .adm-depot svg, .fiche.adm-survol .adm-depot small { color: #fff; }
+  .adm-ligne { display: flex; align-items: stretch; gap: 6px; }
+  .adm-ligne > a.doc { flex: 1; min-width: 0; }
+  .adm-ic { flex: none; width: 42px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 12px; cursor: pointer; display: grid; place-items: center; }
+  .adm-ic svg { width: 18px; height: 18px; }
+  .adm-ic:hover { color: var(--accent); border-color: var(--accent); }
+  .adm-sup:hover { color: var(--bad); border-color: var(--bad-line); background: var(--bad-bg); }
+  .adm-ligne.adm-encours { opacity: .5; pointer-events: none; }
+  .adm-lien { display: block; width: max-content; margin: 26px auto 4px; font-size: .78rem; color: var(--muted); text-decoration: underline; }
+  .adm-toast { position: fixed; left: 50%; bottom: calc(84px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60; width: min(420px, calc(100vw - 32px)); background: var(--navy); color: #fff; border-radius: 12px; padding: 12px 14px; font-size: .9rem; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+</style>

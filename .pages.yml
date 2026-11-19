@@ -508,24 +508,35 @@ content:
     format: yaml
     filename: '{primary}.yml'
     view:
-      fields: [titre, categorie, avions]
+      fields: [titre, categorie, avions, type]
       primary: titre
     fields:
-      - { name: titre, label: Titre, type: string, required: true }
       - name: categorie
         label: Rubrique de l'espace membre
         type: select
         required: true
+        description: "« Documentation avion » pour un document rattaché à un avion ; sinon choisissez la rubrique qui convient."
         options:
           values: ['Vie du club', 'Documentation pilote', 'Documentation avion', 'Pour les élèves', 'Examens', 'Examen pratique', 'Sécurité', 'Préparation des vols', 'Météo', 'Formulaires']
       - name: avions
-        label: Avion(s) concerné(s) (seulement pour « Documentation avion »)
+        label: Avion(s) concerné(s)
         type: select
+        description: "Pour un document rattaché à un avion. Laissez vide pour un document général / du club."
         options:
           multiple: true
           values: ['F-GCAL', 'F-BXEK', 'F-BTBS', 'F-BIXA']
+      - name: type
+        label: Type de document officiel
+        type: select
+        description: "Sert au nom automatique et au suivi de validité. Pour un manuel ou une check-list, laissez vide et remplissez « Type de document avion » plus bas."
+        options:
+          values: ["Certificat d'immatriculation", "Certificat d'examen de navigabilité (CEN)", 'Certificat acoustique', 'Assurance', 'Fiche de pesée et centrage', 'Licence station radio', 'Autorisation radio', 'Bulletin météo', 'Règlement intérieur', 'Statuts', 'Compte-rendu', 'Note de sécurité', 'Divers']
+      - { name: titre, label: Titre, type: string, description: "Laissez vide pour un nom automatique « F-GCAL - Certificat d'immatriculation » (immatriculation + type)." }
+      - { name: debut, label: Début de validité, type: date }
+      - { name: fin, label: Fin de validité, type: date, description: "Laissez vide si le document n'expire pas." }
+      - { name: remplace, label: Remplace le document, type: string, description: "Nom de fichier (sans .yml) du document remplacé : l'ancien passe automatiquement en historique. Exemple : cen-f-gcal-2025" }
       - name: rubrique
-        label: Type de document avion
+        label: Type de document avion (manuels, check-lists…)
         type: select
         options:
           values: ['Manuel de vol', 'Paramètres', 'Check-list', 'Centrage', 'Guide radio rapide', 'Radio VFR', 'Transpondeur', 'DME', 'Balise de détresse', 'Autre']

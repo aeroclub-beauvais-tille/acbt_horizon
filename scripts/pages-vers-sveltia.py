@@ -69,14 +69,14 @@ for c in src['content']:
         singles.append(o)
 
 conf = {
-  'backend': {'name':'github','repo':'hugoflying/acbt_horizon','branch':'main','auth_methods':['token'],
+  'backend': {'name':'github','repo':'aeroclub-beauvais-tille/acbt_horizon','branch':'main','auth_methods':['token'],
               'commit_messages':{'create':'Ajout : {{collection}} « {{slug}} » (back-office)','update':'Modification : {{collection}} « {{slug}} » (back-office)','delete':'Suppression : {{collection}} « {{slug}} » (back-office)','uploadMedia':'Ajout du fichier {{path}} (back-office)','deleteMedia':'Suppression du fichier {{path}} (back-office)'}},
   'app_title': 'Back-office ACBT',
-  'logo': {'src': '/acbt_horizon/uploads/logo/logo-acbt.png'},
-  'site_url': 'https://hugoflying.github.io/acbt_horizon',
+  'logo': {'src': '../uploads/logo/logo-acbt.png'},
+  'site_url': 'https://acbt60.pages.dev',
   'media_folder': 'public/uploads', 'public_folder': '/uploads',
   'output': {'omit_empty_optional_fields': False},
   'collections': cols, 'singletons': singles,
 }
-head = "# Back-office Sveltia CMS (essai, en parallèle de Pages CMS).\n# Fichier généré à partir de .pages.yml : garder les deux en phase.\n# Ouvrir https://hugoflying.github.io/acbt_horizon/admin/\n"
+head = "# Back-office Sveltia CMS (essai, en parallèle de Pages CMS).\n# Fichier généré à partir de .pages.yml : garder les deux en phase.\n# Ouvrir https://acbt60.pages.dev/admin/ (ou /acbt_horizon/admin/ sur GitHub Pages)\n"
 sys.stdout.write(head + yaml.safe_dump(conf, allow_unicode=True, sort_keys=False, width=200))

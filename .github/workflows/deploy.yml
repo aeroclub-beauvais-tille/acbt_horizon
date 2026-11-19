@@ -1,11 +1,10 @@
 name: Publier le site
 
 on:
+  # Maquette GitHub Pages, à chaque modification. Le vrai site est sur Cloudflare Pages
+  # (republié chaque nuit par cloudflare-republier.yml). Le METAR se met à jour dans le navigateur.
   push:
     branches: [main]
-  # Republication toutes les 30 minutes : METAR de LFOB, tarifs planifiés et date du jour à jour.
-  schedule:
-    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 permissions:

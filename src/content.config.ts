@@ -46,13 +46,30 @@ const avions = defineCollection({
 export const CATEGORIES_DOCS = ['Vie du club', 'Documentation pilote', 'Documentation avion', 'Pour les élèves', 'Examens', 'Examen pratique', 'Sécurité', 'Préparation des vols', 'Météo', 'Formulaires'] as const;
 export const RUBRIQUES_AVION = ['Manuel de vol', 'Paramètres', 'Check-list', 'Centrage', 'Guide radio rapide', 'Radio VFR', 'Transpondeur', 'DME', 'Balise de détresse', 'Autre'] as const;
 
+// Documents officiels à durée de validité. Le titre se construit tout seul : « <immatriculation> - <type> » pour un avion, « <type> » sinon.
+export const TYPES_AVION = ["Certificat d'immatriculation", "Certificat d'examen de navigabilité (CEN)", 'Certificat acoustique', 'Assurance', 'Fiche de pesée et centrage', 'Licence station radio', 'Autorisation radio'] as const;
+export const TYPES_GENERAL = ['Bulletin météo', 'Règlement intérieur', 'Statuts', 'Compte-rendu', 'Note de sécurité', 'Divers'] as const;
+// Préavis d'expiration : un document est « bientôt expiré » dans les 30 jours avant l'échéance.
+export const PREAVIS_JOURS = 30;
+
 const documents = defineCollection({
   loader: glob({ pattern: '**/*.{yml,yaml}', base: './src/content/documents' }),
   schema: z.object({
-    titre: z.string(),
+    // Facultatif : si absent, le titre est construit depuis l'immatriculation et le type.
+    titre: opt(z.string()),
     categorie: z.enum(CATEGORIES_DOCS),
     avions: z.array(z.string()).default([]),
     rubrique: opt(z.enum(RUBRIQUES_AVION)),
+    // Type de document officiel (sert au nom automatique et au classement).
+    type: opt(z.string()),
+    // Validité : « debut » et « fin » (date, ou date-heure ISO pour un bulletin météo MAA). Sans « fin », le document n'expire pas.
+    debut: opt(z.coerce.date()),
+    fin: opt(z.coerce.date()),
+    // Bulletin météo (MAA) : motif en clair et numéro, lus dans le PDF.
+    motif: opt(z.string()),
+    numero: opt(z.string()),
+    // Identifiant (nom de fichier sans extension) du document que celui-ci remplace : l'ancien passe en historique.
+    remplace: opt(z.string()),
     fichier: opt(z.string()),
     lien: opt(z.string()),
     description: opt(z.string()),

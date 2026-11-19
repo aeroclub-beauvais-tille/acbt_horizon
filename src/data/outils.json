@@ -7,6 +7,7 @@
           "nom": "Préparation des vols ACBT",
           "description": "L'outil de préparation des vols du club.",
           "lien": "https://prepa-vols-acbt.pages.dev/",
+          "membre": "/membre/perfs/",
           "logo": "/uploads/outils/prepa-vols-acbt.png"
         },
         {

@@ -51,3 +51,27 @@ async function charger(station: string): Promise<Metar | null> {
 export function metar(station = 'LFOB') {
   return (cache ??= charger(station));
 }
+
+// TAF (prévision d'aérodrome) de LFOB, récupéré à la construction puis rafraîchi par le navigateur.
+let cacheTaf: Promise<{ raw: string; heure: string } | null> | undefined;
+
+async function chargerTaf(station: string): Promise<{ raw: string; heure: string } | null> {
+  const token = process.env.AVWX_TOKEN || AVWX_CLE;
+  if (!token) return null;
+  try {
+    const r = await fetch(`https://avwx.rest/api/taf/${station}?options=&format=json&onfail=cache`, {
+      headers: { Authorization: `BEARER ${token}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    if (!r.ok) return null;
+    const t = await r.json();
+    if (!t?.raw) return null;
+    return { raw: String(t.raw), heure: t.time?.dt ?? '' };
+  } catch {
+    return null;
+  }
+}
+
+export function taf(station = 'LFOB') {
+  return (cacheTaf ??= chargerTaf(station));
+}

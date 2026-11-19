@@ -1,9 +1,9 @@
 # Back-office Sveltia CMS (essai, en parallèle de Pages CMS).
 # Fichier généré à partir de .pages.yml : garder les deux en phase.
-# Ouvrir https://hugoflying.github.io/acbt_horizon/admin/
+# Ouvrir https://acbt60.pages.dev/admin/ (ou /acbt_horizon/admin/ sur GitHub Pages)
 backend:
   name: github
-  repo: hugoflying/acbt_horizon
+  repo: aeroclub-beauvais-tille/acbt_horizon
   branch: main
   auth_methods:
   - token
@@ -15,8 +15,8 @@ backend:
     deleteMedia: Suppression du fichier {{path}} (back-office)
 app_title: Back-office ACBT
 logo:
-  src: /acbt_horizon/uploads/logo/logo-acbt.png
-site_url: https://hugoflying.github.io/acbt_horizon
+  src: ../uploads/logo/logo-acbt.png
+site_url: https://acbt60.pages.dev
 media_folder: public/uploads
 public_folder: /uploads
 output:
@@ -180,10 +180,6 @@ collections:
   media_folder: /public/uploads/membre
   public_folder: /uploads/membre
   fields:
-  - name: titre
-    label: Titre
-    widget: string
-    required: true
   - name: categorie
     label: Rubrique de l'espace membre
     widget: select
@@ -199,8 +195,9 @@ collections:
     - Météo
     - Formulaires
     required: true
+    hint: « Documentation avion » pour un document rattaché à un avion ; sinon choisissez la rubrique qui convient.
   - name: avions
-    label: Avion(s) concerné(s) (seulement pour « Documentation avion »)
+    label: Avion(s) concerné(s)
     widget: select
     options:
     - F-GCAL
@@ -209,8 +206,51 @@ collections:
     - F-BIXA
     multiple: true
     required: false
+    hint: Pour un document rattaché à un avion. Laissez vide pour un document général / du club.
+  - name: type
+    label: Type de document officiel
+    widget: select
+    options:
+    - Certificat d'immatriculation
+    - Certificat d'examen de navigabilité (CEN)
+    - Certificat acoustique
+    - Assurance
+    - Fiche de pesée et centrage
+    - Licence station radio
+    - Autorisation radio
+    - Bulletin météo
+    - Règlement intérieur
+    - Statuts
+    - Compte-rendu
+    - Note de sécurité
+    - Divers
+    required: false
+    hint: Sert au nom automatique et au suivi de validité. Pour un manuel ou une check-list, laissez vide et remplissez « Type de document avion » plus bas.
+  - name: titre
+    label: Titre
+    widget: string
+    required: false
+    hint: Laissez vide pour un nom automatique « F-GCAL - Certificat d'immatriculation » (immatriculation + type).
+  - name: debut
+    label: Début de validité
+    widget: datetime
+    format: YYYY-MM-DD
+    time_format: false
+    required: false
+  - name: fin
+    label: Fin de validité
+    widget: datetime
+    format: YYYY-MM-DD
+    time_format: false
+    required: false
+    hint: Laissez vide si le document n'expire pas.
+  - name: remplace
+    label: Remplace le document
+    widget: string
+    required: false
+    hint: 'Nom de fichier (sans .yml) du document remplacé : l''ancien passe automatiquement en historique. Exemple : cen-f-gcal-2025'
   - name: rubrique
-    label: Type de document avion
+    label: Type de document avion (manuels, check-lists…)
     widget: select
     options:
     - Manuel de vol
