@@ -158,6 +158,9 @@ export function maa(racine: ParentNode = document) {
   });
   const zone = racine.querySelector<HTMLElement>('#maa-zone');
   if (zone) zone.hidden = visibles === 0;
+  // Rien en cours ni à venir : on le dit clairement, au-dessus du METAR.
+  const rien = racine.querySelector<HTMLElement>('#maa-rien');
+  if (rien) rien.hidden = visibles > 0;
 }
 
 /**
