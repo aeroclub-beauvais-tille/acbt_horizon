@@ -103,6 +103,10 @@ const onglets = [
           </a>
         ))}
       </div>
+      <p class="maa-rien" id="maa-rien" hidden>
+        <span class="maa-rien-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg></span>
+        <span>Pas de MAA en cours ni prévu</span>
+      </p>
       <template id="maa-modele">
         <a class="maa-banniere" data-maa target="_blank" rel="noopener" hidden>
           <span class="maa-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L1 21h22L12 2z" /><path d="M12 9v5M12 17.5v.01" /></svg></span>
@@ -331,6 +335,10 @@ const onglets = [
 
   /* MAA */
   #maa-zone { margin-bottom: 18px; display: grid; gap: 9px; }
+  .maa-rien { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; padding: 11px 13px; border-radius: 14px; background: var(--ok-bg); border: 1px solid var(--ok-line); color: var(--ok); font-weight: 700; font-size: .86rem; }
+  .maa-rien[hidden] { display: none; }
+  .maa-rien-ic { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: var(--ok); color: #fff; }
+  .maa-rien-ic svg { width: 16px; height: 16px; }
   .maa-banniere { display: flex; gap: 10px; align-items: center; text-decoration: none; color: #fff; background: linear-gradient(135deg, #c4161c, #e4482b); border-radius: 14px; padding: 11px 13px; box-shadow: 0 5px 16px rgba(196,22,28,.26); }
   .maa-banniere[data-etat='a-venir'] { background: linear-gradient(135deg, #b5700a, #e0982a); box-shadow: 0 5px 16px rgba(181,112,10,.26); }
   .maa-banniere .maa-ic { flex: none; width: 30px; height: 30px; display: grid; place-items: center; background: rgba(255,255,255,.18); border-radius: 50%; }
