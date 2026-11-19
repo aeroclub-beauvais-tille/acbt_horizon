@@ -1,0 +1,8 @@
+categorie: Météo
+type: Bulletin météo
+numero: "9"
+motif: Rafale ou vent max prévu ≥ 30 kt
+debut: 2026-11-18T06:00:00Z
+fin: 2026-11-19T21:00:00Z
+fichier: /uploads/membre/bulletin-meteo-maa-exemple.pdf
+ordre: 1

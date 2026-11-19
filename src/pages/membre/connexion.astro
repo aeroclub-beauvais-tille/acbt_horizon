@@ -1,19 +1,154 @@
 ---
-// L'espace membres est une seule appli, commune à toutes les versions du site :
-// celle de hugoflying/acbt (/acbt/membre/). Ici, on redirige simplement vers elle.
-const APPLI = 'https://hugoflying.github.io/acbt/membre/';
+import MembreApp from '../../layouts/MembreApp.astro';
+import Logo from '../../components/Logo.astro';
+import { url } from '../../lib/utils';
+// Sur Cloudflare, le vrai mot de passe est vérifié : on retire la mention « version d'essai ».
+const essai = !process.env.CF_PAGES;
 ---
-<!doctype html>
-<html lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex" />
-    <title>Espace membres · ACBT</title>
-    <meta http-equiv="refresh" content={`0; url=${APPLI}`} />
-    <link rel="canonical" href={APPLI} />
-    <script is:inline define:vars={{ APPLI }}>location.replace(APPLI);</script>
-    <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1e4f;color:#fff;font:600 16px system-ui,sans-serif}a{color:#ffad00}</style>
-  </head>
-  <body><p>Ouverture de l'espace membres… <a href={APPLI}>continuer</a></p></body>
-</html>
+<MembreApp title="Connexion">
+  <div class="ecran">
+    <header class="haut">
+      <Logo class="logo" />
+      <span>Espace membres</span>
+    </header>
+
+    <main class="corps">
+      <!-- Étape 1 : mot de passe -->
+      <form class="carte" id="form" novalidate>
+        <h1>Connexion</h1>
+        <label for="mdp">Mot de passe du club</label>
+        <div class="champ">
+          <input id="mdp" name="mdp" type="password" autocomplete="current-password" required />
+          <button type="button" class="voir" id="voir" aria-label="Afficher le mot de passe">Voir</button>
+        </div>
+        <p class="erreur" id="erreur" role="alert" hidden></p>
+        <button class="pri" type="submit" id="envoyer">Se connecter</button>
+        <p class="aide">Mot de passe donné par le bureau du club.</p>
+        {essai && <p class="maquette">Version d'essai : n'importe quel mot suffit.</p>}
+      </form>
+
+      <!-- Étape 2 (téléphone, dans le navigateur) : installer l'appli -->
+      <section class="carte" id="etape-installer" hidden>
+        <img class="icone" src={url('/icones/membre-192.png')} alt="" width="64" height="64" />
+        <h1>Installez l'appli</h1>
+        <p class="sous">L'espace membres s'utilise comme une appli : plein écran, hors ligne, mises à jour automatiques.</p>
+
+        <button type="button" class="pri" id="installer" hidden>Installer l'appli</button>
+
+        <ol class="etapes" id="aide-ios" hidden>
+          <li>Touchez <b>Partager</b>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M8 7l4-4 4 4" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>
+            en bas de Safari</li>
+          <li>Choisissez <b>Sur l'écran d'accueil</b></li>
+          <li>Ouvrez <b>ACBT Membres</b> depuis l'écran d'accueil</li>
+        </ol>
+
+        <ol class="etapes" id="aide-android" hidden>
+          <li>Touchez le menu <b>⋮</b> du navigateur</li>
+          <li>Choisissez <b>Installer l'application</b> ou <b>Ajouter à l'écran d'accueil</b></li>
+          <li>Ouvrez <b>ACBT Membres</b> depuis l'écran d'accueil</li>
+        </ol>
+
+        <p class="deja" id="deja">Déjà installée ? Ouvrez-la depuis l'écran d'accueil.</p>
+        <button type="button" class="lien" id="navigateur">Continuer dans le navigateur</button>
+      </section>
+    </main>
+  </div>
+</MembreApp>
+
+<script>
+  import { seConnecter, estConnecte, enregistrer, installerAvant, iphone } from '../../scripts/membre-app';
+  import { url } from '../../lib/utils';
+  const $ = (id: string) => document.getElementById(id)!;
+  const retour = () => {
+    const r = new URLSearchParams(location.search).get('retour') || '';
+    return r.startsWith(url('/membre/')) ? r : url('/membre/');
+  };
+  enregistrer();
+
+  // Invite d'installation du navigateur (Android / ordinateur), captée dès le chargement
+  let invite: (Event & { prompt: () => Promise<void>; userChoice?: Promise<{ outcome: string }> }) | null = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    invite = e as typeof invite;
+    $('installer').hidden = false;
+    $('aide-android').hidden = true;
+  });
+  window.addEventListener('appinstalled', () => {
+    $('installer').hidden = true;
+    $('deja').textContent = 'Appli installée : ouvrez « ACBT Membres » depuis l\'écran d\'accueil.';
+  });
+  $('installer').addEventListener('click', async () => {
+    if (!invite) return;
+    await invite.prompt();
+    invite = null;
+  });
+  $('navigateur').addEventListener('click', () => {
+    try { sessionStorage.setItem('acbt-navigateur', '1'); } catch { /* navigation privée */ }
+    location.replace(retour());
+  });
+
+  function suite() {
+    if (!installerAvant()) { location.replace(retour()); return; }
+    $('form').hidden = true;
+    $('etape-installer').hidden = false;
+    if (iphone()) $('aide-ios').hidden = false;
+    else if (!invite) $('aide-android').hidden = false;
+  }
+  if (estConnecte()) suite();
+
+  const form = $('form') as HTMLFormElement;
+  const mdp = $('mdp') as HTMLInputElement;
+  const erreur = $('erreur');
+  const envoyer = $('envoyer') as HTMLButtonElement;
+  $('voir').addEventListener('click', (e) => {
+    const montrer = mdp.type === 'password';
+    mdp.type = montrer ? 'text' : 'password';
+    (e.currentTarget as HTMLElement).textContent = montrer ? 'Cacher' : 'Voir';
+  });
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    erreur.hidden = true;
+    if (!mdp.value.trim()) { erreur.textContent = 'Saisissez le mot de passe du club.'; erreur.hidden = false; mdp.focus(); return; }
+    envoyer.disabled = true;
+    envoyer.textContent = 'Connexion…';
+    const r = await seConnecter(mdp.value);
+    if (r === 'ok' || r === 'maquette') { suite(); return; }
+    erreur.textContent = r === 'refuse' ? 'Mot de passe incorrect. Vérifiez auprès du bureau du club.' : 'Connexion impossible pour le moment. Réessayez dans un instant.';
+    erreur.hidden = false;
+    envoyer.disabled = false;
+    envoyer.textContent = 'Se connecter';
+    mdp.select();
+  });
+</script>
+
+<style>
+  .ecran { min-height: 100svh; display: flex; flex-direction: column; background: var(--bg); }
+  .haut { display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 16px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: var(--bar-ink); }
+  .haut :global(.logo) { --logo-h: 26px; --logo-rouge: #ff4d4d; color: #fff; }
+  .haut span { font-weight: 800; font-size: 1.05rem; letter-spacing: -.01em; color: #fff; }
+  .corps { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 32px 16px 40px; }
+  .carte { width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px 20px; }
+  h1 { font-size: 1.35rem; margin: 0 0 18px; letter-spacing: -.01em; }
+  label { display: block; font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 7px; }
+  .champ { display: flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--surface-2, var(--surface)); height: 48px; }
+  .champ:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .champ input { flex: 1; min-width: 0; border: 0; padding: 0 14px; font: inherit; font-size: 1.05rem; outline: none; background: transparent; color: var(--ink); }
+  .voir { border: 0; background: transparent; color: var(--accent); font: inherit; font-weight: 700; font-size: .88rem; padding: 0 14px; cursor: pointer; }
+  .erreur { color: var(--bad); background: var(--bad-bg); border: 1px solid var(--bad-line); border-radius: 10px; padding: 9px 12px; margin: 12px 0 0; font-size: .9rem; }
+  .pri { width: 100%; height: 50px; margin-top: 16px; border: 0; border-radius: 10px; background: var(--navy); color: #fff; font: inherit; font-weight: 800; font-size: 1rem; cursor: pointer; }
+  .pri:disabled { opacity: .7; cursor: wait; }
+  .aide { font-size: .85rem; color: var(--muted); margin: 12px 0 0; text-align: center; }
+  .maquette { font-size: .8rem; color: var(--muted); margin: 10px 0 0; text-align: center; }
+  #etape-installer { text-align: center; }
+  .icone { display: block; margin: 4px auto 14px; border-radius: 15px; }
+  #etape-installer h1 { margin-bottom: 6px; }
+  .sous { color: var(--muted); font-size: .93rem; margin: 0 0 4px; }
+  .etapes { text-align: left; margin: 18px 0 0; padding: 0; list-style: none; counter-reset: e; display: grid; gap: 8px; }
+  .etapes li { counter-increment: e; display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; background: var(--surface-2, var(--bg)); border-radius: 10px; padding: 11px 12px 11px 44px; position: relative; font-size: .95rem; }
+  .etapes li::before { content: counter(e); position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: #fff; font-weight: 800; font-size: .8rem; display: grid; place-items: center; }
+  .etapes svg { width: 18px; height: 18px; color: var(--accent); }
+  .deja { font-size: .85rem; color: var(--muted); margin: 16px 0 0; }
+  .lien { margin-top: 10px; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: .82rem; text-decoration: underline; cursor: pointer; padding: 6px; }
+  [hidden] { display: none !important; }
+</style>

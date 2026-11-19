@@ -1,0 +1,43 @@
+---
+// TAF (prévision d'aérodrome) de LFOB : lu sur AVWX à la construction, puis rafraîchi par le navigateur.
+import { taf, AVWX_CLE } from '../lib/metar';
+const t = await taf();
+---
+<div class="taf" data-cle={AVWX_CLE}>
+  <span class="station">TAF LFOB</span>
+  <code class="raw" title="Dernier TAF publié pour Beauvais-Tillé" hidden={!t}>{t?.raw}</code>
+  <span class="raw vide" hidden={!!t}>Pas de TAF reçu. Consultez <a href="https://aviation.meteo.fr/login.php" target="_blank" rel="noopener">AEROWEB</a>.</span>
+</div>
+<script>
+  const tafs = () => document.querySelectorAll<HTMLElement>('.taf');
+  const lire = async (cle: string): Promise<string | null> => {
+    try {
+      const r = await fetch(`https://avwx.rest/api/taf/LFOB?format=json&onfail=cache&token=${encodeURIComponent(cle)}`, { signal: AbortSignal.timeout(8000) });
+      if (r.ok) { const t = await r.json(); if (t?.raw) return String(t.raw); }
+    } catch {}
+    try {
+      const r = await fetch('https://aviationweather.gov/api/data/taf?ids=LFOB&format=json', { signal: AbortSignal.timeout(8000) });
+      if (r.ok) { const [t] = await r.json(); if (t?.rawTAF) return String(t.rawTAF).replace(/^TAF\s+(AMD\s+|COR\s+)?/, ''); }
+    } catch {}
+    return null;
+  };
+  const rafraichir = async () => {
+    const el0 = tafs()[0];
+    if (!el0) return;
+    const raw = await lire(el0.dataset.cle ?? '');
+    if (!raw) return;
+    tafs().forEach((el) => {
+      const code = el.querySelector<HTMLElement>('code.raw')!;
+      code.textContent = raw; code.hidden = false;
+      el.querySelector<HTMLElement>('.raw.vide')!.hidden = true;
+    });
+  };
+  rafraichir();
+  setInterval(rafraichir, 10 * 60000);
+</script>
+<style>
+  .taf { display: grid; gap: 6px; font-size: .85rem; }
+  .station { font-weight: 700; letter-spacing: .06em; font-size: .75rem; color: var(--ink); }
+  .raw { font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, monospace); font-size: .83rem; letter-spacing: 0; line-height: 1.5; color: var(--ink); overflow-wrap: anywhere; white-space: pre-wrap; }
+  .raw.vide { font-family: inherit; color: var(--muted); font-size: .85rem; }
+</style>

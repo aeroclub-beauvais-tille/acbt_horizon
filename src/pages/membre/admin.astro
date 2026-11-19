@@ -1,0 +1,89 @@
+---
+// Accès administrateur de l'espace membre : permet d'ajouter, remplacer, modifier et supprimer les documents.
+// Phase GitHub : la clé est un jeton GitHub avec le droit d'écrire dans le dépôt du site (gardé sur l'appareil).
+// Avec Cloudflare, ce sera un mot de passe admin vérifié par le serveur.
+import MembreApp from '../../layouts/MembreApp.astro';
+import Logo from '../../components/Logo.astro';
+import { url } from '../../lib/utils';
+---
+<MembreApp title="Administration">
+  <div class="ecran">
+    <header class="haut">
+      <a href={url('/membre/#avions')} class="retour" aria-label="Retour à l'espace membres">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
+      </a>
+      <Logo class="logo" />
+      <span>Administration</span>
+    </header>
+
+    <main class="corps">
+      <form class="carte" id="form" novalidate>
+        <h1>Mode admin</h1>
+        <p class="sous">Pour ajouter, remplacer, modifier ou supprimer les documents des avions, directement dans l'appli.</p>
+        <p class="note">Tant que le site n'est pas sur Cloudflare, les fichiers déposés sont publics : n'y mettez que des documents d'exemple.</p>
+        <label for="cle">Clé d'administration</label>
+        <input id="cle" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…" />
+        <p class="erreur" id="erreur" role="alert" hidden></p>
+        <button class="pri" type="submit" id="envoyer">Activer le mode admin</button>
+        <details class="aide">
+          <summary>Obtenir une clé</summary>
+          <ol>
+            <li>Sur GitHub, ouvrez <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">Nouveau jeton</a>.</li>
+            <li>Dépôt : <b>aeroclub-beauvais-tille/acbt_horizon</b> uniquement.</li>
+            <li>Permission <b>Contents</b> : <b>Read and write</b>.</li>
+            <li>Copiez le jeton et collez-le ci-dessus.</li>
+          </ol>
+          <p>La clé reste sur cet appareil. Le mode admin se quitte depuis l'onglet Avions.</p>
+        </details>
+      </form>
+    </main>
+  </div>
+</MembreApp>
+
+<script>
+  import { verifierJeton } from '../../scripts/membre-admin';
+  import { url } from '../../lib/utils';
+  const $ = (id: string) => document.getElementById(id)!;
+  try { if (!localStorage.getItem('acbt-membre')) location.replace(url('/membre/connexion/')); } catch { /* privé */ }
+  const cle = $('cle') as HTMLInputElement, erreur = $('erreur'), envoyer = $('envoyer') as HTMLButtonElement;
+  $('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    erreur.hidden = true;
+    const v = cle.value.trim();
+    if (!v) { erreur.textContent = 'Collez la clé d\'administration.'; erreur.hidden = false; return; }
+    envoyer.disabled = true; envoyer.textContent = 'Vérification…';
+    const r = await verifierJeton(v);
+    if (r === 'ok') { location.replace(url('/membre/#avions')); return; }
+    erreur.textContent = r === 'refuse' ? 'Clé refusée : vérifiez-la ou créez-en une nouvelle.'
+      : r === 'lecture' ? 'Cette clé ne permet pas de modifier le site : donnez-lui la permission Contents en écriture.'
+      : 'Vérification impossible pour le moment. Réessayez dans un instant.';
+    erreur.hidden = false;
+    envoyer.disabled = false; envoyer.textContent = 'Activer le mode admin';
+  });
+</script>
+
+<style>
+  .ecran { min-height: 100svh; display: flex; flex-direction: column; background: var(--bg); }
+  .haut { display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 16px 0 8px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: #fff; }
+  .retour { display: grid; place-items: center; width: 34px; height: 34px; color: #fff; }
+  .retour svg { width: 22px; height: 22px; }
+  .haut :global(.logo) { --logo-h: 26px; --logo-rouge: #ff4d4d; color: #fff; }
+  .haut span { font-weight: 800; font-size: 1.05rem; }
+  .corps { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 32px 16px 40px; }
+  .carte { width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px 20px; }
+  h1 { font-size: 1.35rem; margin: 0 0 6px; }
+  .sous { color: var(--muted); font-size: .92rem; margin: 0 0 18px; }
+  .note { font-size: .84rem; background: var(--warn-bg); border: 1px solid var(--warn-line); color: var(--ink); border-radius: 10px; padding: 9px 12px; margin: 0 0 18px; }
+  label { display: block; font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin-bottom: 7px; }
+  input { width: 100%; height: 48px; border: 1px solid var(--line); border-radius: 10px; padding: 0 14px; font: inherit; font-family: var(--mono); font-size: .95rem; background: var(--surface-2, var(--surface)); color: var(--ink); }
+  input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .erreur { color: var(--bad); background: var(--bad-bg); border: 1px solid var(--bad-line); border-radius: 10px; padding: 9px 12px; margin: 12px 0 0; font-size: .9rem; }
+  .pri { width: 100%; height: 50px; margin-top: 16px; border: 0; border-radius: 10px; background: var(--navy); color: #fff; font: inherit; font-weight: 800; font-size: 1rem; cursor: pointer; }
+  .pri:disabled { opacity: .7; cursor: wait; }
+  .aide { margin-top: 16px; font-size: .88rem; color: var(--muted); }
+  .aide summary { cursor: pointer; font-weight: 700; color: var(--accent); }
+  .aide ol { padding-left: 20px; margin: 10px 0; display: grid; gap: 5px; }
+  .aide a { color: var(--accent); }
+  .aide p { margin: 0; }
+  [hidden] { display: none !important; }
+</style>

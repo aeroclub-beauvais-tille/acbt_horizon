@@ -6,16 +6,16 @@ export const GET: APIRoute = () =>
   new Response(
     JSON.stringify({
       id: url('/membre/'),
-      name: 'ACBT · Espace membre',
-      short_name: 'ACBT Pilotes',
+      name: 'ACBT · Espace membres',
+      short_name: 'ACBT Membres',
       description: "Outils et documents des pilotes de l'aéroclub de Beauvais-Tillé, même sans réseau.",
       lang: 'fr',
       start_url: url('/membre/'),
       scope: url('/membre/'),
       display: 'standalone',
       orientation: 'any',
-      background_color: '#ffffff',
-      theme_color: '#0f1b2d',
+      background_color: '#eef1f4',
+      theme_color: '#0b1e4f',
       icons: [
         { src: url('/icones/membre-192.png'), sizes: '192x192', type: 'image/png', purpose: 'any' },
         { src: url('/icones/membre-512.png'), sizes: '512x512', type: 'image/png', purpose: 'any' },

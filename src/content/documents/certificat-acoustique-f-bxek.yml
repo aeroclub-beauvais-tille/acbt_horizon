@@ -1,0 +1,8 @@
+categorie: Documentation avion
+avions:
+- F-BXEK
+type: Certificat acoustique
+debut: 2024-01-01
+fin: 2028-03-31
+ordre: 2
+fichier: /uploads/membre/specimen-demo.pdf

@@ -1,13 +1,16 @@
 # Site de l'Aéroclub de Beauvais-Tillé (ACBT)
 
-Maquette du nouveau site, qui regroupe l'ancien site (acbt60.free.fr) et le site Wix.
-En ligne sur **https://hugoflying.github.io/acbt_horizon/** une fois GitHub Pages activé.
+Nouveau site du club, qui regroupe l'ancien site (acbt60.free.fr) et le site Wix, avec l'espace membres
+(appli installable), son mode admin pour les documents des avions, et l'appli Performances intégrée.
+En ligne sur **Cloudflare Pages** (https://acbt60.pages.dev, puis le domaine du club).
+Copie de démonstration sur GitHub Pages : https://aeroclub-beauvais-tille.github.io/acbt_horizon/.
 
 ## Mettre à jour le site sans rien installer (back-office)
 
 1. Aller sur **https://app.pagescms.org** et se connecter avec son compte GitHub
-   (le compte doit avoir accès au dépôt `hugoflying/acbt`).
-2. Choisir le dépôt `acbt`, branche `main`.
+   (le compte doit avoir accès au dépôt `aeroclub-beauvais-tille/acbt_horizon`).
+2. Choisir le dépôt `acbt_horizon`, branche `main`.
+   Autre back-office possible : Sveltia CMS sur `/admin/` (connexion par jeton GitHub).
 3. Le menu de gauche donne accès à :
    - **Actualités** : ajouter un article, ses photos, le dépublier.
    - **Flotte et tarifs avions** : ajouter ou retirer un avion, ses photos, ses tarifs.
@@ -30,9 +33,15 @@ Décocher « Avion affiché sur le site » pour le masquer en gardant sa fiche, 
 - [Astro](https://astro.build) 5, site 100 % statique. `npm install` puis `npm run dev`.
 - Contenus : `src/content/` (actualités en Markdown, avions et documents en YAML)
   et `src/data/` (JSON). Le schéma est dans `src/content.config.ts`, le back-office dans `.pages.yml`.
-- Déploiement : `.github/workflows/deploy.yml` publie sur GitHub Pages à chaque push sur `main`
-  et chaque nuit. Pour Cloudflare Pages : commande `npm run build`, dossier `dist`,
-  variables `BASE_PATH=/` et `SITE_URL=https://votre-domaine`.
+- Cloudflare Pages (site principal) : projet relié au dépôt, commande `npm run build`, dossier `dist`.
+  Le site est servi à la racine (détecté par `CF_PAGES`) ; `SITE_URL=https://acbt60.fr` une fois le domaine branché.
+  Réglages du projet : secrets `MOT_DE_PASSE_MEMBRES` (espace membres), `ARCHIVE_PASSWORD` (archives des fiches Perfs),
+  `OPENAIP_KEY` (pistes des aérodromes dans Perfs), et la base D1 liée sous le nom `DB` (archives des fiches).
+  `cloudflare-republier.yml` republie chaque nuit via le secret GitHub `CLOUDFLARE_DEPLOY_HOOK`.
+- GitHub Pages (démonstration) : `.github/workflows/deploy.yml` à chaque push sur `main`.
+- Perfs : `scripts/importer-perfs.mjs` (lancé par `npm run build`) copie la dernière version du dépôt
+  calculateurperformances dans `public/membre/perfs/`. Ses fonctions serveur sont copiées dans
+  `functions/openaip.js` et `functions/api/fiches.js` (à resynchroniser si elles changent là-bas).
 - Animations : GSAP + Lenis dans `src/scripts/motion.ts`, pilotées par des attributs HTML
   (`data-split`, `data-reveal`, `data-stagger`, `data-count`, `data-parallax`, `data-clip`, `data-marquee`).
   Coupées automatiquement si le visiteur a demandé à réduire les animations.

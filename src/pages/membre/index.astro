@@ -1,19 +1,479 @@
 ---
-// L'espace membres est une seule appli, commune à toutes les versions du site :
-// celle de hugoflying/acbt (/acbt/membre/). Ici, on redirige simplement vers elle.
-const APPLI = 'https://hugoflying.github.io/acbt/membre/';
+import MembreApp from '../../layouts/MembreApp.astro';
+import DocLien from '../../components/DocLien.astro';
+import Metar from '../../components/MetarMembre.astro';
+import Taf from '../../components/Taf.astro';
+import Logo from '../../components/Logo.astro';
+import { getCollection } from 'astro:content';
+import { RUBRIQUES_AVION, TYPES_AVION } from '../../content.config';
+import AdminDocs from '../../components/AdminDocs.astro';
+import { titreDoc, marquerHistorique, estOfficiel, type Doc } from '../../lib/documents';
+import outils from '../../data/outils.json';
+import { asset, url } from '../../lib/utils';
+
+const brut = await getCollection('documents');
+const docs = marquerHistorique(brut.map((d) => ({ id: d.id, ...d.data } as Doc)))
+  .sort((a, b) => a.ordre - b.ordre || titreDoc(a).localeCompare(titreDoc(b), 'fr'));
+const vivants = (c: string) => docs.filter((d) => d.categorie === c && !d.archive);
+
+const avions = (await getCollection('avions', (a) => a.data.actif)).sort((a, b) => a.data.ordre - b.data.ordre);
+const docsAvion = docs.filter((d) => d.categorie === 'Documentation avion');
+const rangType = (d: Doc) => { const i = TYPES_AVION.indexOf((d.type ?? '') as (typeof TYPES_AVION)[number]); return i < 0 ? 99 : i; };
+const rangRub = (d: Doc) => RUBRIQUES_AVION.indexOf((d.rubrique ?? 'Autre') as (typeof RUBRIQUES_AVION)[number]);
+const modele = (t: string) => t.replace(/-\d+.*$| Petit Prince| Paris-Nice/g, '').trim();
+
+const flotte = avions.map((a) => {
+  const im = a.data.immatriculation ?? a.data.nom;
+  const mine = docsAvion.filter((d) => d.avions.includes(im));
+  return {
+    id: a.id, im, modele: modele(a.data.type), photo: a.data.photos[0],
+    officiels: mine.filter((d) => estOfficiel(d) && !d.archive).sort((p, q) => rangType(p) - rangType(q)),
+    techniques: mine.filter((d) => !estOfficiel(d) && !d.archive).sort((p, q) => rangRub(p) - rangRub(q)),
+    historique: mine.filter((d) => d.archive).sort((p, q) => rangType(p) - rangType(q)),
+  };
+});
+
+// Bulletins météo (MAA) — gérés à part (horaires précis, pas « à renouveler »)
+const meteo = docs.filter((d) => d.type === 'Bulletin météo' && !d.archive).sort((a, b) => (a.debut?.getTime() ?? 0) - (b.debut?.getTime() ?? 0));
+const memos = ['Sécurité', 'Préparation des vols', 'Météo', 'Formulaires']
+  .map((c) => ({ c, docs: vivants(c).filter((d) => !estOfficiel(d)) })).filter((x) => x.docs.length);
+// Données pour le mode admin (mêmes informations que les fiches, déjà publiques)
+const jour = (d?: Date) => d ? d.toISOString().slice(0, 10) : undefined;
+const adminDonnees = {
+  version: process.env.GITHUB_SHA || '',
+  types: [...TYPES_AVION], rubriques: [...RUBRIQUES_AVION],
+  docs: docs.map((d) => ({ id: d.id, titre: d.titre, type: d.type, rubrique: d.rubrique, avions: d.avions, debut: jour(d.debut), fin: jour(d.fin), fichier: d.fichier, lien: d.lien, ordre: d.ordre, remplace: d.remplace, archive: d.archive })),
+};
+const host = (l: string) => new URL(l).hostname.replace(/^www\./, '');
+const connexion = url('/membre/connexion/');
+
+const onglets = [
+  { id: 'accueil', nom: 'Météo', svg: 'M17.5 19a4.5 4.5 0 1 0-.9-8.9A6 6 0 1 0 6 19h11.5z' },
+  { id: 'avions', nom: 'Avions', svg: 'M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z' },
+  { id: 'preparer', nom: 'Préparer', svg: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4v12m10-6H2' },
+];
 ---
-<!doctype html>
-<html lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex" />
-    <title>Espace membres · ACBT</title>
-    <meta http-equiv="refresh" content={`0; url=${APPLI}`} />
-    <link rel="canonical" href={APPLI} />
-    <script is:inline define:vars={{ APPLI }}>location.replace(APPLI);</script>
-    <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1e4f;color:#fff;font:600 16px system-ui,sans-serif}a{color:#ffad00}</style>
-  </head>
-  <body><p>Ouverture de l'espace membres… <a href={APPLI}>continuer</a></p></body>
-</html>
+<MembreApp title="Espace membres">
+  <script slot="head" is:inline define:vars={{ connexion }}>
+    try {
+      var ret = '?retour=' + encodeURIComponent(location.pathname + location.hash);
+      if (!localStorage.getItem('acbt-membre')) location.replace(connexion + ret);
+      // Sur téléphone, ouvert dans le navigateur (et pas dans l'appli installée) : on propose d'abord d'installer l'appli
+      else if (/android|iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+        var appli = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+        if (!appli && !sessionStorage.getItem('acbt-navigateur')) location.replace(connexion + ret);
+      }
+    } catch (e) {}
+  </script>
+
+  <header class="topbar">
+    <a class="marque" href={url('/membre/')} aria-label="Accueil espace membres"><Logo class="logo" /><span>Espace membres</span></a>
+    <div class="actions">
+      <button type="button" class="ic" id="btn-theme" aria-label="Changer de thème"></button>
+      <button type="button" class="ic" id="btn-recherche" aria-label="Rechercher un document">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>
+      </button>
+      <button type="button" class="ic" id="installer" aria-label="Installer l'appli" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M12 7v7M9 11l3 3 3-3M10.5 18.5h3" /></svg>
+      </button>
+      <button type="button" class="ic" id="deconnexion" aria-label="Se déconnecter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" /></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="searchwrap" id="searchwrap" hidden>
+    <input type="search" id="q" placeholder="Rechercher un document…" autocomplete="off" />
+    <button type="button" id="fermer-recherche" aria-label="Fermer la recherche">✕</button>
+  </div>
+  <p class="aucun" id="aucun" hidden>Aucun document ne correspond.</p>
+
+  <main class="content">
+    <!-- ACCUEIL -->
+    <section class="panneau" id="accueil">
+      <div id="maa-zone" hidden>
+        {meteo.map((m) => (
+          <a class="maa-banniere" data-maa data-debut={m.debut?.toISOString()} data-fin={m.fin?.toISOString()} href={m.fichier ? asset(m.fichier) : (m.lien || undefined)} target="_blank" rel="noopener" hidden>
+            <span class="maa-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L1 21h22L12 2z" /><path d="M12 9v5M12 17.5v.01" /></svg></span>
+            <span class="maa-txt">
+              <strong data-maa-titre>Avertissement météo en cours</strong>
+              <span class="maa-num">MAA n°{m.numero ?? '—'}</span>
+            </span>
+            <span class="maa-pdf">PDF ↗</span>
+          </a>
+        ))}
+      </div>
+
+      <h2 class="bt">Météo du terrain</h2>
+      <div class="carte-metar"><Metar /></div>
+      <div class="carte-metar carte-taf"><Taf /></div>
+      <p class="aide-ios" id="aide-ios" hidden>Sur iPhone : touchez <b>Partager</b> en bas de Safari, puis <b>Sur l'écran d'accueil</b>.</p>
+    </section>
+
+    <!-- AVIONS -->
+    <section class="panneau" id="avions" hidden>
+      <h1 class="titre">Documents par avion</h1>
+      <div class="adm-barre" id="adm-barre">
+        <span class="adm-pill">Mode admin</span>
+        <span class="adm-barre-txt"></span>
+        <button type="button" id="adm-quitter">Quitter</button>
+      </div>
+      <p class="adm-attente" id="adm-attente" hidden>Publication en cours : l'appli sera à jour d'ici 2 à 3 minutes.</p>
+      <div class="alerte-docs" id="alerte-docs">
+        <div data-pleine hidden>
+          <h2 class="bt bt-rouge"><span class="pt-alerte" aria-hidden="true">!</span>Documents à renouveler</h2>
+          <ul class="liste-alerte" data-liste></ul>
+        </div>
+      </div>
+      <span class="av-lbl">Avion</span>
+      <div class="av-voile" aria-hidden="true"></div>
+      <div class="av-select" id="selecteur">
+        <button type="button" class="av-trig" id="av-trig" data-vide="oui" aria-haspopup="listbox" aria-expanded="false" aria-label="Choisir un avion">
+          <span class="av-trig-dot av-dot" aria-hidden="true"></span>
+          <svg class="av-trig-plane" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z" /></svg>
+          <span class="av-trig-main"><span class="av-trig-txt">Choisir un avion</span><span class="av-trig-sub"></span></span>
+          <span class="av-trig-st av-st" aria-hidden="true"></span>
+          <svg class="av-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+        <div class="av-menu" id="av-menu" role="listbox" aria-label="Avions du club" hidden>
+          {flotte.map((x) => (
+            <button type="button" class="av-opt" data-avion={x.im} role="option" aria-selected="false">
+              <span class="av-dot" aria-hidden="true"></span>
+              <span class="av-id"><b>{x.im}</b><small>{x.modele}</small></span>
+              <span class="av-st" aria-hidden="true"></span>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div class="fiches" id="fiches">
+        {flotte.map((x) => (
+          <article class="fiche cache" data-ims={x.im}>
+            <header>
+              <div><h3>{x.im}</h3><span class="av-mod">{x.modele}</span></div>
+            </header>
+            <button type="button" class="signaler" data-signaler data-avion={x.im}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><path d="M12 9v4M12 17h.01" /></svg>
+              Signaler un problème technique
+            </button>
+            <button type="button" class="adm-depot" data-depot={x.im} hidden>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5" /><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>
+              <span><b>Ajouter un document</b><small>Glissez un fichier ici ou touchez pour choisir</small></span>
+            </button>
+            <div class="fiche-cols"><div>
+            <h5 class="sep">Documents officiels</h5>
+            {x.officiels.length > 0
+              ? <div class="liste">{x.officiels.map((d) => <DocLien doc={d} vers="avions" />)}</div>
+              : <p class="rien">Aucun document officiel.</p>}
+            </div><div>
+            {x.techniques.length > 0 && <h5 class="sep">Manuels et check-lists</h5>}
+            <div class="liste">{x.techniques.map((d) => <DocLien doc={d} court={titreDoc(d).replace(` ${x.im}`, '')} />)}</div>
+            </div></div>
+            {x.historique.length > 0 && (
+              <details class="histo"><summary>Historique ({x.historique.length})</summary><div class="liste">{x.historique.map((d) => <DocLien doc={d} vers="avions" />)}</div></details>
+            )}
+          </article>
+        ))}
+      </div>
+      <a class="adm-lien" href={url('/membre/admin/')}>Administration</a>
+    </section>
+
+    <!-- PRÉPARER -->
+    <section class="panneau" id="preparer" hidden>
+      <h1 class="titre">Préparer son vol</h1>
+      {outils.categories.map((c) => (
+        <div class="bloc">
+          <h5 class="sep">{c.titre}</h5>
+          <div class="outils">
+            {c.outils.map((o) => { const interne = (o as { membre?: string }).membre; return (
+              <a class="outil" href={interne ? url(interne) : o.lien} target={interne ? undefined : '_blank'} rel={interne ? undefined : 'noopener'} data-q={`${o.nom} ${o.description}`.toLowerCase()}>
+                <span class="o-logo" data-init={o.nom.replace(/[^A-Za-zÀ-ÿ0-9]/g, '').slice(0, 2).toUpperCase()}>
+                  <img src={(o as { logo?: string }).logo ? asset((o as { logo?: string }).logo!) : `https://www.google.com/s2/favicons?domain=${host(o.lien)}&sz=128`} alt="" width="34" height="34" loading="lazy" onerror="this.remove()" />
+                </span>
+                <span class="o-txt"><b>{o.nom}{interne ? '' : ' ↗'}</b><small>{o.description}</small></span>
+              </a>
+            ); })}
+          </div>
+        </div>
+      ))}
+      {vivants('Documentation pilote').length > 0 && <div class="bloc"><h5 class="sep">Terrain et espace aérien</h5><div class="liste">{vivants('Documentation pilote').map((d) => <DocLien doc={d} />)}</div></div>}
+      {memos.map((x) => <div class="bloc"><h5 class="sep">{x.c}</h5><div class="liste">{x.docs.map((d) => <DocLien doc={d} />)}</div></div>)}
+    </section>
+  </main>
+
+  <nav class="tabbar" id="onglets" aria-label="Sections">
+    {onglets.map((o) => (
+      <button type="button" data-onglet={o.id} aria-selected={o.id === 'accueil'}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d={o.svg} /></svg>
+        <span>{o.nom}</span>
+      </button>
+    ))}
+  </nav>
+
+  <dialog class="modale" id="signalement" aria-label="Signaler un problème technique">
+    <form method="dialog">
+      <div class="m-head">
+        <h3>Signaler un problème</h3>
+        <button type="button" class="m-x" data-fermer aria-label="Fermer">✕</button>
+      </div>
+
+      <div class="m-corps" data-etape="saisie">
+        <div class="m-avion"><span class="m-av-lbl">Avion</span><span class="m-av-im" id="sig-avion">—</span></div>
+        <label for="sig-desc">Problème constaté</label>
+        <textarea id="sig-desc" rows="4" placeholder="Ex. pneu principal droit usé, radio qui grésille…"></textarea>
+        <label>Photos <span class="m-opt">facultatif</span></label>
+        <div class="m-photos" id="sig-photos" hidden></div>
+        <button type="button" class="m-ajout" id="sig-ajout">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a1 1 0 0 0-1 1v11a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1h-3l-2.5-3z" /><circle cx="12" cy="13" r="3.2" /></svg>
+          Ajouter des photos
+        </button>
+        <input type="file" id="sig-fichiers" accept="image/*" multiple hidden />
+      </div>
+
+      <div class="m-corps m-reussi" data-etape="ok" hidden>
+        <span class="m-ok-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg></span>
+        <strong>Signalement enregistré</strong>
+        <span>Les responsables techniques seront prévenus.</span>
+        <button type="button" class="m-pri" data-fermer>Fermer</button>
+      </div>
+
+      <div class="m-pied" id="sig-pied">
+        <button type="button" class="m-sec" data-fermer>Annuler</button>
+        <button type="button" class="m-pri" id="sig-envoyer">Envoyer</button>
+      </div>
+    </form>
+  </dialog>
+
+  <AdminDocs />
+  <script type="application/json" id="admin-donnees" set:html={JSON.stringify(adminDonnees).replace(/</g, '\\u003c')} />
+</MembreApp>
+
+<script>
+  import { enregistrer, boutonInstaller, seDeconnecter, badges, maa, onglets, signalement, theme, avions } from '../../scripts/membre-app';
+  enregistrer();
+  theme(document.getElementById('btn-theme'));
+  const montrer = onglets();
+  badges();
+  avions();
+  maa();
+  setInterval(maa, 60_000); // le MAA peut commencer ou se terminer pendant la consultation
+  signalement();
+  try { if (localStorage.getItem('acbt-admin-jeton')) import('../../scripts/membre-admin').then((m) => m.modeAdmin()); } catch { /* privé */ }
+  boutonInstaller(document.getElementById('installer') as HTMLButtonElement, document.getElementById('aide-ios'));
+  document.getElementById('deconnexion')?.addEventListener('click', () => {
+    if (confirm('Se déconnecter sur cet appareil ? Les documents gardés hors ligne seront effacés.')) seDeconnecter();
+  });
+  document.querySelectorAll<HTMLElement>('.liste-alerte').forEach((ul) =>
+    ul.addEventListener('click', (ev) => { const li = (ev.target as HTMLElement).closest<HTMLElement>('[data-vers]'); if (li?.dataset.vers) montrer?.(li.dataset.vers); }));
+
+  // Recherche (derrière une icône, ne masque pas la barre d'onglets)
+  const sw = document.getElementById('searchwrap');
+  const q = document.getElementById('q') as HTMLInputElement | null;
+  const aucun = document.getElementById('aucun');
+  const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  const ouvrir = (o: boolean) => { if (sw) sw.hidden = !o; if (o) q?.focus(); else if (q) { q.value = ''; q.dispatchEvent(new Event('input')); } };
+  document.getElementById('btn-recherche')?.addEventListener('click', () => ouvrir(sw?.hidden ?? true));
+  document.getElementById('fermer-recherche')?.addEventListener('click', () => ouvrir(false));
+  q?.addEventListener('input', () => {
+    const v = norm(q.value.trim());
+    document.body.classList.toggle('recherche', !!v);
+    document.querySelectorAll<HTMLElement>('[data-q]').forEach((el) => { el.hidden = !!v && !norm(el.dataset.q || '').includes(v); });
+    if (aucun) aucun.hidden = !v || !!document.querySelector('[data-q]:not([hidden])');
+  });
+</script>
+
+<style>
+  .titre { font-size: 1.4rem; margin: 0 0 16px; letter-spacing: -.01em; }
+  .bt { font-size: .82rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; margin: 0 0 10px; display: flex; align-items: center; gap: 9px; }
+  .sep { font-size: .74rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; margin: 22px 0 10px; }
+  .sep:first-of-type, .fiche .sep:first-of-type { margin-top: 0; }
+
+  /* Barre du haut */
+  .topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 54px; padding: 0 14px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: var(--bar-ink); }
+  .marque { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; }
+  .marque .logo { --logo-h: 26px; --logo-rouge: #ff4d4d; color: #fff; }
+  .marque span { font-weight: 800; font-size: 1.05rem; letter-spacing: -.01em; white-space: nowrap; }
+  .actions { display: flex; gap: 4px; }
+  .ic { width: 40px; height: 40px; border: 0; background: transparent; color: var(--bar-ink); display: grid; place-items: center; border-radius: 10px; cursor: pointer; }
+  .ic svg { width: 21px; height: 21px; }
+  #btn-theme svg { width: 18px; height: 18px; }  /* le soleil/lune est visuellement plus « plein » : on l'aligne sur les autres */
+  .ic:active { background: rgba(255,255,255,.12); }
+
+  /* Recherche */
+  .searchwrap { position: sticky; top: 54px; z-index: 29; display: flex; gap: 8px; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .searchwrap input { flex: 1; min-width: 0; padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; font: inherit; background: var(--surface-2); }
+  .searchwrap input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  .searchwrap button { border: 0; background: var(--surface-2); border-radius: 12px; width: 44px; font-size: 1rem; color: var(--muted); cursor: pointer; }
+  .aucun { padding: 24px 16px; color: var(--muted); text-align: center; }
+
+  /* Contenu + onglets */
+  .content { padding: 18px 14px calc(var(--tab-h) + var(--safe-b) + 20px); max-width: 760px; margin: 0 auto; }
+  :global(body.recherche) .panneau[hidden] { display: block !important; }
+  :global(body.recherche) .panneau { margin-bottom: 8px; }
+
+  .tabbar { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; display: flex; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: var(--safe-b); box-shadow: 0 -2px 14px rgba(14,26,43,.06); }
+  .tabbar button { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; border: 0; background: none; color: var(--muted); font: inherit; font-size: .68rem; font-weight: 600; padding: 9px 2px; cursor: pointer; min-height: var(--tab-h); }
+  .tabbar svg { width: 23px; height: 23px; }
+  .tabbar button[aria-selected='true'] { color: var(--accent); font-weight: 800; }
+  .tabbar button[aria-selected='true'] svg { stroke-width: 2.3; }
+  .tabbar button[aria-selected='true']::before { content: ''; position: absolute; top: 0; left: 28%; right: 28%; height: 3px; border-radius: 0 0 3px 3px; background: var(--yellow); }
+
+  /* MAA */
+  #maa-zone { margin-bottom: 18px; display: grid; gap: 9px; }
+  .maa-banniere { display: flex; gap: 10px; align-items: center; text-decoration: none; color: #fff; background: linear-gradient(135deg, #c4161c, #e4482b); border-radius: 14px; padding: 11px 13px; box-shadow: 0 5px 16px rgba(196,22,28,.26); }
+  .maa-banniere[data-etat='a-venir'] { background: linear-gradient(135deg, #b5700a, #e0982a); box-shadow: 0 5px 16px rgba(181,112,10,.26); }
+  .maa-banniere .maa-ic { flex: none; width: 30px; height: 30px; display: grid; place-items: center; background: rgba(255,255,255,.18); border-radius: 50%; }
+  .maa-banniere .maa-ic svg { width: 18px; height: 18px; }
+  .maa-txt { flex: 1; min-width: 0; display: grid; gap: 1px; }
+  .maa-txt strong { font-size: .82rem; letter-spacing: -.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .maa-num { font-size: .8rem; font-weight: 700; opacity: .95; font-variant-numeric: tabular-nums; }
+  .maa-pdf { flex: none; font-size: .7rem; font-weight: 700; background: rgba(255,255,255,.2); padding: 5px 8px; border-radius: 8px; }
+
+  .carte-metar { padding: 15px 16px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; }
+  .carte-taf { margin-top: 10px; }
+
+  /* Alerte documents */
+  .alerte-docs { margin: 0; }
+  .alerte-docs [data-pleine] { margin-bottom: 18px; }
+  .bt-rouge { color: var(--bad); }
+  .pt-alerte { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--bad); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: .8rem; }
+  .liste-alerte { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+  :global(.liste-alerte .al) { display: flex; gap: 10px; align-items: center; padding: 11px 13px; border-radius: 12px; border: 1px solid; font-size: .9rem; cursor: pointer; }
+  :global(.liste-alerte .al-t) { flex: 1; min-width: 0; }
+  :global(.liste-alerte .al-e) { flex: none; font-weight: 700; font-size: .82rem; white-space: nowrap; }
+  :global(.liste-alerte .pt) { flex: none; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  :global(.liste-alerte .al-expire) { color: var(--bad); background: var(--bad-bg); border-color: var(--bad-line); }
+  :global(.liste-alerte .al-bientot) { color: var(--warn); background: var(--warn-bg); border-color: var(--warn-line); }
+  :global(.liste-alerte b) { color: var(--ink); }
+  .ok { display: flex; align-items: center; gap: 10px; color: var(--ok); background: var(--ok-bg); border: 1px solid var(--ok-line); border-radius: 12px; padding: 12px 15px; margin: 0; font-weight: 600; font-size: .92rem; }
+  .ok svg { width: 20px; height: 20px; flex: none; }
+
+  .aide-ios { font-size: .88rem; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin: 10px 0 0; }
+
+
+
+  /* Sélecteur avion — menu déroulant façon « vue flotte » */
+  .av-lbl { display: block; font-size: .74rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin: 2px 0 8px; }
+  .av-select { position: relative; margin: 0 0 18px; }
+  /* Liste ouverte : le reste de l'écran est flouté et assombri pour faire ressortir la liste */
+  .av-voile { position: fixed; inset: 0; z-index: 40; background: rgba(8,16,36,.32); -webkit-backdrop-filter: blur(5px); backdrop-filter: blur(5px); opacity: 0; pointer-events: none; transition: opacity .15s ease; }
+  .av-voile:has(+ .av-select .av-trig[aria-expanded='true']) { opacity: 1; pointer-events: auto; }
+  .av-select:has(.av-trig[aria-expanded='true']) { z-index: 41; }
+  .av-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .av-dot.av-ok { background: var(--ok); } .av-dot.av-warn { background: var(--warn); } .av-dot.av-bad { background: var(--bad); }
+  .av-st { font-size: .82rem; font-weight: 700; flex: none; }
+  .av-st.av-ok { color: var(--ok); } .av-st.av-warn { color: var(--warn); } .av-st.av-bad { color: var(--bad); }
+
+  .av-trig { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px; box-shadow: var(--shadow); color: var(--ink); font: inherit; cursor: pointer; }
+  .av-trig:active { transform: scale(.995); }
+  .av-trig-plane { width: 22px; height: 22px; flex: none; color: var(--muted); }
+  .av-trig-main { flex: 1; min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+  .av-trig-txt { font-family: var(--mono); font-weight: 600; font-size: 1.02rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .av-trig[data-vide='oui'] .av-trig-txt { font-family: var(--font); font-weight: 700; color: var(--muted); }
+  .av-trig-sub { font-size: .82rem; color: var(--muted); }
+  .av-trig-sub:empty { display: none; }
+  .av-chev { width: 20px; height: 20px; flex: none; color: var(--muted); transition: transform .15s ease; }
+  .av-trig[aria-expanded='true'] .av-chev { transform: rotate(180deg); }
+  .av-trig[data-vide='oui'] .av-trig-dot, .av-trig[data-vide='oui'] .av-trig-st { display: none; }
+  .av-trig[data-vide='non'] .av-trig-plane { display: none; }
+
+  .av-menu { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 20; display: flex; flex-direction: column; gap: 2px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: 0 10px 30px rgba(11,30,79,.16); padding: 6px; }
+  .av-opt { display: flex; align-items: center; gap: 11px; width: 100%; text-align: left; background: none; border: 0; border-radius: 10px; padding: 11px 10px; color: var(--ink); font: inherit; cursor: pointer; }
+  .av-opt:hover, .av-opt[aria-selected='true'] { background: var(--surface-2); }
+  .av-id { flex: 1; min-width: 0; }
+  .av-id b { display: block; font-family: var(--mono); font-weight: 600; font-size: 1rem; }
+  .av-id small { color: var(--muted); font-size: .82rem; }
+
+  .signaler { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 9px; margin-bottom: 16px; padding: 11px 14px; border: 1px solid var(--bad-line); background: var(--bad-bg); color: var(--bad); border-radius: 12px; font: inherit; font-weight: 650; font-size: .92rem; cursor: pointer; }
+  .signaler svg { width: 18px; height: 18px; flex: none; }
+  .signaler:active { transform: scale(.99); }
+
+  .fiches { display: grid; gap: 14px; }
+  /* Une seule fiche affichée à la fois (l'avion choisi) : pleine largeur ; sur grand écran, documents et manuels côte à côte */
+  @media (min-width: 900px) {
+    .fiche { padding: 20px 22px; }
+    .fiche-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 22px; align-items: start; }
+    .fiche-cols > div > .sep:first-child { margin-top: 0; }
+    .signaler { width: auto; padding-inline: 18px; }
+  }
+  .fiche-cols > div + div > .sep:first-child { margin-top: 22px; }
+  @media (min-width: 900px) {
+    .content { max-width: 980px; }
+    .topbar { padding-inline: max(14px, calc((100% - 980px) / 2 + 14px)); }
+    #accueil { max-width: 760px; margin-inline: auto; }
+    .fiche-cols > div + div > .sep:first-child { margin-top: 0; }
+    .outils { grid-template-columns: 1fr 1fr 1fr; }
+  }
+  /* Grand écran : la barre d'onglets reste groupée au centre, alignée sur le contenu */
+  @media (min-width: 820px) {
+    .tabbar { justify-content: center; }
+    .tabbar button { flex: 0 1 240px; }
+  }
+  .fiche { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 15px; }
+  .fiche.cache { display: none; }
+  .fiche header { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; }
+  .fiche h3 { margin: 0; font-size: 1.2rem; }
+  .av-mod { font-size: .82rem; color: var(--muted); }
+  .liste { display: grid; gap: 8px; }
+  .rien { color: var(--muted); font-size: .88rem; margin: 0; }
+  .histo { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .histo summary { cursor: pointer; font-size: .84rem; font-weight: 600; color: var(--muted); }
+  .histo .liste { margin-top: 10px; }
+
+  /* MAA en ligne (Club) */
+  .maa-row { display: flex; gap: 11px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 11px 13px; text-decoration: none; color: inherit; }
+  .maa-row:active { transform: scale(.99); }
+  .maa-sub { display: flex; align-items: center; gap: 8px; margin-top: 5px; flex-wrap: wrap; }
+  .maa-chip { flex: none; font-size: .72rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); background: var(--surface-2); }
+  .maa-row[data-etat='en-cours'] .maa-chip { color: var(--bad); background: var(--bad-bg); border-color: var(--bad-line); }
+
+  /* Outils */
+  .bloc { margin-bottom: 8px; }
+  .outils { display: grid; gap: 9px; }
+  @media (min-width: 520px) { .outils { grid-template-columns: 1fr 1fr; } }
+  .outil { display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 12px 13px; text-decoration: none; color: inherit; }
+  .outil:active { transform: scale(.99); }
+  .o-logo { position: relative; flex: none; width: 46px; height: 46px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--line); display: grid; place-items: center; overflow: hidden; }
+  .o-logo::before { content: attr(data-init); font-weight: 800; font-size: .9rem; color: var(--accent); }
+  .o-logo img { position: absolute; inset: 0; margin: auto; width: 30px; height: 30px; object-fit: contain; background: var(--surface-2); }
+  .o-txt { min-width: 0; }
+  .o-txt b { display: block; font-size: .95rem; font-weight: 650; }
+  .o-txt small { color: var(--muted); font-size: .82rem; line-height: 1.3; display: block; }
+
+  .liens { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .lien-o { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 13px; font-weight: 600; font-size: .88rem; text-decoration: none; color: var(--ink); }
+  .lien-o:active { transform: scale(.99); }
+
+  /* Fenêtre « Signaler un problème » */
+  .modale { width: min(440px, calc(100vw - 24px)); max-height: calc(100dvh - 40px); border: 0; border-radius: 20px; padding: 0; background: var(--surface); color: var(--ink); box-shadow: 0 30px 70px rgba(14,26,43,.35); overflow: visible; }
+  .modale::backdrop { background: rgba(14,26,43,.5); backdrop-filter: blur(2px); }
+  .modale form { display: flex; flex-direction: column; max-height: calc(100dvh - 40px); }
+  .m-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  .m-head h3 { margin: 0; font-size: 1.12rem; }
+  .m-x { border: 0; background: var(--surface-2); color: var(--muted); width: 34px; height: 34px; border-radius: 10px; font-size: 1rem; cursor: pointer; }
+  .m-corps { padding: 18px; overflow-y: auto; display: grid; gap: 7px; }
+  .m-corps label { font-weight: 650; font-size: .88rem; margin-top: 8px; }
+  .m-opt { font-weight: 500; color: var(--muted); font-size: .8rem; }
+  .m-avion { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--accent-soft); border-radius: 12px; padding: 11px 14px; margin-bottom: 4px; }
+  .m-av-lbl { font-size: .82rem; color: var(--accent); font-weight: 600; }
+  .m-av-im { font-weight: 800; font-size: 1.08rem; letter-spacing: .02em; }
+  .modale textarea { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; font: inherit; font-size: 1rem; resize: vertical; background: var(--surface); }
+  .modale textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  .modale textarea.vide { border-color: var(--bad); outline-color: var(--bad); }
+  .m-photos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .m-vig { position: relative; width: 70px; height: 70px; border-radius: 10px; overflow: hidden; border: 1px solid var(--line); }
+  .m-vig img { width: 100%; height: 100%; object-fit: cover; }
+  .m-vig button { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border: 0; border-radius: 50%; background: rgba(14,26,43,.72); color: #fff; font-size: .72rem; cursor: pointer; display: grid; place-items: center; }
+  .m-ajout { display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px; padding: 11px; border: 1px dashed var(--line); background: var(--surface-2); color: var(--ink); border-radius: 12px; font: inherit; font-weight: 600; font-size: .9rem; cursor: pointer; }
+  .m-ajout svg { width: 19px; height: 19px; color: var(--accent); }
+  .m-reussi { text-align: center; justify-items: center; padding: 28px 18px 22px; gap: 10px; }
+  .m-reussi strong { font-size: 1.1rem; }
+  .m-reussi span { color: var(--muted); }
+  .m-ok-ic { width: 54px; height: 54px; border-radius: 50%; background: var(--ok-bg); color: var(--ok); display: grid; place-items: center; }
+  .m-ok-ic svg { width: 28px; height: 28px; }
+  .m-reussi .m-pri { margin-top: 10px; min-width: 140px; }
+  .m-pied { display: flex; gap: 10px; padding: 14px 18px; border-top: 1px solid var(--line); padding-bottom: calc(14px + var(--safe-b)); }
+  .m-sec, .m-pri { flex: 1; padding: 13px; border-radius: 12px; font: inherit; font-weight: 700; font-size: .98rem; cursor: pointer; }
+  .m-sec { border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+  .m-pri { border: 0; background: var(--accent); color: #fff; }
+  .m-pri:disabled { opacity: .7; cursor: wait; }
+</style>
