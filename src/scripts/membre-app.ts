@@ -161,6 +161,40 @@ export function maa(racine: ParentNode = document) {
 }
 
 /**
+ * MAA reçus par mail (sur Cloudflare) : la liste vient de /membre/api/maa, réservée aux membres connectés.
+ * Chaque bulletin ajoute un bandeau comme ceux écrits dans la page, puis maa() décide lesquels montrer.
+ * Sans réseau (ou sur la maquette GitHub, sans serveur), on garde la dernière liste reçue sur l'appareil.
+ */
+type MaaEnLigne = { id: string; numero?: string; motif?: string; debut?: string; fin?: string };
+export async function maaEnLigne() {
+  const zone = document.querySelector<HTMLElement>('#maa-zone');
+  const modele = document.querySelector<HTMLTemplateElement>('#maa-modele');
+  if (!zone || !modele) return;
+  let liste: MaaEnLigne[] | null = null;
+  try {
+    const r = await fetch(url('/membre/api/maa'), { cache: 'no-store', credentials: 'same-origin' });
+    if (r.ok && (r.headers.get('content-type') || '').includes('json')) liste = (await r.json()).maa ?? [];
+  } catch { /* hors ligne */ }
+  if (!liste) return;
+  zone.querySelectorAll('[data-maa-en-ligne]').forEach((el) => el.remove());
+  const deja = new Set([...zone.querySelectorAll<HTMLElement>('[data-maa]')].map((el) => `${el.dataset.numero}|${el.dataset.debut}`));
+  for (const m of liste) {
+    if (!m.debut || !m.fin || deja.has(`${m.numero}|${m.debut}`)) continue;
+    const el = modele.content.firstElementChild!.cloneNode(true) as HTMLAnchorElement;
+    el.dataset.maaEnLigne = '';
+    el.dataset.numero = m.numero ?? '';
+    el.dataset.debut = m.debut;
+    el.dataset.fin = m.fin;
+    el.href = url(`/membre/api/maa/${m.id}`);
+    if (m.motif) el.title = m.motif;
+    const num = el.querySelector<HTMLElement>('.maa-num');
+    if (num) num.textContent = `MAA n°${m.numero ?? '—'}`;
+    zone.append(el);
+  }
+  maa();
+}
+
+/**
  * Bouton clair / sombre dans la barre du haut. Par défaut l'appli suit le réglage du téléphone ;
  * le pilote peut forcer un mode, gardé sur l'appareil (localStorage 'acbt-theme', comme « Perfs ACBT »).
  */

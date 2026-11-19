@@ -93,7 +93,7 @@ const onglets = [
     <section class="panneau" id="accueil">
       <div id="maa-zone" hidden>
         {meteo.map((m) => (
-          <a class="maa-banniere" data-maa data-debut={m.debut?.toISOString()} data-fin={m.fin?.toISOString()} href={m.fichier ? asset(m.fichier) : (m.lien || undefined)} target="_blank" rel="noopener" hidden>
+          <a class="maa-banniere" data-maa data-numero={m.numero} data-debut={m.debut?.toISOString()} data-fin={m.fin?.toISOString()} href={m.fichier ? asset(m.fichier) : (m.lien || undefined)} target="_blank" rel="noopener" hidden>
             <span class="maa-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L1 21h22L12 2z" /><path d="M12 9v5M12 17.5v.01" /></svg></span>
             <span class="maa-txt">
               <strong data-maa-titre>Avertissement météo en cours</strong>
@@ -103,6 +103,16 @@ const onglets = [
           </a>
         ))}
       </div>
+      <template id="maa-modele">
+        <a class="maa-banniere" data-maa target="_blank" rel="noopener" hidden>
+          <span class="maa-ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L1 21h22L12 2z" /><path d="M12 9v5M12 17.5v.01" /></svg></span>
+          <span class="maa-txt">
+            <strong data-maa-titre>Avertissement météo en cours</strong>
+            <span class="maa-num">MAA</span>
+          </span>
+          <span class="maa-pdf">PDF ↗</span>
+        </a>
+      </template>
 
       <h2 class="bt">Météo du terrain</h2>
       <div class="carte-metar"><Metar /></div>
@@ -248,13 +258,15 @@ const onglets = [
 </MembreApp>
 
 <script>
-  import { enregistrer, boutonInstaller, seDeconnecter, badges, maa, onglets, signalement, theme, avions } from '../../scripts/membre-app';
+  import { enregistrer, boutonInstaller, seDeconnecter, badges, maa, maaEnLigne, onglets, signalement, theme, avions } from '../../scripts/membre-app';
   enregistrer();
   theme(document.getElementById('btn-theme'));
   const montrer = onglets();
   badges();
   avions();
   maa();
+  maaEnLigne();
+  setInterval(maaEnLigne, 5 * 60_000); // nouveaux MAA reçus par mail
   setInterval(maa, 60_000); // le MAA peut commencer ou se terminer pendant la consultation
   signalement();
   try { if (localStorage.getItem('acbt-admin-jeton')) import('../../scripts/membre-admin').then((m) => m.modeAdmin()); } catch { /* privé */ }
