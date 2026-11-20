@@ -1,9 +1,10 @@
 ---
 import { photo, photoUrl } from '../../lib/photo';
 import Base from '../../layouts/Base.astro';
+import AppelFinal from '../../components/AppelFinal.astro';
 import PageHead from '../../components/PageHead.astro';
 import h from '../../data/historique.json';
-import { asset } from '../../lib/utils';
+import { asset, url } from '../../lib/utils';
 import pages from '../../data/pages.json';
 ---
 <Base univers="club" title="Notre histoire" description="L'histoire de l'aéroclub de Beauvais-Tillé depuis 1979.">
@@ -26,6 +27,7 @@ import pages from '../../data/pages.json';
       </ol>
     </div>
   </section>
+  <AppelFinal eyebrow="Et la suite ?" titre="Écrivez la suite avec nous" texte="Depuis 1979, des dizaines de pilotes ont appris à voler à Beauvais-Tillé. Le prochain, c'est peut-être vous." boutons={[{ label: 'Devenir pilote', href: url('/formations'), principal: true }, { label: 'Réserver un baptême', href: url('/contact?objet=Baptême') }]} />
 </Base>
 <style>
   /* Frise : de grandes années en italique dans la marge, un filet par époque */

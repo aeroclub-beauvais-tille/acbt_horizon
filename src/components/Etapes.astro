@@ -73,21 +73,22 @@ const planeCss = `@media (min-width:760px){.motion .avion-${uid}{animation:${ani
 
 <style>
   /* Étapes éditoriales : un filet, un grand numéro net, pas de boîte */
-  .etapes { list-style: none; margin: clamp(32px, 4vw, 52px) 0 0; padding: 0; display: grid; gap: 0 28px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); border-top: 1px solid var(--ink); }
-  li { position: relative; padding: 22px 0 28px; border-bottom: 1px solid var(--line); }
-  .num { display: block; font-family: var(--font-title); font-weight: 600; font-size: 2.3rem; letter-spacing: -.03em; font-variant-numeric: tabular-nums; line-height: 1; color: var(--accent); margin-bottom: 18px; }
+  /* Étapes en cartes teintées : grand numéro bleu, titre net, texte lisible */
+  .etapes { list-style: none; margin: clamp(32px, 4vw, 52px) 0 0; padding: 0; display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+  li { position: relative; padding: 24px 22px 26px; border-radius: var(--radius); background: var(--paper-2); border-top: 3px solid var(--accent); }
+  .num { display: block; font-family: var(--font-title); font-weight: 600; font-size: 3rem; letter-spacing: -.04em; font-variant-numeric: tabular-nums; line-height: 1; color: var(--accent); margin-bottom: 20px; }
   .num::before { content: '0'; }
-  h3 { font-size: 1.3rem; font-weight: 400; letter-spacing: -.02em; margin: 0 0 8px; }
-  p { margin: 0; color: var(--muted); font-size: .95rem; max-width: 40ch; }
+  h3 { font-size: 1.3rem; font-weight: 500; letter-spacing: -.02em; margin: 0 0 8px; color: var(--ink); }
+  p { margin: 0; color: var(--ink-2); font-size: .95rem; max-width: 40ch; }
   @media (max-width: 640px) {
-    li { display: grid; grid-template-columns: 52px 1fr; gap: 0 8px; padding: 18px 0 20px; }
-    .num { grid-row: span 2; font-size: 2rem; margin: 0; }
+    .etapes { gap: 10px; }
+    li { display: grid; grid-template-columns: 56px 1fr; gap: 0 8px; padding: 18px 16px 20px; }
+    .num { grid-row: span 2; font-size: 2.2rem; margin: 0; }
   }
 
   /* Route + avion qui relie les étapes (grand écran seulement) */
   .etapes-zone { position: relative; }
   .a-route .etapes { border-top: 0; }
-  .a-route .etapes::before { content: ''; position: absolute; left: 0; right: 0; top: 0; border-top: 1px solid var(--ink); }
   .route-zone { display: none; }
   @media (min-width: 760px) {
     .a-route .route-zone { display: block; position: absolute; left: 6%; top: -10px; width: 88%; height: 64px; pointer-events: none; z-index: 2; }

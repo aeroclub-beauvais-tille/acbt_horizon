@@ -5,6 +5,8 @@ import { photo, photoUrl, positionFond } from '../lib/photo';
 import Base from '../layouts/Base.astro';
 import Etapes from '../components/Etapes.astro';
 import Faq from '../components/Faq.astro';
+import BandePhoto from '../components/BandePhoto.astro';
+import AppelFinal from '../components/AppelFinal.astro';
 import Icone from '../components/Icone.astro';
 import d from '../data/decouvrir.json';
 import pages from '../data/pages.json';
@@ -61,6 +63,7 @@ const tel = `tel:${club.telephone.replace(/\s/g, '')}`;
       </div>
     </section>
   )}
+  <BandePhoto src="/uploads/avions/IMG-20240913-WA0013.jpg" legende="Des falaises aux champs de l'Oise : tout change vu d'en haut." />
   {d.questions.length > 0 && (
     <section class="section soft">
       <div class="container">
@@ -70,6 +73,7 @@ const tel = `tel:${club.telephone.replace(/\s/g, '')}`;
       </div>
     </section>
   )}
+  <AppelFinal titre="On vous emmène quand ?" texte="Choisissez votre formule, on convient ensemble d'une date. Bon cadeau possible." boutons={[{ label: 'Réserver mon vol', href: url('/contact?objet=Baptême'), principal: true }, { label: `Appeler le ${club.telephone}`, href: tel }]} />
   <div class="barre-mobile">
     <a class="btn btn-primary" href={url('/contact?objet=Baptême')}>Réserver</a>
     <a class="btn btn-outline" href={tel} aria-label={`Appeler le ${club.telephone}`}>Appeler</a>
