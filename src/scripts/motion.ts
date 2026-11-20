@@ -8,6 +8,7 @@
  *   data-count="1979"    nombre qui compte jusqu'à sa valeur (data-from="1930" pour le départ)
  *   data-parallax="12"   image qui glisse plus lentement que la page (amplitude en %)
  *   data-clip            image dévoilée par un rideau
+ *   data-glisse          grand texte en filigrane qui glisse vers la gauche pendant le défilement (immatriculations de la flotte)
  *   data-marquee         bandeau de texte qui défile, accéléré par la vitesse du scroll
  *   data-batch           longue liste (actualités, galeries) : les éléments apparaissent par vagues à mesure qu'on descend
  *
@@ -168,6 +169,13 @@ function images() {
       { clipPath: 'inset(100% 0% 0% 0% round 20px)' },
       { clipPath: 'inset(0% 0% 0% 0% round 20px)', duration: 1.6, ease: 'expo.inOut', scrollTrigger: { trigger: el, start: 'top 85%', once: true } },
     );
+  });
+
+  document.querySelectorAll<HTMLElement>('[data-glisse]').forEach((el) => {
+    gsap.fromTo(el, { x: () => innerWidth * 0.12 }, {
+      x: () => -innerWidth * 0.22, ease: 'none',
+      scrollTrigger: { trigger: el.parentElement, start: 'top bottom', end: 'bottom top', scrub: 0.6, invalidateOnRefresh: true },
+    });
   });
 
   mm.add('(min-width: 701px)', () => {

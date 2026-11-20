@@ -16,8 +16,8 @@ import pages from '../../data/pages.json';
           <span class="a-num">{String(i + 1).padStart(2, '0')} / {String(avions.length).padStart(2, '0')}</span>
           {a.data.usage && <span class="a-usage">{a.data.usage}</span>}
         </div>
-        {a.data.immatriculation && <p class="immat" data-split aria-hidden="true">{a.data.immatriculation}</p>}
         <div class="a-grille">
+          {a.data.immatriculation && <p class="immat" data-glisse aria-hidden="true">{a.data.immatriculation}</p>}
           <div class="a-photo" data-clip>
             {a.data.photos[0] && <img {...photo(a.data.photos[0], '(min-width: 900px) 60vw, 100vw')} alt={a.data.nom} loading={i < 2 ? 'eager' : 'lazy'} />}
           </div>
@@ -51,8 +51,12 @@ import pages from '../../data/pages.json';
   .flotte { padding: clamp(24px, 4vw, 56px) 0 0; }
   .avion { width: min(var(--max), 100% - 2 * clamp(20px, 4vw, 56px)); margin: 0 auto; padding: clamp(32px, 5vw, 72px) 0; border-bottom: 1px solid var(--line); scroll-margin-top: 80px; }
   .a-tete { display: flex; justify-content: space-between; gap: 16px; font-family: var(--font-title); font-size: .74rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); padding-bottom: 14px; border-bottom: 1px solid var(--ink); }
-  .immat { font-family: var(--font-title); font-weight: 200; font-size: clamp(4.2rem, 15vw, 13rem); letter-spacing: -.06em; line-height: .9; color: var(--ink); margin: clamp(18px, 3vw, 36px) 0 clamp(20px, 3vw, 40px); white-space: nowrap; }
-  .a-grille { display: grid; gap: clamp(24px, 4vw, 64px); grid-template-columns: 1.5fr 1fr; align-items: start; }
+  /* Immatriculation géante en filigrane derrière la fiche, qui glisse vers la gauche quand on fait défiler la page */
+  .immat { position: absolute; z-index: 0; top: -.06em; left: 38%; margin: 0; pointer-events: none; user-select: none; font-family: var(--font-title); font-weight: 700; font-size: clamp(6rem, 19vw, 17rem); letter-spacing: -.04em; line-height: .8; color: color-mix(in srgb, var(--ink) 4%, transparent); white-space: nowrap; }
+  .avion:nth-child(even) .immat { left: auto; right: 38%; }
+  .a-grille > :not(.immat) { position: relative; z-index: 1; }
+  .avion { overflow: hidden; }
+  .a-grille { position: relative; display: grid; gap: clamp(24px, 4vw, 64px); grid-template-columns: 1.5fr 1fr; align-items: start; }
   .avion:nth-child(even) .a-grille { grid-template-columns: 1fr 1.5fr; }
   .avion:nth-child(even) .a-photo { order: 2; }
   .a-photo { border-radius: var(--radius); overflow: hidden; aspect-ratio: 4 / 3; background: var(--paper-2); }
@@ -68,13 +72,13 @@ import pages from '../../data/pages.json';
   .vignettes img { aspect-ratio: 1; width: 100%; object-fit: cover; transition: transform .8s cubic-bezier(.2,.7,.2,1); }
   .vignettes a:hover img { transform: scale(1.06); }
   @media (max-width: 899px) {
-    .a-grille, .avion:nth-child(even) .a-grille { grid-template-columns: 1fr; }
+    .a-grille, .avion:nth-child(even) .a-grille { grid-template-columns: minmax(0, 1fr); }
     .avion:nth-child(even) .a-photo { order: 0; }
   }
   /* Téléphone : un avion par écran, le défilement s'arrête sur chacun */
   @media (max-width: 599px) {
     .avion { min-height: calc(100svh - 76px); padding: 20px 0 28px; scroll-margin-top: 76px; }
-    .immat { font-size: 21vw; margin: 14px 0 16px; }
+    .immat, .avion:nth-child(even) .immat { position: relative; top: auto; left: auto; right: auto; font-size: 30vw; margin: 4px 0 -.42em; color: color-mix(in srgb, var(--ink) 7%, transparent); }
     .a-photo { aspect-ratio: 4 / 3; }
     .a-infos h2 { font-size: 1.7rem; margin-bottom: 14px; }
     .fiche div { padding: 9px 0; }
