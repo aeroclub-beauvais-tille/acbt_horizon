@@ -370,20 +370,21 @@ content:
       - { name: privileges_note, label: Note sous le comparatif, type: text }
       - { name: maintien_titre, label: Titre « Garder sa licence valide », type: string }
       - { name: maintien_intro, label: Introduction, type: text }
-      - name: maintien
-        label: Règles de maintien (expérience récente, prorogation, renouvellement, médical)
+      - name: validite
+        label: Garder sa licence valide (une ligne par question, une colonne LAPL et une colonne PPL)
         type: object
         list: true
         fields:
-          - { name: titre, label: Titre, type: string }
-          - { name: pour, label: Concerne, type: string, description: 'Exemple : LAPL et PPL' }
-          - { name: chiffre, label: Chiffre clé, type: string, description: 'Mis en grand en haut de la carte. Exemple : 90 jours' }
-          - { name: chiffre_legende, label: Précision sous le chiffre, type: string, description: 'Exemple : glissants' }
-          - { name: conditions_intro, label: Phrase avant la liste, type: string, description: "Exemple : Dans les 12 mois avant l'échéance :" }
-          - { name: conditions, label: Conditions (une par ligne), type: string, list: true }
-          - { name: sinon_label, label: Mot devant la solution de rattrapage, type: string, description: 'Laisser vide pour « Sinon ». Exemples : Ou bien, Attention' }
-          - { name: sinon, label: Solution de rattrapage (ligne du bas), type: text }
-          - { name: texte, label: Texte (utilisé seulement s'il n'y a pas de conditions), type: text }
+          - { name: question, label: Question, type: string, description: 'Exemple : Emmener des passagers' }
+          - { name: commun, label: Pareil pour les deux licences, type: boolean, description: 'Coché : une seule case « Pareil pour les deux », remplie avec les champs LAPL' }
+          - { name: lapl_chiffre, label: LAPL - chiffre clé, type: string }
+          - { name: lapl_legende, label: LAPL - précision, type: string }
+          - { name: lapl_points, label: LAPL - conditions (une par ligne), type: string, list: true }
+          - { name: lapl_note, label: LAPL - ligne du bas, type: text }
+          - { name: ppl_chiffre, label: PPL - chiffre clé, type: string }
+          - { name: ppl_legende, label: PPL - précision, type: string }
+          - { name: ppl_points, label: PPL - conditions (une par ligne), type: string, list: true }
+          - { name: ppl_note, label: PPL - ligne du bas, type: text }
       - { name: maintien_note, label: Note en bas, type: text }
       - { name: parcours_titre, label: Titre du parcours, type: string }
       - name: parcours
