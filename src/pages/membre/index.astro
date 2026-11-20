@@ -334,8 +334,8 @@ const onglets = [
   .marque { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--bar-ink); --logo-rouge: var(--bar-rouge); --logo-h: 40px; }
   .marque .logo { --logo-h: 30px; --logo-rouge: var(--bar-rouge); color: var(--bar-ink); }
   .marque span { font-weight: 800; font-size: 1.05rem; letter-spacing: -.01em; white-space: nowrap; }
-  .actions { display: flex; gap: 4px; }
-  .ic { width: 40px; height: 40px; border: 0; background: transparent; color: var(--bar-ic); display: grid; place-items: center; border-radius: 10px; cursor: pointer; }
+  .actions { display: flex; gap: 2px; }  /* comme Perfs : boutons 36 × 38, 2 px d'écart */
+  .ic { width: 36px; height: 38px; border: 0; background: transparent; color: var(--bar-ic); display: grid; place-items: center; border-radius: 10px; cursor: pointer; }
   /* Mêmes icônes que Perfs : 18 px, trait 2. :global car l'icône du thème est injectée en JS (sans attribut de portée) */
   .ic :global(svg) { width: 18px; height: 18px; }
   .ic:active { background: rgba(255,255,255,.12); }
