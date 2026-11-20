@@ -47,7 +47,7 @@ export const CATEGORIES_DOCS = ['Vie du club', 'Documentation pilote', 'Document
 export const RUBRIQUES_AVION = ['Manuel de vol', 'Paramètres', 'Check-list', 'Centrage', 'Guide radio rapide', 'Radio VFR', 'Transpondeur', 'DME', 'Balise de détresse', 'Autre'] as const;
 
 // Documents officiels à durée de validité. Le titre se construit tout seul : « <immatriculation> - <type> » pour un avion, « <type> » sinon.
-export const TYPES_AVION = ["Certificat d'immatriculation", "Certificat d'examen de navigabilité (CEN)", 'Certificat acoustique', 'Assurance', 'Fiche de pesée et centrage', 'Licence station radio', 'Autorisation radio'] as const;
+export const TYPES_AVION = ["Certificat d'immatriculation", 'Certificat de navigabilité (CDN)', "Certificat d'examen de navigabilité (CEN)", 'Certificat acoustique', 'Assurance', 'Fiche de pesée et centrage', 'Licence station radio', 'Autorisation radio'] as const;
 export const TYPES_GENERAL = ['Bulletin météo', 'Règlement intérieur', 'Statuts', 'Compte-rendu', 'Note de sécurité', 'Divers'] as const;
 // Préavis d'expiration : un document est « bientôt expiré » dans les 30 jours avant l'échéance.
 export const PREAVIS_JOURS = 30;

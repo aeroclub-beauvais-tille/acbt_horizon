@@ -7,8 +7,9 @@ interface Props {
   badge?: boolean;      // force l'affichage d'un badge de validité
   sansBadge?: boolean;  // n'affiche jamais de badge (ex. documents du club, toujours valables)
   vers?: string;        // onglet cible de l'alerte d'expiration
+  manquant?: boolean;   // document exigé mais pas encore mis en ligne
 }
-const { doc, court, badge, sansBadge, vers } = Astro.props;
+const { doc, court, badge, sansBadge, vers, manquant } = Astro.props;
 const titre = titreDoc(doc);
 const cible = doc.fichier ? asset(doc.fichier) : doc.lien || '';
 const ext = (doc.fichier || '').split('?')[0].split('.').pop()?.toLowerCase() || '';
@@ -17,7 +18,7 @@ const kind = doc.fichier
   : /youtu|vimeo/.test(doc.lien || '') ? 'VIDÉO' : 'LIEN';
 const recherche = `${titre} ${doc.type ?? ''} ${doc.description ?? ''}`.toLowerCase();
 
-const avecBadge = !sansBadge && (badge || !!(doc.debut || doc.fin || doc.type));
+const avecBadge = !manquant && !sansBadge && (badge || !!(doc.debut || doc.fin || doc.type));
 const e = avecBadge ? etatValidite(doc) : null;
 const court2 = (d?: Date) => d ? d.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: '2-digit' }) : '';
 // Repli calculé au build ; le navigateur le remet à jour (reste juste même hors ligne).
@@ -28,7 +29,7 @@ const ech = !e ? '' : e.code === 'sans-fin' ? 'n’expire pas' : e.code === 'a-v
 const iso = (d?: Date) => d ? d.toISOString() : undefined;
 const noFichier = !cible;
 ---
-<a class:list={['doc', { vide: noFichier }]} href={cible || undefined} target={cible ? '_blank' : undefined} rel="noopener" data-q={recherche} data-doc={doc.id} role={noFichier ? 'group' : undefined}>
+<a class:list={['doc', { vide: noFichier, manquant }]} href={cible || undefined} target={cible ? '_blank' : undefined} rel="noopener" data-q={recherche} data-doc={doc.id} role={noFichier ? 'group' : undefined}>
   <span class:list={['type', `t-${kind.toLowerCase().replace('é', 'e')}`, { attente: noFichier }]}>{noFichier ? '—' : kind}</span>
   <span class="txt">
     <strong>{court ?? titre}</strong>
@@ -38,7 +39,8 @@ const noFichier = !cible;
         <span class="ech">{ech}</span>
       </span>
     ) : (doc.description && <span class="meta">{doc.description}</span>)}
-    {noFichier && !avecBadge && <span class="meta">Pas encore déposé</span>}
+    {manquant ? <span class="valid"><span class="manque">Non disponible</span></span>
+      : noFichier && !avecBadge && <span class="meta">Pas encore déposé</span>}
   </span>
 </a>
 <style>
@@ -64,5 +66,11 @@ const noFichier = !cible;
   .badge[data-code='bientot'] { color: var(--warn); background: var(--warn-bg); border-color: var(--warn-line); }
   .badge[data-code='expire'] { color: var(--bad); background: var(--bad-bg); border-color: var(--bad-line); }
   .badge[data-code='a-venir'] { color: var(--muted); background: var(--surface-2); border-color: var(--line); }
+  .manque { flex: none; white-space: nowrap; display: inline-flex; align-items: center; font-size: .74rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; border: 1px dashed var(--line); color: var(--muted); }
+  .doc.manquant { padding: 9px 13px; }
+  .doc.manquant .type { display: none; }
+  .doc.manquant .txt { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .doc.manquant strong { font-weight: 600; color: var(--muted); }
+  .doc.manquant .valid { margin-top: 0; }
   .ech { font-size: .78rem; color: var(--muted); white-space: nowrap; }
 </style>

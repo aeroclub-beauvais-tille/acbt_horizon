@@ -22,13 +22,35 @@ const rangType = (d: Doc) => { const i = TYPES_AVION.indexOf((d.type ?? '') as (
 const rangRub = (d: Doc) => RUBRIQUES_AVION.indexOf((d.rubrique ?? 'Autre') as (typeof RUBRIQUES_AVION)[number]);
 const modele = (t: string) => t.replace(/-\d+.*$| Petit Prince| Paris-Nice/g, '').trim();
 
+// Documents à emporter lors d'un vol (« le minimum exigé »), dans cet ordre. La fiche de pesée n'est pas affichée.
+const REQUIS: { nom: string; types?: string[]; rubrique?: string }[] = [
+  { nom: 'Certificat d’immatriculation', types: ["Certificat d'immatriculation"] },
+  { nom: 'Certificat de navigabilité', types: ['Certificat de navigabilité (CDN)'] },
+  { nom: 'Certificat d’examen de navigabilité', types: ["Certificat d'examen de navigabilité (CEN)"] },
+  { nom: 'Licence station radio (LSA)', types: ['Licence station radio', 'Autorisation radio'] },
+  { nom: 'Certificat de limitation de nuisance', types: ['Certificat acoustique'] },
+  { nom: 'Attestation d’assurance RC', types: ['Assurance'] },
+  { nom: 'Manuel de vol', rubrique: 'Manuel de vol' },
+];
+const PIECES_PILOTE = ['Licence', 'Certificat médical', 'Carte d’identité'];
+const estPesee = (d: Doc) => d.type === 'Fiche de pesée et centrage' || /pes[ée]e/i.test(d.titre ?? '');
+
 const flotte = avions.map((a) => {
   const im = a.data.immatriculation ?? a.data.nom;
-  const mine = docsAvion.filter((d) => d.avions.includes(im));
+  const mine = docsAvion.filter((d) => d.avions.includes(im) && !estPesee(d));
+  const vivants = mine.filter((d) => !d.archive);
+  const pris = new Set<string>();
+  const requis = REQUIS.map((r) => {
+    const doc = vivants.find((d) => !pris.has(d.id) && (r.types ? r.types.includes(d.type ?? '') : !estOfficiel(d) && d.rubrique === r.rubrique));
+    if (doc) pris.add(doc.id);
+    return { nom: r.nom, doc };
+  });
+  // Autres documents officiels de l'avion (type non listé ci-dessus) : à la suite, avec leur badge
+  const autres = vivants.filter((d) => estOfficiel(d) && !pris.has(d.id)).sort((p, q) => rangType(p) - rangType(q));
   return {
     id: a.id, im, modele: modele(a.data.type), photo: a.data.photos[0],
-    officiels: mine.filter((d) => estOfficiel(d) && !d.archive).sort((p, q) => rangType(p) - rangType(q)),
-    techniques: mine.filter((d) => !estOfficiel(d) && !d.archive).sort((p, q) => rangRub(p) - rangRub(q)),
+    requis, autres,
+    techniques: vivants.filter((d) => !estOfficiel(d) && !pris.has(d.id)).sort((p, q) => rangRub(p) - rangRub(q)),
     historique: mine.filter((d) => d.archive).sort((p, q) => rangType(p) - rangType(q)),
   };
 });
@@ -174,12 +196,16 @@ const onglets = [
               <span><b>Ajouter un document</b><small>Glissez un fichier ici ou touchez pour choisir</small></span>
             </button>
             <div class="fiche-cols"><div>
-            <h5 class="sep">Documents officiels</h5>
-            {x.officiels.length > 0
-              ? <div class="liste">{x.officiels.map((d) => <DocLien doc={d} vers="avions" />)}</div>
-              : <p class="rien">Aucun document officiel.</p>}
+            <h5 class="sep">Documents nécessaires au vol</h5>
+            <div class="liste">
+              {x.requis.map((r) => r.doc
+                ? <DocLien doc={r.doc} court={r.nom} badge vers="avions" />
+                : <DocLien doc={{ titre: r.nom }} manquant />)}
+              {x.autres.map((d) => <DocLien doc={d} vers="avions" />)}
+            </div>
+            <div class="pilote"><span class="pilote-t">Pilote</span>{PIECES_PILOTE.map((p) => <span class="piece">{p}</span>)}</div>
             </div><div>
-            {x.techniques.length > 0 && <h5 class="sep">Manuels et check-lists</h5>}
+            {x.techniques.length > 0 && <h5 class="sep">Manuels d’utilisation du matériel</h5>}
             <div class="liste">{x.techniques.map((d) => <DocLien doc={d} court={titreDoc(d).replace(` ${x.im}`, '')} />)}</div>
             </div></div>
             {x.historique.length > 0 && (
@@ -435,6 +461,9 @@ const onglets = [
   .av-mod { font-size: .82rem; color: var(--muted); }
   .liste { display: grid; gap: 8px; }
   .rien { color: var(--muted); font-size: .88rem; margin: 0; }
+  .pilote { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+  .pilote-t { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+  .piece { font-size: .8rem; font-weight: 600; padding: 4px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); }
   .histo { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 12px; }
   .histo summary { cursor: pointer; font-size: .84rem; font-weight: 600; color: var(--muted); }
   .histo .liste { margin-top: 10px; }
