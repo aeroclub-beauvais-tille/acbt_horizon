@@ -64,10 +64,10 @@ import { url } from '../../lib/utils';
 
 <style>
   .ecran { min-height: 100svh; display: flex; flex-direction: column; background: var(--bg); }
-  .haut { display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 16px 0 8px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: #fff; }
-  .retour { display: grid; place-items: center; width: 34px; height: 34px; color: #fff; }
+  .haut { display: flex; align-items: center; gap: 10px; height: 54px; padding: 0 16px 0 8px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: var(--bar-ink); border-bottom: 1px solid var(--line); }
+  .retour { display: grid; place-items: center; width: 34px; height: 34px; color: var(--bar-ic); }
   .retour svg { width: 22px; height: 22px; }
-  .haut :global(.logo) { --logo-h: 26px; --logo-rouge: #ff4d4d; color: #fff; }
+  .haut :global(.logo) { --logo-h: 40px; --logo-rouge: var(--bar-rouge); color: var(--bar-ink); }
   .haut span { font-weight: 800; font-size: 1.05rem; }
   .corps { flex: 1; display: flex; justify-content: center; align-items: flex-start; padding: 32px 16px 40px; }
   .carte { width: 100%; max-width: 420px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px 20px; }
