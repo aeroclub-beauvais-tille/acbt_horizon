@@ -348,6 +348,7 @@ content:
           - { name: points, label: Points clés, type: string, list: true }
       - { name: note, label: Note sous les licences, type: text }
       - { name: privileges_titre, label: Titre du comparatif LAPL / PPL, type: string }
+      - { name: pour_qui_bia, label: "BIA : pour qui ? (phrase en haut de la carte)", type: text }
       - { name: pour_qui_lapl, label: "LAPL : pour qui ? (phrase en haut de la carte)", type: text }
       - { name: pour_qui_ppl, label: "PPL : pour qui ? (phrase en haut de la carte)", type: text }
       - name: privileges
