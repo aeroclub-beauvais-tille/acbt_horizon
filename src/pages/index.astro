@@ -51,6 +51,9 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
           <source src={asset(pg.video)} type="video/mp4" />
         </video>
       )}
+      {pg.video_mobile && (
+        <video class="h-video h-video-mobile" muted loop playsinline preload="none" poster={asset(pg.video_mobile.replace(/\.mp4$/i, '.jpg'))} aria-hidden="true" data-src={asset(pg.video_mobile)}></video>
+      )}
     </div>
     <div class="voile"></div>
     <div class="hero-metar"><Metar sombre /></div>
@@ -62,7 +65,7 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
         <a class="btn btn-clair" href={url('/contact?objet=Baptême')}>Réserver un baptême</a>
       </div>
     </div>
-    {!pg.video && <p class="hero-legende" id="slide-l">{slides[0]?.legende}</p>}
+    {!pg.video && <p class:list={["hero-legende", { "sans-mobile": pg.video_mobile }]} id="slide-l">{slides[0]?.legende}</p>}
   </section>
 
   <section class="manif" aria-label={pg.atouts_titre}>
@@ -142,6 +145,12 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
   // Vidéo de fond : coupée si le visiteur a demandé moins d'animations
   const v = document.querySelector<HTMLVideoElement>('.h-video');
   if (v && matchMedia('(prefers-reduced-motion: reduce)').matches) { v.removeAttribute('autoplay'); v.pause(); }
+  // Vidéo réservée au téléphone : chargée seulement sur petit écran, l'ordinateur garde les photos.
+  const vm = document.querySelector<HTMLVideoElement>('.h-video-mobile');
+  if (vm && matchMedia('(max-width: 760px)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    vm.src = vm.dataset.src || '';
+    vm.play().catch(() => {});
+  }
 </script>
 
 <style>
@@ -150,6 +159,8 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
   .hero { position: relative; height: 100svh; min-height: 600px; color: #fff; background: var(--nuit); overflow: hidden; }
   .slides { position: absolute; inset: 0; }
   .h-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .h-video-mobile { display: none; }
+  @media (max-width: 760px) { .h-video-mobile { display: block; } .hero-legende.sans-mobile { display: none; } }
   .slides img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; opacity: 0; transform: scale(1.08); transition: opacity 1.6s ease, transform 12s ease-out; }
   .slides img.on { opacity: 1; transform: scale(1); }
   .voile { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,10,14,.5) 0%, rgba(10,10,14,0) 28%, rgba(10,10,14,0) 48%, rgba(10,10,14,.72) 100%); }
