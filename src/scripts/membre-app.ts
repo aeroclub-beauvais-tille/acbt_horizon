@@ -98,7 +98,7 @@ export function badges(racine: ParentNode = document) {
   const midi = (d: string) => Date.parse(d + 'T12:00:00Z');
   const jours = (iso: string) => Math.round((midi(jour(iso)) - midi(auj)) / 86_400_000);
   const court = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: '2-digit' });
-  const alertes: { titre: string; code: string; date: string; vers?: string }[] = [];
+  const alertes: { titre: string; code: string; date: string; vers?: string; im: string }[] = [];
 
   racine.querySelectorAll<HTMLElement>('.badge').forEach((b) => {
     const fin = b.dataset.fin;
@@ -122,7 +122,7 @@ export function badges(racine: ParentNode = document) {
     if (e) e.textContent = ech;
     // Un document remplacé (historique) n'est plus à renouveler : sa version en vigueur fait foi
     if ((code === 'expire' || code === 'bientot') && b.dataset.titre && !b.closest('.histo') && !alertes.some((a) => a.titre === b.dataset.titre))
-      alertes.push({ titre: b.dataset.titre, code, date: fin ? court(fin) : '', vers: b.dataset.vers });
+      alertes.push({ titre: b.dataset.titre, code, date: fin ? 'jusqu’au ' + court(fin) : '', vers: b.dataset.vers, im: b.closest<HTMLElement>('[data-ims]')?.dataset.ims || '' });
   });
 
   const zone = racine.querySelector<HTMLElement>('#alerte-docs');
@@ -132,7 +132,7 @@ export function badges(racine: ParentNode = document) {
     const pleine = zone.querySelector<HTMLElement>('[data-pleine]');
     alertes.sort((a, b) => (a.code === b.code ? 0 : a.code === 'expire' ? -1 : 1));
     if (liste) liste.innerHTML = alertes
-      .map((a) => `<li class="al al-${a.code}" data-vers="${a.vers || ''}"><span class="pt"></span><span class="al-t"><b>${a.titre}</b></span><span class="al-e">${a.date}</span></li>`)
+      .map((a) => `<li class="al al-${a.code}" data-vers="${a.vers || ''}" data-im="${a.im}"><span class="pt"></span><span class="al-t"><b>${a.titre}</b></span><span class="al-e">${a.date}</span></li>`)
       .join('');
     zone.dataset.n = String(alertes.length);
     if (vide) vide.hidden = alertes.length > 0;
@@ -288,7 +288,7 @@ export function avions() {
       // La couleur dit l'état ; on n'écrit que la date d'échéance la plus proche
       if ((code === 'expire' || code === 'bientot') && b.dataset.fin && (!finMin || joursDe(b.dataset.fin) < joursDe(finMin))) finMin = b.dataset.fin;
     });
-    const txt = finMin ? court(finMin) : '';
+    const txt = finMin ? 'jusqu’au ' + court(finMin) : '';
     if (pire === 0) return { dot: 'bad', txt };
     if (pire === 1) return { dot: 'warn', txt };
     return { dot: 'ok', txt: '' };
@@ -324,6 +324,14 @@ export function avions() {
       if (txt) txt.textContent = 'Choisir un avion';
       if (sub) sub.textContent = '';
       if (stTrig) stTrig.textContent = '';
+    }
+    // Bandeau « Documents à renouveler » : seulement ceux de l'avion choisi (tous si aucun avion choisi)
+    const zone = document.getElementById('alerte-docs');
+    if (zone) {
+      const lis = [...zone.querySelectorAll<HTMLElement>('li[data-im]')];
+      lis.forEach((li) => { li.hidden = ok && li.dataset.im !== im; });
+      const pleine = zone.querySelector<HTMLElement>('[data-pleine]');
+      if (pleine) pleine.hidden = !lis.some((li) => !li.hidden);
     }
     try { ok ? localStorage.setItem('acbt-avion', im) : localStorage.removeItem('acbt-avion'); } catch { /* privé */ }
   };
