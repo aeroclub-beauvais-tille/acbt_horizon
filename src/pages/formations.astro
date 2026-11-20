@@ -52,26 +52,6 @@ const cartes = formations.map((l) => ({
         ))}
       </div>
       <p class="meta" style="margin-top:20px;max-width:90ch" data-reveal>{f.note}</p>
-        <details class="toutes">
-        <summary>Voir toutes les différences <span aria-hidden="true">+</span></summary>
-        <div class="vs">
-          <div class="vs-tete" aria-hidden="true"><span></span><b>LAPL</b><b class="ppl">PPL</b></div>
-          {f.privileges.map((p) => (
-            <details class="vs-ligne">
-              <summary>
-                <span class="vs-critere">{p.critere}</span>
-                <span class="vs-val"><span class="sr">LAPL : </span>{p.lapl_court || p.lapl}</span>
-                <span class="vs-val ppl"><span class="sr">PPL : </span>{p.ppl_court || p.ppl}</span>
-              </summary>
-              <div class="vs-detail">
-                <p><b>LAPL</b> {p.lapl}</p>
-                <p><b>PPL</b> {p.ppl}</p>
-              </div>
-            </details>
-          ))}
-        </div>
-        <p class="meta" style="margin-top:14px;max-width:80ch">Touchez une ligne pour le détail. {f.privileges_note}</p>
-        </details>
     </div>
   </section>
   {f.maintien.length > 0 && (
