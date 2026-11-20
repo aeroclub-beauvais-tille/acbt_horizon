@@ -196,7 +196,7 @@ const onglets = [
               <span><b>Ajouter un document</b><small>Glissez un fichier ici ou touchez pour choisir</small></span>
             </button>
             <div class="fiche-cols"><div>
-            <h5 class="sep sep-col">Documents nécessaires au vol<span>Valable jusqu’au</span></h5>
+            <h5 class="sep sep-col">Documents nécessaires au vol<span>Validité</span></h5>
             <div class="liste compacte">
               {x.requis.map((r) => r.doc
                 ? <DocLien doc={r.doc} court={r.nom} badge vers="avions" ligne />
