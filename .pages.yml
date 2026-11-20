@@ -454,6 +454,7 @@ content:
       - { name: adresse, label: Adresse, type: string }
       - { name: telephone, label: Téléphone, type: string }
       - { name: email, label: E-mail, type: string }
+      - { name: formulaire_cle, label: Clé du formulaire de contact (Web3Forms), type: string, description: 'Clé reçue par e-mail après avoir saisi l’adresse du club sur web3forms.com. Vide : le formulaire ouvre la messagerie du visiteur.' }
       - { name: facebook, label: Page Facebook, type: string }
       - { name: aerogest, label: Lien Aerogest, type: string }
       - { name: horaires, label: Horaires, type: string }
