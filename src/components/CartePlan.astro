@@ -27,14 +27,16 @@ const lien = `https://www.openstreetmap.org/?mlat=${club.latitude}&mlon=${club.l
     el.innerHTML = '';
     const tactile = matchMedia('(pointer: coarse)').matches;
     // Molette désactivée (sinon la page ne défile plus en passant sur la carte) ; au doigt, on ne fait pas glisser la carte pour laisser défiler la page (zoom à deux doigts possible)
-    const carte = L.map(el, { center: pos, zoom: 16, scrollWheelZoom: false, dragging: !tactile, tap: false } as L.MapOptions);
+    const carte = L.map(el, { center: pos, zoom: 16, scrollWheelZoom: false, dragging: !tactile, tap: false, zoomControl: false } as L.MapOptions);
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
       attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
     }).addTo(carte);
+    // Boutons +/- en bas à gauche, pour ne jamais passer sur la bulle du repère
+    L.control.zoom({ position: 'bottomleft' }).addTo(carte);
     L.marker(pos, { icon: pin, title: el.dataset.titre })
       .addTo(carte)
-      .bindPopup(`<strong>${el.dataset.titre}</strong><br>${(el.dataset.acces ?? '').split('|').join('<br>')}`)
+      .bindPopup(`<strong>${el.dataset.titre}</strong>`)
       .openPopup();
   });
 </script>
