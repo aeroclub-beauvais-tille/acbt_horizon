@@ -212,6 +212,7 @@ collections:
     widget: select
     options:
     - Certificat d'immatriculation
+    - Certificat de navigabilité (CDN)
     - Certificat d'examen de navigabilité (CEN)
     - Certificat acoustique
     - Assurance

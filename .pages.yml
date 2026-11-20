@@ -530,7 +530,7 @@ content:
         type: select
         description: "Sert au nom automatique et au suivi de validité. Pour un manuel ou une check-list, laissez vide et remplissez « Type de document avion » plus bas."
         options:
-          values: ["Certificat d'immatriculation", "Certificat d'examen de navigabilité (CEN)", 'Certificat acoustique', 'Assurance', 'Fiche de pesée et centrage', 'Licence station radio', 'Autorisation radio', 'Bulletin météo', 'Règlement intérieur', 'Statuts', 'Compte-rendu', 'Note de sécurité', 'Divers']
+          values: ["Certificat d'immatriculation", 'Certificat de navigabilité (CDN)', "Certificat d'examen de navigabilité (CEN)", 'Certificat acoustique', 'Assurance', 'Fiche de pesée et centrage', 'Licence station radio', 'Autorisation radio', 'Bulletin météo', 'Règlement intérieur', 'Statuts', 'Compte-rendu', 'Note de sécurité', 'Divers']
       - { name: titre, label: Titre, type: string, description: "Laissez vide pour un nom automatique « F-GCAL - Certificat d'immatriculation » (immatriculation + type)." }
       - { name: debut, label: Début de validité, type: date }
       - { name: fin, label: Fin de validité, type: date, description: "Laissez vide si le document n'expire pas." }

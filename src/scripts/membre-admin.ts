@@ -79,10 +79,10 @@ async function publier(message: string, changements: Changement[]) {
 
 // ---------- Fichiers du dépôt ----------
 const slug = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-  .replace(/\(cen\)/g, 'cen').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70);
+  .replace(/\((cen|cdn)\)/g, '$1').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70);
 const abrege: Record<string, string> = {
   "Certificat d'immatriculation": 'immatriculation', "Certificat d'examen de navigabilite (CEN)": 'cen',
-  'Certificat acoustique': 'acoustique', 'Fiche de pesee et centrage': 'pesee', 'Licence station radio': 'licence-radio',
+  'Certificat de navigabilite (CDN)': 'cdn', 'Certificat acoustique': 'acoustique', 'Fiche de pesee et centrage': 'pesee', 'Licence station radio': 'licence-radio',
 };
 const nomType = (t: string) => abrege[t.normalize('NFD').replace(/[̀-ͯ]/g, '')] ?? slug(t);
 
