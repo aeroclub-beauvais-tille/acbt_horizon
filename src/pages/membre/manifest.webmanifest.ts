@@ -15,7 +15,7 @@ export const GET: APIRoute = () =>
       display: 'standalone',
       orientation: 'any',
       background_color: '#eef1f4',
-      theme_color: '#ffffff',
+      theme_color: '#0b1e4f',
       icons: [
         { src: url('/icones/membre-192.png'), sizes: '192x192', type: 'image/png', purpose: 'any' },
         { src: url('/icones/membre-512.png'), sizes: '512x512', type: 'image/png', purpose: 'any' },
