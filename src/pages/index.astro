@@ -147,7 +147,7 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
 <style>
   .g { padding-inline: clamp(20px, 4vw, 56px); }
   /* Ouverture plein écran */
-  .hero { position: relative; height: 100svh; min-height: 600px; max-height: 980px; color: #fff; background: var(--nuit); overflow: hidden; }
+  .hero { position: relative; height: 100svh; min-height: 600px; color: #fff; background: var(--nuit); overflow: hidden; }
   .slides { position: absolute; inset: 0; }
   .h-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .slides img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; opacity: 0; transform: scale(1.08); transition: opacity 1.6s ease, transform 12s ease-out; }
