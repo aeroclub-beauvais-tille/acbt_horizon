@@ -17,7 +17,7 @@ import pages from '../../data/pages.json';
           {a.data.usage && <span class="a-usage">{a.data.usage}</span>}
         </div>
         <div class="a-grille">
-          {a.data.immatriculation && <p class="immat" data-glisse aria-hidden="true">{a.data.immatriculation}</p>}
+          {a.data.immatriculation && <p class="immat" data-glisse={i % 2 ? 1 : -1} aria-hidden="true">{a.data.immatriculation}</p>}
           <div class="a-photo" data-clip>
             {a.data.photos[0] && <img {...photo(a.data.photos[0], '(min-width: 900px) 60vw, 100vw')} alt={a.data.nom} loading={i < 2 ? 'eager' : 'lazy'} />}
           </div>
@@ -50,10 +50,11 @@ import pages from '../../data/pages.json';
   /* Un avion = un chapitre : son immatriculation en très grand, une grande photo, une fiche en filets */
   .flotte { padding: clamp(24px, 4vw, 56px) 0 0; }
   .avion { width: min(var(--max), 100% - 2 * clamp(20px, 4vw, 56px)); margin: 0 auto; padding: clamp(32px, 5vw, 72px) 0; border-bottom: 1px solid var(--line); scroll-margin-top: 80px; }
-  .a-tete { display: flex; justify-content: space-between; gap: 16px; font-family: var(--font-title); font-size: .74rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); padding-bottom: 14px; border-bottom: 1px solid var(--ink); }
+  .a-tete { display: flex; justify-content: space-between; gap: 16px; font-family: var(--font-title); font-size: .74rem; font-weight: 500; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); padding-bottom: 14px; }
   /* Immatriculation géante en filigrane derrière la fiche, qui glisse vers la gauche quand on fait défiler la page */
-  .immat { position: absolute; z-index: 0; top: -.06em; left: 38%; margin: 0; pointer-events: none; user-select: none; font-family: var(--font-title); font-weight: 700; font-size: clamp(6rem, 19vw, 17rem); letter-spacing: -.04em; line-height: .8; color: color-mix(in srgb, var(--ink) 4%, transparent); white-space: nowrap; }
-  .avion:nth-child(even) .immat { left: auto; right: 38%; }
+  /* Calée sur la colonne de la fiche et taillée pour y tenir en entier : rien n'est caché par la photo en haut de page */
+  .immat { position: absolute; z-index: 0; top: -.06em; right: 0; margin: 0; pointer-events: none; user-select: none; font-family: var(--font-title); font-weight: 700; font-size: clamp(5rem, 10.5vw, 9.5rem); letter-spacing: -.04em; line-height: .8; color: color-mix(in srgb, var(--ink) 4%, transparent); white-space: nowrap; }
+  .avion:nth-child(even) .immat { right: auto; left: 0; }
   .a-grille > :not(.immat) { position: relative; z-index: 1; }
   .avion { overflow: hidden; }
   .a-grille { position: relative; display: grid; gap: clamp(24px, 4vw, 64px); grid-template-columns: 1.5fr 1fr; align-items: start; }

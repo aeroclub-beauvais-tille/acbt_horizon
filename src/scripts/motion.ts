@@ -172,9 +172,11 @@ function images() {
   });
 
   document.querySelectorAll<HTMLElement>('[data-glisse]').forEach((el) => {
-    gsap.fromTo(el, { x: () => innerWidth * 0.12 }, {
-      x: () => -innerWidth * 0.22, ease: 'none',
-      scrollTrigger: { trigger: el.parentElement, start: 'top bottom', end: 'bottom top', scrub: 0.6, invalidateOnRefresh: true },
+    // Part de sa place (entièrement lisible) et glisse vers la photo ; sens donné par data-glisse (-1 gauche, 1 droite)
+    const sens = Number(el.dataset.glisse) || -1;
+    gsap.fromTo(el, { x: 0 }, {
+      x: () => sens * innerWidth * 0.1, ease: 'none',
+      scrollTrigger: { trigger: el.parentElement, start: 'top 70%', end: 'bottom top', scrub: 0.6, invalidateOnRefresh: true },
     });
   });
 
