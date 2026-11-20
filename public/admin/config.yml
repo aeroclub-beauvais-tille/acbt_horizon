@@ -935,6 +935,10 @@ singletons:
     label: Titre du comparatif LAPL / PPL
     widget: string
     required: false
+  - name: pour_qui_bia
+    label: 'BIA : pour qui ? (phrase en haut de la carte)'
+    widget: text
+    required: false
   - name: pour_qui_lapl
     label: 'LAPL : pour qui ? (phrase en haut de la carte)'
     widget: text
