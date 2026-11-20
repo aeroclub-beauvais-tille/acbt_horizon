@@ -1219,6 +1219,11 @@ singletons:
     label: E-mail
     widget: string
     required: false
+  - name: formulaire_cle
+    label: Clé du formulaire de contact (Web3Forms)
+    widget: string
+    required: false
+    hint: 'Clé reçue par e-mail après avoir saisi l’adresse du club sur web3forms.com. Vide : le formulaire ouvre la messagerie du visiteur.'
   - name: facebook
     label: Page Facebook
     widget: string

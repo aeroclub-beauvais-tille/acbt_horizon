@@ -19,8 +19,9 @@ import pages from '../data/pages.json';
           </select>
         </label>
         <label>Message<textarea name="message" rows="5" required></textarea></label>
+        <input type="checkbox" name="botcheck" class="piege" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <button class="btn btn-primary" type="submit">Envoyer</button>
-        <p class="meta" style="margin-top:10px">Le message s'ouvre dans votre logiciel de messagerie.</p>
+        <p class="meta envoi" role="status" aria-live="polite" style="margin-top:10px">{club.formulaire_cle ? 'Votre message part directement au club, qui vous répond par e-mail.' : "Le message s'ouvre dans votre logiciel de messagerie."}</p>
       </div></form>
       <div data-reveal="right" data-delay="0.15">
         <h2>{pages.contact.intertitres.carte}</h2>
@@ -33,18 +34,57 @@ import pages from '../data/pages.json';
     </div>
   </section>
 </Base>
-<script define:vars={{ email: club.email }}>
+<script define:vars={{ email: club.email, cle: club.formulaire_cle }}>
+  // Envoi direct depuis le site (service Web3Forms, qui transmet le message à l'adresse du club).
+  // Sans clé réglée dans le back-office, on ouvre la messagerie du visiteur comme avant.
   const form = document.getElementById('contact');
+  const etat = form.querySelector('.envoi');
+  const bouton = form.querySelector('button[type=submit]');
   const objet = new URLSearchParams(location.search).get('objet');
   if (objet) form.objet.value = objet;
-  form.addEventListener('submit', (e) => {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = new FormData(form);
-    const body = `${f.get('message')}\n\n${f.get('nom')}\n${f.get('email')}\n${f.get('tel') || ''}`;
-    location.href = `mailto:${email}?subject=${encodeURIComponent('[Site] ' + f.get('objet'))}&body=${encodeURIComponent(body)}`;
+    if (!cle) {
+      const body = `${f.get('message')}\n\n${f.get('nom')}\n${f.get('email')}\n${f.get('tel') || ''}`;
+      location.href = `mailto:${email}?subject=${encodeURIComponent('[Site] ' + f.get('objet'))}&body=${encodeURIComponent(body)}`;
+      return;
+    }
+    if (f.get('botcheck')) return; // robot
+    bouton.disabled = true;
+    etat.dataset.etat = '';
+    etat.textContent = 'Envoi en cours…';
+    try {
+      const r = await fetch('https://api.web3forms.com/submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          access_key: cle,
+          subject: `[Site ACBT] ${f.get('objet')} – ${f.get('nom')}`,
+          from_name: 'Site de l’ACBT',
+          replyto: f.get('email'),
+          'Nom': f.get('nom'), 'E-mail': f.get('email'), 'Téléphone': f.get('tel') || '—', 'Objet': f.get('objet'),
+          'Message': f.get('message'),
+        }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || j.success === false) throw new Error(j.message || 'Erreur');
+      form.reset();
+      if (objet) form.objet.value = objet;
+      etat.dataset.etat = 'ok';
+      etat.textContent = 'Merci, votre message est bien parti. Le club vous répond par e-mail.';
+    } catch {
+      etat.dataset.etat = 'ko';
+      etat.innerHTML = `Le message n'a pas pu partir. Réessayez, ou écrivez à <a href="mailto:${email}">${email}</a>.`;
+    } finally {
+      bouton.disabled = false;
+    }
   });
 </script>
 <style>
+  .piege { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+  .envoi[data-etat='ok'] { color: #1d8a4e; font-weight: 600; }
+  .envoi[data-etat='ko'] { color: #b3261e; font-weight: 600; }
   .carte-contact { height: 320px; }
   .grid-2 > * { min-width: 0; }
   .grid-2 { gap: clamp(48px, 7vw, 120px); }
