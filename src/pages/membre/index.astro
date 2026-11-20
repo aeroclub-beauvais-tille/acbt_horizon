@@ -32,7 +32,7 @@ const REQUIS: { nom: string; types?: string[]; rubrique?: string }[] = [
   { nom: 'Attestation d’assurance RC', types: ['Assurance'] },
   { nom: 'Manuel de vol', rubrique: 'Manuel de vol' },
 ];
-const PIECES_PILOTE = ['Licence', 'Certificat médical', 'Carte d’identité'];
+const PIECES_PILOTE = ['Licence', 'Certificat médical', 'CNI'];
 const estPesee = (d: Doc) => d.type === 'Fiche de pesée et centrage' || /pes[ée]e/i.test(d.titre ?? '');
 
 const flotte = avions.map((a) => {
