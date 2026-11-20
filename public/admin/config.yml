@@ -1005,49 +1005,51 @@ singletons:
     label: Introduction
     widget: text
     required: false
-  - name: maintien
-    label: Règles de maintien (expérience récente, prorogation, renouvellement, médical)
+  - name: validite
+    label: Garder sa licence valide (une ligne par question, une colonne LAPL et une colonne PPL)
     widget: list
     fields:
-    - name: titre
-      label: Titre
+    - name: question
+      label: Question
       widget: string
       required: false
-    - name: pour
-      label: Concerne
+      hint: 'Exemple : Emmener des passagers'
+    - name: commun
+      label: Pareil pour les deux licences
+      widget: boolean
+      required: false
+      hint: 'Coché : une seule case « Pareil pour les deux », remplie avec les champs LAPL'
+      default: false
+    - name: lapl_chiffre
+      label: LAPL - chiffre clé
       widget: string
       required: false
-      hint: 'Exemple : LAPL et PPL'
-    - name: chiffre
-      label: Chiffre clé
+    - name: lapl_legende
+      label: LAPL - précision
       widget: string
       required: false
-      hint: 'Mis en grand en haut de la carte. Exemple : 90 jours'
-    - name: chiffre_legende
-      label: Précision sous le chiffre
-      widget: string
-      required: false
-      hint: 'Exemple : glissants'
-    - name: conditions_intro
-      label: Phrase avant la liste
-      widget: string
-      required: false
-      hint: 'Exemple : Dans les 12 mois avant l''échéance :'
-    - name: conditions
-      label: Conditions (une par ligne)
+    - name: lapl_points
+      label: LAPL - conditions (une par ligne)
       widget: list
       required: false
-    - name: sinon_label
-      label: Mot devant la solution de rattrapage
-      widget: string
-      required: false
-      hint: 'Laisser vide pour « Sinon ». Exemples : Ou bien, Attention'
-    - name: sinon
-      label: Solution de rattrapage (ligne du bas)
+    - name: lapl_note
+      label: LAPL - ligne du bas
       widget: text
       required: false
-    - name: texte
-      label: Texte (utilisé seulement s'il n'y a pas de conditions)
+    - name: ppl_chiffre
+      label: PPL - chiffre clé
+      widget: string
+      required: false
+    - name: ppl_legende
+      label: PPL - précision
+      widget: string
+      required: false
+    - name: ppl_points
+      label: PPL - conditions (une par ligne)
+      widget: list
+      required: false
+    - name: ppl_note
+      label: PPL - ligne du bas
       widget: text
       required: false
     required: false

@@ -54,33 +54,48 @@ const cartes = formations.map((l) => ({
       <p class="meta" style="margin-top:20px;max-width:90ch" data-reveal>{f.note}</p>
     </div>
   </section>
-  {f.maintien.length > 0 && (
+  {f.validite.length > 0 && (
     <section class="section dark" id="maintien">
       <div class="container">
         <span class="eyebrow">Une fois breveté</span>
         <h2 data-split>{f.maintien_titre}</h2>
         <p class="lead lead-large" data-reveal>{f.maintien_intro}</p>
-        <div class="maintien" data-stagger>
-          {f.maintien.map((m) => (
-            <div class="card"><div class="card-body">
-              <span class="pour">{m.pour}</span>
-              <h3>{m.titre}</h3>
-              {m.chiffre && (
-                <p class="chiffre"><strong>{m.chiffre}</strong>{m.chiffre_legende && <span>{m.chiffre_legende}</span>}</p>
-              )}
-              {m.conditions?.length ? (
+        <div class="vt-switch" role="group" aria-label="Choisir sa licence">
+          <button type="button" data-vue="lapl" aria-pressed="true">LAPL</button>
+          <button type="button" data-vue="ppl" aria-pressed="false">PPL</button>
+        </div>
+        <div class="vt" data-vue="lapl">
+          <div class="vt-th" aria-hidden="true"><span></span><div class="vt-h l"><b>LAPL</b><span>Licence de pilote d'avion léger</span></div><div class="vt-h p"><b>PPL</b><span>Licence de pilote privé</span></div></div>
+          {f.validite.map((v) => (
+            <div class="vt-row">
+              <h3 class="vt-k">{v.question}</h3>
+              {v.commun ? (
+                <div class="vt-c both">
+                  <span class="vt-tag">Pareil pour les deux</span>
+                  <p class="vt-big">{v.lapl_chiffre} <small>{v.lapl_legende}</small></p>
+                  <ul class="conditions">{v.lapl_points.map((x) => <li>{x}</li>)}</ul>
+                  {v.lapl_note && <p class="vt-note">{v.lapl_note}</p>}
+                </div>
+              ) : (
                 <>
-                  {m.conditions_intro && <p class="cond-intro">{m.conditions_intro}</p>}
-                  <ul class="conditions">{m.conditions.map((c) => <li>{c}</li>)}</ul>
+                  <div class="vt-c l">
+                    <span class="vt-tag">LAPL</span>
+                    <p class="vt-big">{v.lapl_chiffre}</p><p class="vt-leg">{v.lapl_legende}</p>
+                    <ul class="conditions">{v.lapl_points.map((x) => <li>{x}</li>)}</ul>
+                    {v.lapl_note && <p class="vt-note">{v.lapl_note}</p>}
+                  </div>
+                  <div class="vt-c p">
+                    <span class="vt-tag">PPL</span>
+                    <p class="vt-big">{v.ppl_chiffre}</p><p class="vt-leg">{v.ppl_legende}</p>
+                    <ul class="conditions">{v.ppl_points.map((x) => <li>{x}</li>)}</ul>
+                    {v.ppl_note && <p class="vt-note">{v.ppl_note}</p>}
+                  </div>
                 </>
-              ) : <p>{m.texte}</p>}
-              {m.sinon && (
-                <p class="sinon"><b>{m.sinon_label || 'Sinon'} :</b> {m.sinon}</p>
               )}
-            </div></div>
+            </div>
           ))}
         </div>
-        <p class="notice" style="margin-top:24px;max-width:80ch" data-reveal>{f.maintien_note}</p>
+        <p class="notice" style="margin-top:28px;max-width:80ch" data-reveal>{f.maintien_note}</p>
       </div>
     </section>
   )}
@@ -95,6 +110,16 @@ const cartes = formations.map((l) => ({
   )}
   <AppelFinal titre="Prêt à prendre les commandes ?" texte="Le plus simple pour commencer : un vol d'initiation avec un instructeur du club. Vous pilotez dès la première fois." boutons={[{ label: 'Réserver un vol d’initiation', href: url('/contact?objet=Baptême'), principal: true }, { label: 'Voir les tarifs', href: url('/club/tarifs') }]} />
 </Base>
+<script>
+  // Sélecteur LAPL / PPL (téléphone) : n'affiche que la colonne choisie
+  document.querySelectorAll<HTMLElement>('#maintien').forEach((sec) => {
+    const vt = sec.querySelector<HTMLElement>('.vt');
+    sec.querySelectorAll<HTMLButtonElement>('.vt-switch button').forEach((b, _, tous) => b.addEventListener('click', () => {
+      if (vt) vt.dataset.vue = b.dataset.vue!;
+      tous.forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
+    }));
+  });
+</script>
 <style>
   .trio-lic { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; align-items: start; }
   @media (max-width: 960px) { .trio-lic { grid-template-columns: 1fr; } }
@@ -162,6 +187,42 @@ const cartes = formations.map((l) => ({
   .big { font-family: var(--font-title); font-size: clamp(3.4rem, 6vw, 5rem); font-weight: 200; letter-spacing: -.06em; line-height: .9; color: var(--ink); margin-bottom: 14px; }
   ul { padding-left: 1.1em; margin: 0; }
   li { margin-bottom: 6px; }
+  /* Garder sa licence valide : tableau une ligne par question, une colonne par licence.
+     Sur téléphone, un sélecteur LAPL / PPL n'affiche que la colonne choisie. */
+  .vt-th, .vt-row { display: grid; grid-template-columns: 220px 1fr 1fr; gap: 14px; }
+  .vt-th { margin-bottom: 14px; }
+  .vt-h { border-radius: var(--radius); padding: 18px 22px; }
+  .vt-h b { display: block; font-family: var(--font-title); font-size: 2.6rem; font-weight: 300; letter-spacing: -.05em; line-height: 1; }
+  .vt-h span { font-size: .85rem; opacity: .85; }
+  .vt-h.l { background: #86b4e6; color: var(--nuit); }
+  .vt-h.p { background: #fff; color: var(--nuit); }
+  .vt-row { padding: 14px 0; border-top: 1px solid rgba(255,255,255,.12); }
+  .vt-k { margin: 0; padding-top: 16px; font-family: var(--font-title); font-size: 1.1rem !important; font-weight: 600; letter-spacing: -.01em; color: #fff; line-height: 1.25; }
+  .vt-c { border-radius: var(--radius); padding: 18px 22px; }
+  .vt-c.l { background: rgba(134,180,230,.14); border: 1px solid rgba(134,180,230,.35); }
+  .vt-c.p { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.25); }
+  .vt-c.both { grid-column: span 2; background: rgba(255,255,255,.04); border: 1px dashed rgba(255,255,255,.28); }
+  .vt-tag { display: none; font-family: var(--font-title); font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #86b4e6; margin-bottom: 6px; }
+  .vt-c.both .vt-tag { display: block; }
+  .vt-big { margin: 0 !important; font-family: var(--font-title); font-size: clamp(1.8rem, 2.6vw, 2.2rem) !important; font-weight: 300; letter-spacing: -.04em; line-height: 1.05; color: #fff !important; }
+  .vt-big small { font-size: .9rem; letter-spacing: 0; color: #9fb0c8; }
+  .vt-leg { margin: 4px 0 12px !important; font-size: .88rem !important; color: #9fb0c8 !important; }
+  .vt-c.both .vt-big { margin-bottom: 12px !important; }
+  .vt .conditions { color: #dbe4f2; font-size: .95rem; }
+  .vt .vt-c.l .conditions li::before { background-color: #86b4e6; }
+  .vt .vt-c.p .conditions li::before { background-color: #fff; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4 8.5l2.5 2.5L12 5.5' fill='none' stroke='%230d1b33' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+  .vt-note { margin: 12px 0 0 !important; font-size: .86rem !important; color: #9fb0c8 !important; }
+  .vt-switch { display: none; }
+  @media (max-width: 760px) {
+    .vt-switch { display: flex; gap: 4px; padding: 5px; margin-bottom: 18px; border-radius: 999px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.18); }
+    .vt-switch button { flex: 1; min-height: 46px; border: 0; border-radius: 999px; background: transparent; color: #b9c6da; font: 700 1.05rem var(--font-title); cursor: pointer; }
+    .vt-switch button[aria-pressed='true'] { background: #fff; color: var(--nuit); }
+    .vt-th { display: none; }
+    .vt-row { grid-template-columns: 1fr; gap: 8px; padding: 16px 0; }
+    .vt-k { padding-top: 0; }
+    .vt-c.both { grid-column: auto; }
+    .vt[data-vue='lapl'] .vt-c.p, .vt[data-vue='ppl'] .vt-c.l { display: none; }
+  }
   /* Section nuit : cartes blanches qui ressortent */
   #maintien .lead { color: #b9c6da; }
   #maintien .card { background: #fff; border-top: 0; border-radius: var(--radius); padding: 4px 22px 20px; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
