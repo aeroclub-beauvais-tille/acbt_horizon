@@ -18,6 +18,10 @@ const DEPOT = 'https://github.com/aeroclub-beauvais-tille/calculateurperformance
 // - ailleurs (GitHub Pages, sans serveur), on garde celles de l'hébergement d'origine de Perfs.
 const ANCIEN_SERVEUR = 'https://prepa-vols-acbt.pages.dev';
 const SERVEUR = process.env.CF_PAGES ? '' : ANCIEN_SERVEUR;
+// Archive des fiches : une seule base pour tout le club, celle de l'hébergement d'origine de Perfs.
+// Les fiches faites depuis l'espace membre et celles faites sur prepa-vols-acbt.pages.dev arrivent au même endroit,
+// et la page Archives de l'espace membre affiche la même liste.
+const ARCHIVE = ANCIEN_SERVEUR;
 const CIBLE = 'public/membre/perfs';
 
 let src = process.argv[2];
@@ -39,7 +43,7 @@ function adapterCopie() {
   if (SERVEUR === ANCIEN_SERVEUR) return;
   for (const f of ['index.html', 'archives.html']) {
     const chemin = join(CIBLE, f);
-    if (existsSync(chemin)) writeFileSync(chemin, readFileSync(chemin, 'utf8').split(ANCIEN_SERVEUR).join(SERVEUR));
+    if (existsSync(chemin)) writeFileSync(chemin, readFileSync(chemin, 'utf8').split(ANCIEN_SERVEUR + '/openaip').join(SERVEUR + '/openaip'));
   }
 }
 
@@ -60,7 +64,7 @@ try {
   // Un seul service worker : celui de l'espace membre garde aussi Perfs pour le hors-ligne.
   index = remplacer(index, "navigator.serviceWorker.register('/sw.js')", 'Promise.resolve()', 'index.html');
   index = remplacer(index, '`/openaip?', '`' + SERVEUR + '/openaip?', 'index.html');
-  index = remplacer(index, "'/api/fiches'", `'${SERVEUR}/api/fiches'`, 'index.html');
+  index = remplacer(index, "'/api/fiches'", `'${ARCHIVE}/api/fiches'`, 'index.html');
   index = remplacer(index, '<div class="brand-wrap">', RETOUR + '<div class="brand-wrap">', 'index.html');
   // Place pour la flèche retour : le titre ne doit jamais passer sous les boutons (gros textes du téléphone).
   index = index.replace('</head>', '<style>.topbar-in .perfs-retour{width:26px;margin-left:-4px}'
@@ -68,7 +72,7 @@ try {
     + '@media (max-width:440px){.brand-logo{height:28px}.brand-wrap{gap:7px}}</style>\n</head>');
 
   let doc = lire('documentation.html').split('href="/icons/').join('href="icons/');
-  let archives = lire('archives.html').split("fetch('/api/fiches").join(`fetch('${SERVEUR}/api/fiches`);
+  let archives = lire('archives.html').split("fetch('/api/fiches").join(`fetch('${ARCHIVE}/api/fiches`);
 
   rmSync(CIBLE, { recursive: true, force: true });
   mkdirSync(CIBLE, { recursive: true });
