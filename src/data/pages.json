@@ -83,7 +83,8 @@
     "journal_titre": "Dernières nouvelles.",
     "fin_titre": "On vous attend au club.",
     "fin_texte": "Aéroport de Beauvais-Tillé, zone aéroplaisance, 60000 Tillé",
-    "video": ""
+    "video": "",
+    "video_mobile": "/uploads/accueil/video-accueil-mobile.mp4"
   },
   "decouvrir": {
     "titre": "Votre premier vol, au-dessus de Beauvais",
