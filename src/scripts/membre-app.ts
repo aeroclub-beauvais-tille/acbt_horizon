@@ -98,7 +98,7 @@ export function badges(racine: ParentNode = document) {
   const midi = (d: string) => Date.parse(d + 'T12:00:00Z');
   const jours = (iso: string) => Math.round((midi(jour(iso)) - midi(auj)) / 86_400_000);
   const court = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: '2-digit' });
-  const alertes: { titre: string; code: string; chip: string; ech: string; vers?: string }[] = [];
+  const alertes: { titre: string; code: string; date: string; vers?: string }[] = [];
 
   racine.querySelectorAll<HTMLElement>('.badge').forEach((b) => {
     const fin = b.dataset.fin;
@@ -112,12 +112,17 @@ export function badges(racine: ParentNode = document) {
       else { code = 'valide'; chip = 'Valide'; ech = 'jusqu’au ' + court(fin); }
     }
     b.dataset.code = code;
-    b.textContent = chip;
+    if (b.dataset.format === 'date') {
+      // Ligne compacte : la date seule, la couleur de la ligne dit l'état
+      b.textContent = code === 'a-venir' ? court(debut!) : fin ? court(fin) : '';
+      const l = b.closest<HTMLElement>('.doc');
+      if (l) l.dataset.etat = code === 'sans-fin' ? 'valide' : code;
+    } else b.textContent = chip;
     const e = b.parentElement?.querySelector<HTMLElement>('.ech');
     if (e) e.textContent = ech;
     // Un document remplacé (historique) n'est plus à renouveler : sa version en vigueur fait foi
     if ((code === 'expire' || code === 'bientot') && b.dataset.titre && !b.closest('.histo') && !alertes.some((a) => a.titre === b.dataset.titre))
-      alertes.push({ titre: b.dataset.titre, code, chip, ech, vers: b.dataset.vers });
+      alertes.push({ titre: b.dataset.titre, code, date: fin ? court(fin) : '', vers: b.dataset.vers });
   });
 
   const zone = racine.querySelector<HTMLElement>('#alerte-docs');
@@ -127,7 +132,7 @@ export function badges(racine: ParentNode = document) {
     const pleine = zone.querySelector<HTMLElement>('[data-pleine]');
     alertes.sort((a, b) => (a.code === b.code ? 0 : a.code === 'expire' ? -1 : 1));
     if (liste) liste.innerHTML = alertes
-      .map((a) => `<li class="al al-${a.code}" data-vers="${a.vers || ''}"><span class="pt"></span><span class="al-t"><b>${a.titre}</b></span><span class="al-e">${a.code === 'expire' ? 'Expiré ' + a.ech : a.chip}</span></li>`)
+      .map((a) => `<li class="al al-${a.code}" data-vers="${a.vers || ''}"><span class="pt"></span><span class="al-t"><b>${a.titre}</b></span><span class="al-e">${a.date}</span></li>`)
       .join('');
     zone.dataset.n = String(alertes.length);
     if (vide) vide.hidden = alertes.length > 0;
@@ -271,20 +276,22 @@ export function avions() {
   const auj = jour(new Date().toISOString());
   const midi = (d: string) => Date.parse(d + 'T12:00:00Z');
   const joursDe = (iso: string) => Math.round((midi(jour(iso)) - midi(auj)) / 86_400_000);
+  const court = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', day: '2-digit', month: '2-digit', year: '2-digit' });
 
   const RANG: Record<string, number> = { expire: 0, bientot: 1, 'a-venir': 2, valide: 3, 'sans-fin': 3 };
   const etat = (im: string) => {
-    let pire = 3, nExp = 0, minJ = Infinity;
+    let pire = 3, finMin = '';
     fiches.querySelectorAll<HTMLElement>(`[data-ims="${im}"] .badge`).forEach((b) => {
       if (b.closest('.histo')) return; // historique : remplacé, ne compte pas
       const code = b.dataset.code || 'sans-fin';
       pire = Math.min(pire, RANG[code] ?? 3);
-      if (code === 'expire') nExp++;
-      if (code === 'bientot' && b.dataset.fin) minJ = Math.min(minJ, joursDe(b.dataset.fin));
+      // La couleur dit l'état ; on n'écrit que la date d'échéance la plus proche
+      if ((code === 'expire' || code === 'bientot') && b.dataset.fin && (!finMin || joursDe(b.dataset.fin) < joursDe(finMin))) finMin = b.dataset.fin;
     });
-    if (pire === 0) return { dot: 'bad', txt: `${nExp} expiré${nExp > 1 ? 's' : ''}` };
-    if (pire === 1) return { dot: 'warn', txt: isFinite(minJ) ? (minJ <= 0 ? 'Aujourd’hui' : `${minJ} j`) : 'Bientôt' };
-    return { dot: 'ok', txt: 'À jour' };
+    const txt = finMin ? court(finMin) : '';
+    if (pire === 0) return { dot: 'bad', txt };
+    if (pire === 1) return { dot: 'warn', txt };
+    return { dot: 'ok', txt: '' };
   };
 
   // remplit la pastille et le libellé d'état de chaque ligne

@@ -8,8 +8,9 @@ interface Props {
   sansBadge?: boolean;  // n'affiche jamais de badge (ex. documents du club, toujours valables)
   vers?: string;        // onglet cible de l'alerte d'expiration
   manquant?: boolean;   // document exigé mais pas encore mis en ligne
+  ligne?: boolean;      // ligne compacte : bord coloré + date seule (documents nécessaires au vol)
 }
-const { doc, court, badge, sansBadge, vers, manquant } = Astro.props;
+const { doc, court, badge, sansBadge, vers, manquant, ligne } = Astro.props;
 const titre = titreDoc(doc);
 const cible = doc.fichier ? asset(doc.fichier) : doc.lien || '';
 const ext = (doc.fichier || '').split('?')[0].split('.').pop()?.toLowerCase() || '';
@@ -28,7 +29,16 @@ const ech = !e ? '' : e.code === 'sans-fin' ? 'n’expire pas' : e.code === 'a-v
   : e.code === 'expire' ? `le ${court2(doc.fin)}` : `jusqu’au ${court2(doc.fin)}`;
 const iso = (d?: Date) => d ? d.toISOString() : undefined;
 const noFichier = !cible;
+// Ligne compacte : seule la date est écrite (fin, ou début si pas encore en vigueur) ; la couleur dit l'état
+const dateSeule = !e ? '' : e.code === 'a-venir' ? court2(doc.debut) : court2(doc.fin);
+const etat = manquant ? 'na' : e?.code === 'sans-fin' ? 'valide' : e?.code;
 ---
+{ligne ? (
+<a class:list={['doc', 'ligne', { vide: noFichier, manquant }]} href={cible || undefined} target={cible ? '_blank' : undefined} rel="noopener" data-q={recherche} data-doc={doc.id} data-etat={etat} role={noFichier ? 'group' : undefined}>
+  <strong>{court ?? titre}</strong>
+  {avecBadge && <span class="badge" data-format="date" data-code={e?.code} data-fin={iso(doc.fin)} data-debut={iso(doc.debut)} data-titre={titre} data-vers={vers}>{dateSeule}</span>}
+</a>
+) : (
 <a class:list={['doc', { vide: noFichier, manquant }]} href={cible || undefined} target={cible ? '_blank' : undefined} rel="noopener" data-q={recherche} data-doc={doc.id} role={noFichier ? 'group' : undefined}>
   <span class:list={['type', `t-${kind.toLowerCase().replace('é', 'e')}`, { attente: noFichier }]}>{noFichier ? '—' : kind}</span>
   <span class="txt">
@@ -43,6 +53,7 @@ const noFichier = !cible;
       : noFichier && !avecBadge && <span class="meta">Pas encore déposé</span>}
   </span>
 </a>
+)}
 <style>
   .doc { display: flex; gap: 11px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 11px 13px; text-decoration: none; color: inherit; transition: border-color .15s, transform .12s, box-shadow .15s; }
   a.doc[href]:active { transform: scale(.99); }
@@ -72,5 +83,19 @@ const noFichier = !cible;
   .doc.manquant .txt { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .doc.manquant strong { font-weight: 600; color: var(--muted); }
   .doc.manquant .valid { margin-top: 0; }
+  /* Ligne compacte (style C) : bord gauche coloré, date à droite, fond teinté si orange/rouge */
+  .doc.ligne { border: 0; border-left: 5px solid var(--ok); border-radius: 0; padding: 12px 14px 12px 12px; gap: 10px; background: var(--surface); }
+  a.doc.ligne[href]:hover { box-shadow: none; background: var(--surface-2); }
+  .doc.ligne strong { flex: 1; min-width: 0; font-weight: 700; font-size: .9rem; }
+  .doc.ligne .badge { border: 0; background: none; padding: 0; color: var(--ink); font-size: .82rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .doc.ligne .badge::before { display: none; }
+  .doc.ligne[data-etat='bientot'] { border-left-color: var(--warn); background: var(--warn-bg); }
+  .doc.ligne[data-etat='bientot'] .badge { color: var(--warn); }
+  .doc.ligne[data-etat='expire'] { border-left-color: var(--bad); background: var(--bad-bg); }
+  .doc.ligne[data-etat='expire'] .badge { color: var(--bad); }
+  .doc.ligne[data-etat='a-venir'] { border-left-color: var(--line); }
+  .doc.ligne[data-etat='a-venir'] .badge { color: var(--muted); }
+  .doc.ligne.manquant { border-left-color: var(--line); background: var(--surface-2); border-style: solid; }
+  .doc.ligne.manquant strong { color: var(--muted); font-weight: 600; }
   .ech { font-size: .78rem; color: var(--muted); white-space: nowrap; }
 </style>

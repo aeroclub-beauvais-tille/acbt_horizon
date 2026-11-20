@@ -197,11 +197,11 @@ const onglets = [
             </button>
             <div class="fiche-cols"><div>
             <h5 class="sep">Documents nécessaires au vol</h5>
-            <div class="liste">
+            <div class="liste compacte">
               {x.requis.map((r) => r.doc
-                ? <DocLien doc={r.doc} court={r.nom} badge vers="avions" />
-                : <DocLien doc={{ titre: r.nom }} manquant />)}
-              {x.autres.map((d) => <DocLien doc={d} vers="avions" />)}
+                ? <DocLien doc={r.doc} court={r.nom} badge vers="avions" ligne />
+                : <DocLien doc={{ titre: r.nom }} manquant ligne />)}
+              {x.autres.map((d) => <DocLien doc={d} vers="avions" ligne />)}
             </div>
             <div class="pilote"><span class="pilote-t">Pilote</span>{PIECES_PILOTE.map((p) => <span class="piece">{p}</span>)}</div>
             </div><div>
@@ -460,6 +460,8 @@ const onglets = [
   .fiche h3 { margin: 0; font-size: 1.2rem; }
   .av-mod { font-size: .82rem; color: var(--muted); }
   .liste { display: grid; gap: 8px; }
+  .liste.compacte { gap: 0; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .liste.compacte > :global(* + *) { border-top: 1px solid var(--line); }
   .rien { color: var(--muted); font-size: .88rem; margin: 0; }
   .pilote { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
   .pilote-t { font-size: .72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
