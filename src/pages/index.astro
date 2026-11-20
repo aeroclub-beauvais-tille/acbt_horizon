@@ -11,6 +11,7 @@ import { url, asset, dateFr } from '../lib/utils';
 const avions = (await getCollection('avions', (a) => a.data.actif)).sort((a, b) => a.data.ordre - b.data.ordre);
 const annees = new Date().getFullYear() - 1979;
 const pg = pages.accueil;
+const videosMobile: string[] = (pg.videos_mobile || []).filter(Boolean);
 const slides = pg.diaporama.map((d) => ({ img: d.image, legende: d.legende }));
 // Dernier mot (ou les deux derniers) en italique : c'est la signature typographique du style Horizon.
 const italique = (txt: string, n = 1) => {
@@ -51,9 +52,9 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
           <source src={asset(pg.video)} type="video/mp4" />
         </video>
       )}
-      {pg.video_mobile && (
-        <video class="h-video h-video-mobile" muted loop playsinline preload="none" poster={asset(pg.video_mobile.replace(/\.mp4$/i, '.jpg'))} aria-hidden="true" data-src={asset(pg.video_mobile)}></video>
-      )}
+      {videosMobile.map((v, i) => (
+        <video class:list={['h-video', 'h-video-mobile', { on: i === 0 }]} muted playsinline loop={videosMobile.length === 1} preload="none" poster={asset(v.replace(/\.mp4$/i, '.jpg'))} aria-hidden="true" data-src={asset(v)}></video>
+      ))}
     </div>
     <div class="voile"></div>
     <div class="hero-metar"><Metar sombre /></div>
@@ -64,7 +65,7 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
         <a class="btn btn-clair" href={url('/contact?objet=Baptême')}>Réserver un baptême</a>
       </div>
     </div>
-    {!pg.video && <p class:list={["hero-legende", { "sans-mobile": pg.video_mobile }]} id="slide-l">{slides[0]?.legende}</p>}
+    {!pg.video && <p class:list={["hero-legende", { "sans-mobile": videosMobile.length > 0 }]} id="slide-l">{slides[0]?.legende}</p>}
   </section>
 
   <section class="manif" aria-label={pg.atouts_titre}>
@@ -145,10 +146,19 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
   const v = document.querySelector<HTMLVideoElement>('.h-video');
   if (v && matchMedia('(prefers-reduced-motion: reduce)').matches) { v.removeAttribute('autoplay'); v.pause(); }
   // Vidéo réservée au téléphone : chargée seulement sur petit écran, l'ordinateur garde les photos.
-  const vm = document.querySelector<HTMLVideoElement>('.h-video-mobile');
-  if (vm && matchMedia('(max-width: 760px)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    vm.src = vm.dataset.src || '';
-    vm.play().catch(() => {});
+  // Vidéos réservées au téléphone, enchaînées l'une après l'autre ; l'ordinateur garde les photos.
+  const vms = [...document.querySelectorAll<HTMLVideoElement>('.h-video-mobile')];
+  if (vms.length && matchMedia('(max-width: 760px)').matches && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    const charger = (v: HTMLVideoElement) => { if (!v.src) { v.src = v.dataset.src || ''; v.preload = 'auto'; } };
+    let cur = 0;
+    const lancer = (i: number) => {
+      const v = vms[i];
+      charger(v); v.currentTime = 0; v.play().catch(() => {});
+      vms.forEach((x, j) => x.classList.toggle('on', j === i));
+      if (vms.length > 1) charger(vms[(i + 1) % vms.length]);
+    };
+    if (vms.length > 1) vms.forEach((v, i) => v.addEventListener('ended', () => { cur = (i + 1) % vms.length; lancer(cur); }));
+    lancer(0);
   }
 </script>
 
@@ -158,7 +168,8 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
   .hero { position: relative; height: 100svh; min-height: 600px; color: #fff; background: var(--nuit); overflow: hidden; }
   .slides { position: absolute; inset: 0; }
   .h-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
-  .h-video-mobile { display: none; }
+  .h-video-mobile { display: none; opacity: 0; transition: opacity .8s ease; }
+  .h-video-mobile.on { opacity: 1; }
   @media (max-width: 760px) { .h-video-mobile { display: block; } .hero-legende.sans-mobile { display: none; } }
   .slides img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; opacity: 0; transform: scale(1.08); transition: opacity 1.6s ease, transform 12s ease-out; }
   .slides img.on { opacity: 1; transform: scale(1); }

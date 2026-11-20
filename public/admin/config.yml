@@ -509,11 +509,13 @@ singletons:
       widget: file
       required: false
       hint: Fichier MP4 court (10 à 30 secondes), sans son, de préférence moins de 15 Mo. Elle passe en boucle par-dessus les photos. Laissez vide pour garder les photos qui défilent.
-    - name: video_mobile
-      label: Vidéo de fond sur téléphone (facultatif)
+    - name: videos_mobile
+      label: Vidéos de fond sur téléphone (facultatif)
       widget: file
+      multiple: true
       required: false
-      hint: MP4 vertical, sans son, léger (moins de 5 Mo). Ne s'affiche que sur téléphone ; l'ordinateur garde les photos. Mettez une image JPG du même nom à côté pour l'aperçu avant lecture.
+      hint: MP4 verticaux, sans son, légers (moins de 5 Mo chacun). Elles passent l'une après l'autre, seulement sur téléphone ; l'ordinateur garde les photos. Mettez une image JPG du même nom à côté de
+        chaque vidéo pour l'aperçu avant lecture.
     - name: atouts_titre
       label: Titre du bloc des chiffres clés
       widget: string
