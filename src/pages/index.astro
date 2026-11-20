@@ -58,7 +58,6 @@ const actus = (await getCollection('actualites', (a) => a.data.publie)).sort((a,
     <div class="voile"></div>
     <div class="hero-metar"><Metar sombre /></div>
     <div class="hero-txt">
-      <p class="hero-oaci">LFOB · Beauvais-Tillé · Depuis 1979</p>
       <h1 data-split="now">{h1.debut} <em>{h1.fin}</em></h1>
       <div class="hero-cote" data-reveal data-delay="0.8">
         <p>{pg.texte.replace('{annees}', String(annees))}</p>
