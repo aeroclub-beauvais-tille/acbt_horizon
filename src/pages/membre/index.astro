@@ -330,15 +330,15 @@ const onglets = [
   .sep:first-of-type, .fiche .sep:first-of-type { margin-top: 0; }
 
   /* Barre du haut */
-  .topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 54px; padding: 0 14px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: var(--bar-ink); }
-  .marque { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: #fff; }
-  .marque .logo { --logo-h: 26px; --logo-rouge: #ff4d4d; color: #fff; }
+  .topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 54px; padding: 0 14px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: var(--bar-ink); border-bottom: 1px solid var(--line); }
+  .marque { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--bar-ink); --logo-rouge: var(--bar-rouge); --logo-h: 40px; }
+  .marque .logo { --logo-h: 30px; --logo-rouge: var(--bar-rouge); color: var(--bar-ink); }
   .marque span { font-weight: 800; font-size: 1.05rem; letter-spacing: -.01em; white-space: nowrap; }
   .actions { display: flex; gap: 4px; }
-  .ic { width: 40px; height: 40px; border: 0; background: transparent; color: var(--bar-ink); display: grid; place-items: center; border-radius: 10px; cursor: pointer; }
+  .ic { width: 40px; height: 40px; border: 0; background: transparent; color: var(--bar-ic); display: grid; place-items: center; border-radius: 10px; cursor: pointer; }
   .ic svg { width: 21px; height: 21px; }
   #btn-theme svg { width: 18px; height: 18px; }  /* le soleil/lune est visuellement plus « plein » : on l'aligne sur les autres */
-  .ic:active { background: rgba(255,255,255,.12); }
+  .ic:active { background: var(--surface-2); }
 
   /* Recherche */
   .searchwrap { position: sticky; top: 54px; z-index: 29; display: flex; gap: 8px; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--line); }

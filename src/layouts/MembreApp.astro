@@ -25,8 +25,8 @@ const policesFaces = `@font-face{font-family:'Manrope';font-style:normal;font-we
     <link rel="icon" href={url('/favicon.png')} type="image/png" />
     <link rel="apple-touch-icon" href={url('/icones/membre-192.png')} />
     <link rel="preload" href={manropeUrl} as="font" type="font/woff2" crossorigin />
-    <meta name="theme-color" content="#0b1e4f" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0a1124" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#121b33" media="(prefers-color-scheme: dark)" />
     <link rel="manifest" href={url('/membre/manifest.webmanifest')} />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
@@ -58,8 +58,11 @@ const policesFaces = `@font-face{font-family:'Manrope';font-style:normal;font-we
     --on-navy: #ffffff;
     --on-navy-dim: #9aa8cc;
     --yellow: #ffad00;         /* accent de l'onglet actif */
-    --bar: var(--navy);
-    --bar-ink: #ffffff;
+    /* Bandeau du haut : comme Perfs (fond clair, titre marine, logo en couleur, icônes grises) */
+    --bar: #ffffff;
+    --bar-ink: #0b1e4f;
+    --bar-ic: #7d879c;
+    --bar-rouge: #ec091d;
     /* États */
     --ok: #1d8a4e; --ok-bg: #e8f5ee; --ok-line: #a9d6bc;
     --warn: #c98300; --warn-bg: #fff4d9; --warn-line: #f2d58f;
@@ -76,7 +79,7 @@ const policesFaces = `@font-face{font-family:'Manrope';font-style:normal;font-we
     :root:not([data-theme="light"]) {
       --bg: #0a1124; --surface: #121b33; --surface-2: #18233f; --ink: #eef2fa; --ink-2: #c7d0e4; --muted: #8792ad; --line: #202c4a;
       --accent: #8fa6ff; --accent-ink: #0a1124; --accent-soft: rgba(143,166,255,.14); --accent-line: #2e3c60; --accent-text: #afc0ff;
-      --navy: #16245a; --on-navy: #ffffff; --on-navy-dim: #9aa8cc; --yellow: #ffb81f; --bar: #0a1124; --bar-ink: #eef2fa;
+      --navy: #16245a; --on-navy: #ffffff; --on-navy-dim: #9aa8cc; --yellow: #ffb81f; --bar: #121b33; --bar-ink: #eef2fa; --bar-ic: #8792ad; --bar-rouge: currentColor;
       --ok: #40c97f; --ok-bg: rgba(64,201,127,.14); --ok-line: #22543a;
       --warn: #ffb81f; --warn-bg: rgba(255,184,31,.14); --warn-line: #5a4618;
       --bad: #ff6464; --bad-bg: rgba(255,100,100,.14); --bad-line: #5e2723;
@@ -86,7 +89,7 @@ const policesFaces = `@font-face{font-family:'Manrope';font-style:normal;font-we
   :root[data-theme="dark"] {
     --bg: #0a1124; --surface: #121b33; --surface-2: #18233f; --ink: #eef2fa; --ink-2: #c7d0e4; --muted: #8792ad; --line: #202c4a;
     --accent: #8fa6ff; --accent-ink: #0a1124; --accent-soft: rgba(143,166,255,.14); --accent-line: #2e3c60; --accent-text: #afc0ff;
-    --navy: #16245a; --on-navy: #ffffff; --on-navy-dim: #9aa8cc; --yellow: #ffb81f; --bar: #0a1124; --bar-ink: #eef2fa;
+    --navy: #16245a; --on-navy: #ffffff; --on-navy-dim: #9aa8cc; --yellow: #ffb81f; --bar: #121b33; --bar-ink: #eef2fa; --bar-ic: #8792ad; --bar-rouge: currentColor;
     --ok: #40c97f; --ok-bg: rgba(64,201,127,.14); --ok-line: #22543a;
     --warn: #ffb81f; --warn-bg: rgba(255,184,31,.14); --warn-line: #5a4618;
     --bad: #ff6464; --bad-bg: rgba(255,100,100,.14); --bad-line: #5e2723;
