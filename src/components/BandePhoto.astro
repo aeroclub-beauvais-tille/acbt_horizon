@@ -1,0 +1,18 @@
+---
+// Grande photo pleine largeur entre deux sections, avec une phrase courte posée dessus.
+// Donne du rythme aux pages longues ; la photo glisse doucement au défilement (data-parallax).
+import { photo } from '../lib/photo';
+interface Props { src: string; legende?: string; alt?: string }
+const { src, legende, alt = '' } = Astro.props;
+---
+<figure class="bande">
+  <img {...photo(src, '100vw')} alt={alt} loading="lazy" data-parallax="8" />
+  {legende && <figcaption><div class="container"><p data-reveal>{legende}</p></div></figcaption>}
+</figure>
+<style>
+  .bande { position: relative; margin: 0; height: clamp(280px, 44vw, 600px); overflow: hidden; background: var(--nuit); }
+  .bande img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .bande::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10,14,24,0) 45%, rgba(10,14,24,.62) 100%); pointer-events: none; }
+  figcaption { position: absolute; z-index: 1; left: 0; right: 0; bottom: clamp(22px, 4vw, 52px); }
+  figcaption p { margin: 0; max-width: 20ch; color: #fff; font-family: var(--font-title); font-weight: 300; font-size: clamp(1.6rem, 3.6vw, 3rem); letter-spacing: -.035em; line-height: 1.08; text-wrap: balance; }
+</style>

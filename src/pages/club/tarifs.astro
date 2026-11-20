@@ -1,5 +1,7 @@
 ---
 import Base from '../../layouts/Base.astro';
+import AppelFinal from '../../components/AppelFinal.astro';
+import { url } from '../../lib/utils';
 import PageHead from '../../components/PageHead.astro';
 import HeuresVol from '../../components/HeuresVol.astro';
 import { getCollection } from 'astro:content';
@@ -89,6 +91,7 @@ import pages from '../../data/pages.json';
       <ul class="lignes grandes" data-stagger>{t.divers.map((d) => <li><span>{d.libelle}</span><b>{d.prix}</b></li>)}</ul>
     </div>
   </section>
+  <AppelFinal titre="Une question sur les tarifs ?" texte="Passez au club le week-end ou écrivez-nous : on vous aide à choisir la formule qui vous convient." boutons={[{ label: 'Nous contacter', href: url('/contact?objet=Inscription'), principal: true }, { label: 'Devenir pilote', href: url('/formations') }]} />
 </Base>
 <style>
   .sommaire { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 28px; }

@@ -4,6 +4,8 @@ import PageHead from '../components/PageHead.astro';
 import Etapes from '../components/Etapes.astro';
 import Faq from '../components/Faq.astro';
 import Icone from '../components/Icone.astro';
+import BandePhoto from '../components/BandePhoto.astro';
+import AppelFinal from '../components/AppelFinal.astro';
 import f from '../data/formations.json';
 import pages from '../data/pages.json';
 import { url } from '../lib/utils';
@@ -21,6 +23,7 @@ const pg = pages.formations;
       </div>
     </section>
   )}
+  <BandePhoto src="/uploads/avions/20250407_160711.jpg" legende="Le jour où vous volez seul, vous ne l'oubliez jamais." />
   <section class="section" id="licences">
     <div class="container">
       <span class="eyebrow">Les licences</span>
@@ -83,7 +86,7 @@ const pg = pages.formations;
     </section>
   )}
   {f.maintien.length > 0 && (
-    <section class="section soft" id="maintien">
+    <section class="section dark" id="maintien">
       <div class="container">
         <span class="eyebrow">Une fois breveté</span>
         <h2 data-split>{f.maintien_titre}</h2>
@@ -121,6 +124,7 @@ const pg = pages.formations;
       </div>
     </section>
   )}
+  <AppelFinal titre="Prêt à prendre les commandes ?" texte="Le plus simple pour commencer : un vol d'initiation avec un instructeur du club. Vous pilotez dès la première fois." boutons={[{ label: 'Réserver un vol d’initiation', href: url('/contact?objet=Baptême'), principal: true }, { label: 'Voir les tarifs', href: url('/club/tarifs') }]} />
 </Base>
 <style>
   .duo-lic { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; max-width: 980px; }
@@ -181,6 +185,11 @@ const pg = pages.formations;
   .big { font-family: var(--font-title); font-size: clamp(3.4rem, 6vw, 5rem); font-weight: 200; letter-spacing: -.06em; line-height: .9; color: var(--ink); margin-bottom: 14px; }
   ul { padding-left: 1.1em; margin: 0; }
   li { margin-bottom: 6px; }
+  /* Section nuit : cartes blanches qui ressortent */
+  #maintien .lead { color: #b9c6da; }
+  #maintien .card { background: #fff; border-top: 0; border-radius: var(--radius); padding: 4px 22px 20px; box-shadow: 0 10px 30px rgba(0,0,0,.18); }
+  #maintien .card h3 { color: var(--ink); }
+  #maintien .notice { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.16); border-left-color: #86b4e6; color: #dbe4f2; }
   .maintien { display: grid; gap: 18px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
   .maintien h3 { font-size: 1.15rem; margin: 6px 0 12px; }
   .maintien p { margin: 0; color: #3f4652; font-size: .97rem; }
