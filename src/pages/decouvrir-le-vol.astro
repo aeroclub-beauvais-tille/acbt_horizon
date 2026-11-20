@@ -74,10 +74,6 @@ const tel = `tel:${club.telephone.replace(/\s/g, '')}`;
     </section>
   )}
   <AppelFinal titre="On vous emmène quand ?" texte="Choisissez votre formule, on convient ensemble d'une date. Bon cadeau possible." boutons={[{ label: 'Réserver mon vol', href: url('/contact?objet=Baptême'), principal: true }, { label: `Appeler le ${club.telephone}`, href: tel }]} />
-  <div class="barre-mobile">
-    <a class="btn btn-primary" href={url('/contact?objet=Baptême')}>Réserver</a>
-    <a class="btn btn-outline" href={tel} aria-label={`Appeler le ${club.telephone}`}>Appeler</a>
-  </div>
 </Base>
 <style>
   .offre { padding: 20px 0 28px; background: var(--paper); }
@@ -165,11 +161,4 @@ const tel = `tel:${club.telephone.replace(/\s/g, '')}`;
     .bc-court { display: inline; }
   }
   .white .lead { margin-bottom: 24px; }
-
-  /* Téléphone : réserver ou appeler reste toujours à portée de pouce */
-  .barre-mobile { display: none; }
-  @media (max-width: 899px) {
-    .barre-mobile { position: sticky; bottom: 0; z-index: 40; display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); background: rgba(245,248,252,.94); backdrop-filter: blur(10px); border-top: 1px solid var(--line); }
-    .barre-mobile .btn { justify-content: center; padding: 12px 16px; }
-  }
 </style>
