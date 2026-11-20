@@ -196,7 +196,7 @@ const onglets = [
               <span><b>Ajouter un document</b><small>Glissez un fichier ici ou touchez pour choisir</small></span>
             </button>
             <div class="fiche-cols"><div>
-            <h5 class="sep">Documents nécessaires au vol</h5>
+            <h5 class="sep sep-col">Documents nécessaires au vol<span>Valable jusqu’au</span></h5>
             <div class="liste compacte">
               {x.requis.map((r) => r.doc
                 ? <DocLien doc={r.doc} court={r.nom} badge vers="avions" ligne />
@@ -327,6 +327,8 @@ const onglets = [
   .titre { font-size: 1.4rem; margin: 0 0 16px; letter-spacing: -.01em; }
   .bt { font-size: .82rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; margin: 0 0 10px; display: flex; align-items: center; gap: 9px; }
   .sep { font-size: .74rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; margin: 22px 0 10px; }
+  .sep-col { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .sep-col span { flex: none; font-size: .68rem; letter-spacing: .04em; text-transform: none; font-weight: 600; padding-right: 15px; }
   .sep:first-of-type, .fiche .sep:first-of-type { margin-top: 0; }
 
   /* Barre du haut */
@@ -384,6 +386,7 @@ const onglets = [
   .pt-alerte { flex: none; width: 22px; height: 22px; border-radius: 50%; background: var(--bad); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: .8rem; }
   .liste-alerte { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
   :global(.liste-alerte .al) { display: flex; gap: 10px; align-items: center; padding: 11px 13px; border-radius: 12px; border: 1px solid; font-size: .9rem; cursor: pointer; }
+  :global(.liste-alerte .al[hidden]) { display: none; }
   :global(.liste-alerte .al-t) { flex: 1; min-width: 0; }
   :global(.liste-alerte .al-e) { flex: none; font-weight: 700; font-size: .82rem; white-space: nowrap; }
   :global(.liste-alerte .pt) { flex: none; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
