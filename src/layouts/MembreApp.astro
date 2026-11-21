@@ -97,6 +97,9 @@ const policesFaces = `@font-face{font-family:'Manrope';font-style:normal;font-we
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
+  /* Fond marine derrière la barre d'état (iPhone, iPad) : iOS y teinte l'heure et la batterie avec la couleur de la page */
+  html { background: var(--bar); }
+  body { min-height: 100vh; min-height: 100dvh; }
   html { scroll-padding-top: 64px; }  /* la barre bleue ne masque pas la cible d'un lien interne */
   body {
     background: var(--bg);
