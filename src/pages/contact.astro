@@ -1,4 +1,5 @@
 ---
+import { cleFormulaire } from '../lib/utils';
 import Base from '../layouts/Base.astro';
 import PageHead from '../components/PageHead.astro';
 import club from '../data/club.json';
@@ -21,7 +22,7 @@ import pages from '../data/pages.json';
         <label>Message<textarea name="message" rows="5" required></textarea></label>
         <input type="checkbox" name="botcheck" class="piege" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <button class="btn btn-primary" type="submit">Envoyer</button>
-        <p class="meta envoi" role="status" aria-live="polite" style="margin-top:10px">{club.formulaire_cle ? 'Votre message part directement au club, qui vous répond par e-mail.' : "Le message s'ouvre dans votre logiciel de messagerie."}</p>
+        <p class="meta envoi" role="status" aria-live="polite" style="margin-top:10px">{cleFormulaire(club.formulaire_cle) ? 'Votre message part directement au club, qui vous répond par e-mail.' : "Le message s'ouvre dans votre logiciel de messagerie."}</p>
       </div></form>
       <div data-reveal="right" data-delay="0.15">
         <h2>{pages.contact.intertitres.carte}</h2>
@@ -34,7 +35,7 @@ import pages from '../data/pages.json';
     </div>
   </section>
 </Base>
-<script define:vars={{ email: club.email, cle: club.formulaire_cle }}>
+<script define:vars={{ email: club.email, cle: cleFormulaire(club.formulaire_cle) }}>
   // Envoi direct depuis le site (service Web3Forms, qui transmet le message à l'adresse du club).
   // Sans clé réglée dans le back-office, on ouvre la messagerie du visiteur comme avant.
   const form = document.getElementById('contact');

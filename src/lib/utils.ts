@@ -26,3 +26,6 @@ export function tarifEnVigueur(tarifs: Tarif[], ref = new Date()) {
   const prochain = tries.find((t) => t.a_partir_du > ref);
   return { actuel, prochain, tries };
 }
+
+/** Clé Web3Forms (publique) : réglage Cloudflare WEB3FORMS_CLE s'il existe, sinon celle de club.json (back-office). */
+export const cleFormulaire = (cleClub?: string) => (process.env.WEB3FORMS_CLE || cleClub || '').trim();

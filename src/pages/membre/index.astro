@@ -10,7 +10,7 @@ import AdminDocs from '../../components/AdminDocs.astro';
 import { titreDoc, marquerHistorique, estOfficiel, type Doc } from '../../lib/documents';
 import outils from '../../data/outils.json';
 import club from '../../data/club.json';
-import { asset, url } from '../../lib/utils';
+import { asset, url, cleFormulaire } from '../../lib/utils';
 
 const brut = await getCollection('documents');
 const docs = marquerHistorique(brut.map((d) => ({ id: d.id, ...d.data } as Doc)))
@@ -251,7 +251,7 @@ const onglets = [
     ))}
   </nav>
 
-  <dialog class="modale" id="signalement" aria-label="Signaler un problème technique" data-api={url('/membre/api/signalements')} data-cle-mail={club.formulaire_cle} data-page={url('/membre/signalements/')}>
+  <dialog class="modale" id="signalement" aria-label="Signaler un problème technique" data-api={url('/membre/api/signalements')} data-cle-mail={cleFormulaire(club.formulaire_cle)} data-page={url('/membre/signalements/')}>
     <form method="dialog">
       <div class="m-head">
         <h3>Signaler un problème</h3>
