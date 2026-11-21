@@ -29,7 +29,7 @@ interface Donnees {
   maa: Maa[] | null; metar: Metar | null; taf: Taf | null;
   notam: { ok: boolean; raison?: string; notam?: Notam[]; sup?: Notam[] } | null;
   historique: Histo[] | null;
-  meteofranceExpire?: string | null;
+  meteofrance?: boolean; meteofranceExpire?: string | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -84,6 +84,7 @@ function horloge() {
   document.querySelectorAll('[data-h="date"]').forEach((e) => { e.textContent = date.charAt(0).toUpperCase() + date.slice(1); });
 }
 
+// Frise du soleil sur 24 h (heure locale), avec la barre du direct
 function soleil() {
   const n = new Date();
   const e = ephemeride(n);
@@ -91,25 +92,31 @@ function soleil() {
   const mn = (d: Date | null) => (d ? minutesParis(d) : null);
   const aube = mn(e.aubeCivile) ?? mn(e.jourAero)! - 30;
   const crep = mn(e.crepuscule) ?? mn(e.nuitAero)! + 30;
-  const d0 = Math.floor((aube - 30) / 60) * 60, d1 = Math.ceil((crep + 30) / 60) * 60;
-  const P = (m: number) => Math.max(0, Math.min(100, ((m - d0) / (d1 - d0)) * 100));
+  const P = (m: number) => Math.max(0, Math.min(100, (m / 1440) * 100));
   const seg = (a: number, b: number, c: string) => `<span class="seg ${c}" style="left:${P(a).toFixed(2)}%;width:${(P(b) - P(a)).toFixed(2)}%"></span>`;
   const lever = mn(e.lever)!, coucher = mn(e.coucher)!, ja = mn(e.jourAero)!, na = mn(e.nuitAero)!;
   const now = minutesParis(n);
-  const barre = `<div class="sf"><span class="nn" style="left:0;width:${P(aube).toFixed(2)}%"></span><span class="nn" style="left:${P(crep).toFixed(2)}%;right:0"></span>`
+  const barre = `<div class="sfw"><span class="nowl" style="left:${P(now).toFixed(2)}%">${heureLocale(n)}</span><div class="sf"><span class="nn" style="left:0;width:${P(aube).toFixed(2)}%"></span><span class="nn" style="left:${P(crep).toFixed(2)}%;right:0"></span>`
     + seg(aube, lever, 'civ') + seg(lever, coucher, 'day') + seg(coucher, crep, 'civ2')
     + `<span class="past" style="width:${P(now).toFixed(2)}%"></span><span class="ae" style="left:${P(ja).toFixed(2)}%;width:${(P(na) - P(ja)).toFixed(2)}%"></span>`
-    + (now >= d0 && now <= d1 ? `<span class="now" style="left:${P(now).toFixed(2)}%"></span>` : '') + '</div>';
+    + `<span class="now" style="left:${P(now).toFixed(2)}%"></span></div></div>`;
   let ax = '<div class="sx">';
-  for (let h = d0 + 60; h < d1; h += 60) ax += `<i style="left:${P(h).toFixed(2)}%">${p2(h / 60)}h</i>`;
+  for (let h = 0; h <= 24; h += 2) ax += `<i style="left:${P(h * 60).toFixed(2)}%${h === 0 ? ';transform:none' : h === 24 ? ';transform:translateX(-100%)' : ''}">${p2(h)}h</i>`;
   ax += '</div>';
   const t = (d: Date | null) => (d ? heureLocale(d) : '—');
-  const sv = `<div class="sv"><div class="cv"><small>Aube civile</small><b>${t(e.aubeCivile)}</b></div><div class="ae"><small>Jour aéro.</small><b>${t(e.jourAero)}</b></div><div><small>Lever</small><b>${t(e.lever)}</b></div>`
-    + `<div><small>Coucher</small><b>${t(e.coucher)}</b></div><div class="ae"><small>Nuit aéro.</small><b>${t(e.nuitAero)}</b></div><div class="cv"><small>Crépusc. civil</small><b>${t(e.crepuscule)}</b></div></div>`;
-  const reste = (m: number) => `${Math.floor(m / 60)} h ${p2(m % 60)}`;
-  const cd = now < ja ? `Jour aéro. dans <b>${reste(ja - now)}</b>` : now < na ? `Nuit aéro. dans <b>${reste(na - now)}</b>` : `Nuit aéronautique · jour aéro. demain à <b>${t(ephemeride(new Date(n.getTime() + 86400000))?.jourAero ?? null)}</b>`;
-  const lg = '<div class="lg2"><span><i style="background:#3d6fc4"></i>Jour</span><span><i style="background:linear-gradient(90deg,#1b2c5c,#3b5aa0)"></i>Crépuscule civil</span><span><i style="border:2px solid var(--yellow)"></i>Jour aéronautique (VFR de jour)</span><span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.5) 0 3px,transparent 3px 6px)"></i>Nuit</span></div>';
-  $('soleil').innerHTML = `<h2>Soleil · jour civil et aéronautique <span class="r cdn">${cd}</span></h2>${barre}${ax}${sv}${lg}`;
+  const sv = `<div class="sv"><div class="ac"><small>Aube civile</small><b>${t(e.aubeCivile)}</b></div><div class="ae"><small>Jour aéro.</small><b>${t(e.jourAero)}</b></div><div><small>Lever</small><b>${t(e.lever)}</b></div>`
+    + `<div><small>Coucher</small><b>${t(e.coucher)}</b></div><div class="ae"><small>Nuit aéro.</small><b>${t(e.nuitAero)}</b></div><div class="ac"><small>Crépusc. civil</small><b>${t(e.crepuscule)}</b></div></div>`;
+  const lg = '<span class="r lg2"><span><i style="background:#3d6fc4"></i>Jour</span><span><i style="background:linear-gradient(90deg,var(--civ1),var(--civ2))"></i>Crépuscule civil</span><span><i style="border:2px solid var(--yellow)"></i>Jour aéronautique</span><span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.6) 0 3px,transparent 3px 6px)"></i>Nuit</span></span>';
+  $('soleil').innerHTML = `<h2>Soleil · jour civil et aéronautique ${lg}</h2>${barre}${ax}${sv}`;
+}
+
+// Thème clair pendant le jour civil, sombre la nuit (?theme=clair ou ?theme=sombre pour forcer)
+const themeForce = new URLSearchParams(location.search).get('theme');
+function theme() {
+  const n = new Date();
+  const e = ephemeride(n);
+  const clair = themeForce ? themeForce === 'clair' : !!(e?.aubeCivile && e?.crepuscule && n >= e.aubeCivile && n < e.crepuscule);
+  document.documentElement.dataset.theme = clair ? 'clair' : 'sombre';
 }
 
 /* ------------------------------------------------------------------ */
@@ -144,48 +151,52 @@ function dispo(occupe: { debut: string; fin: string }[]): [string, number, numbe
   return null;
 }
 
+// Carte compacte : immatriculation, potentiel, état. Même structure pour tous les avions (cartes alignées).
 function carte(a: Avion) {
   const hs = a.indispo;
-  const etat = hs ? ['p-bad', 'Indisponible'] : a.enCours ? ['p-busy', 'Réservé'] : ['p-ok', 'Disponible'];
   const pot = a.potentiel;
   const niv = hs ? 'off' : pot == null ? 'off' : pot < 120 ? 'bad' : pot <= 300 ? 'warn' : 'ok';
   const part = pot == null ? 0 : pot <= 0 ? 1 : Math.min(1, pot / 3000);
   const ring = `<div class="ring ${niv}"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="17"/><circle class="arc" cx="20" cy="20" r="17" stroke-dasharray="${(part * 106.8).toFixed(1)} 107"/></svg><div><b>${pot == null ? '—' : hhmm(pot)}</b><small>${pot != null && pot <= 0 ? 'visite dépassée' : 'avant visite'}</small></div></div>`;
-  const r = a.enCours ?? a.prochaine;
-  let haut: string;
+  let etat: [string, string], sous = '';
   if (hs) {
-    const jours = Math.round((dateJ(hs.fin.slice(0, 8)).getTime() - dateJ(jourParis(new Date())).getTime()) / 86400000);
-    haut = L('lb r', 'Retour prévu') + L('dy', jours <= 0 ? 'aujourd’hui' : jours === 1 ? 'demain' : `dans ${jours} jours`)
-      + L('bg1', jourTxt(hs.fin.slice(0, 8))) + L('nm', `depuis le ${hs.debut.slice(6, 8)}/${hs.debut.slice(4, 6)}`);
-  } else if (r) {
-    haut = L(a.enCours ? 'lb a' : 'lb', a.enCours ? 'Réservation en cours' : 'Prochaine réservation')
-      + L('dy', jourTxt(r.debut.slice(0, 8)) + (r.duree ? ` · ${duree(r.duree)} de vol` : ''))
-      + L('bg1', `${agH(r.debut)} → ${agH(r.fin)}`) + (qui(r) ? L('nm', qui(r)) : '');
-  } else haut = L('lb', 'Prochaine réservation') + L('dy', 'dans les 7 jours') + L('bg1', 'Aucune');
-  const lignes: string[] = [];
-  const ligne = (lb: string, sous: string, heure: string, petit: string, cls = '') =>
-    `<span style="min-width:0">${L('lb ' + cls, lb)}${sous ? L(cls ? 'dy' : 'nm', sous) : ''}</span><span class="tm">${esc(heure)}<small>${esc(petit)}</small></span>`;
-  if (!hs) {
-    const x = dispo(a.occupe ?? []);
-    const eph = x ? ephemeride(dateJ(x[0])) : null;
-    const finJour = !!(x && eph && x[2] >= minutesParis(eph.nuitAero));
-    const toutJour = finJour && !!eph && x![1] <= minutesParis(eph.jourAero);
-    const c = !x ? ['Aucune', ''] : toutJour ? ['Toute la journée', 'aucune réservation'] : finJour ? [`Dès ${hm(x[1])}`, 'jusqu’à la nuit aéro.'] : [`${hm(x[1])} → ${hm(x[2])}`, duree(x[2] - x[1])];
-    lignes.push(ligne('Dispo. > 30 min', x ? jourTxt(x[0]) : 'dans les 7 jours', c[0], c[1], 'gr'));
+    const motif = hs.motif.trim().replace(/^./, (c) => c.toUpperCase());
+    etat = ['p-bad', motif && motif.length <= 18 ? motif : 'Maintenance'];
+    sous = `retour ${jourTxt(hs.fin.slice(0, 8)).toLowerCase()}`;
+  } else if (a.enCours) {
+    etat = ['p-busy', 'En vol'];
+    sous = `jusqu’à ${agH(a.enCours.fin)}`;
+  } else etat = ['p-ok', 'Disponible'];
+  return `<article class="av${hs ? ' hs' : ''}"><div class="av-t"><b>${esc(a.immat)}</b><small>${esc(modeles[a.immat] || '')}</small></div>${ring}`
+    + `<span class="pill ${etat[0]}">${esc(etat[1])}</span><span class="av-n">${esc(sous)}</span></article>`;
+}
+
+// Tableau d'activité : réservation en cours ou prochaine, prochaine dispo de plus de 30 min, dernier vol
+function activite(l: Avion[]) {
+  const cell = (cls: string, heure: string, jour: string, nom: string) => `<span class="${cls}"><b>${esc(heure)}</b>${jour ? `<em>${esc(jour)}</em>` : ''}${nom ? `<span class="nm2">${esc(nom)}</span>` : ''}</span>`;
+  const quiC = (r: { pilote?: string | null; instructeur?: string | null }) => [court(r.pilote ?? null), r.instructeur && `avec ${court(r.instructeur)}`].filter(Boolean).join(' ');
+  const auj = jourParis(new Date());
+  const jr = (j: string) => (j === auj ? '' : jourTxt(j).toLowerCase());
+  let h = '<div class="act"><span class="th">Avion</span><span class="th">Réservation</span><span class="th">Prochaine dispo. &gt; 30 min</span><span class="th">Dernier vol</span>';
+  for (const a of l) {
+    h += `<span class="im">${esc(a.immat)}</span>`;
+    const r = a.enCours ?? a.prochaine;
+    if (a.indispo) h += cell('r', 'Indisponible', '', `retour ${jourTxt(a.indispo.fin.slice(0, 8)).toLowerCase()}`);
+    else if (r) h += cell(a.enCours ? 'a' : '', `${agH(r.debut)} → ${agH(r.fin)}`, a.enCours ? 'en cours' : jr(r.debut.slice(0, 8)), quiC(r));
+    else h += cell('', 'Aucune', 'sur 7 jours', '');
+    if (a.indispo) h += '<span></span>';
+    else {
+      const x = dispo(a.occupe ?? []);
+      const eph = x ? ephemeride(dateJ(x[0])) : null;
+      const finJour = !!(x && eph && x[2] >= minutesParis(eph.nuitAero));
+      const toutJour = finJour && !!eph && x![1] <= minutesParis(eph.jourAero);
+      h += !x ? cell('', 'Aucune', 'sur 7 jours', '') : cell('gr', toutJour ? 'Toute la journée' : finJour ? `Dès ${hm(x[1])}` : `${hm(x[1])} → ${hm(x[2])}`, jr(x[0]), '');
+    }
+    if (a.dernier) h += cell('', `${agH(a.dernier.debut)} → ${agH(a.dernier.fin)}`, jr(a.dernier.fin.slice(0, 8)), quiC(a.dernier));
+    else if (a.dernierVol) { const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/); h += cell('', m ? m[2] : a.dernierVol, m ? m[1] : '', ''); }
+    else h += '<span></span>';
   }
-  if (a.dernier) {
-    const [dj, dm] = jm(a.dernier.debut); const [fj, fm] = jm(a.dernier.fin);
-    const min = (fj === dj ? 0 : 1440) + fm - dm;
-    const nom = [a.dernier.pilote, a.dernier.instructeur && `avec ${court(a.dernier.instructeur)}`].filter(Boolean).join(' · ');
-    lignes.push(ligne('Dernier vol', nom, `${agH(a.dernier.debut)} → ${agH(a.dernier.fin)}`, `${jourTxt(fj)} · ${min > 0 ? duree(min) : a.dernier.temps ?? ''}`));
-  } else if (a.dernierVol) {
-    const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/);
-    lignes.push(ligne('Dernier vol', '', m ? m[2] : a.dernierVol, m ? m[1] : ''));
-  }
-  const motif = hs ? hs.motif.trim().replace(/^./, (c) => c.toUpperCase()) : '';
-  const ban = hs ? `<div class="ban"><b>Maintenance</b>${motif && motif.toLowerCase() !== 'maintenance' ? L('', motif) : ''}</div>` : '';
-  return `<article class="av${hs ? ' hs' : ''}"><div class="av-t"><b>${esc(a.immat)}</b><small>${esc(modeles[a.immat] || '')}</small><span class="pill ${etat[0]}">${etat[1]}</span></div>${ban}`
-    + `<div class="av-h">${ring}<div style="min-width:0">${haut}</div></div><div class="av-l">${lignes.join('')}</div></article>`;
+  return h + '</div>';
 }
 
 const SUJETS: Record<string, [string, string]> = {
@@ -204,28 +215,31 @@ function notams() {
   const vide = (t: string) => `<p class="vide">${t}</p>`;
   if (!n || !n.ok) {
     const t = n?.raison === 'cle' ? 'En attente de la clé de l’API NOTAM (FAA) dans Cloudflare.' : 'NOTAM indisponibles pour le moment.';
-    $('notam').innerHTML = vide(t); $('sup').innerHTML = vide(t); $('notam-info').textContent = '';
+    $('notam').innerHTML = vide(t); $('notam-info').textContent = '';
     return;
   }
   const ligne = (x: Notam, sup: boolean) => {
     const s = SUJETS[(x.sujet || 'O')[0]] ?? SUJETS.O;
     return `<div class="n"><span class="tag ${sup ? 'su' : s[1]}">${sup ? 'SUP AIP' : s[0]}</span><div><b>${esc(x.texte)}</b><small>${esc([validite(x.debut, x.fin), x.numero].filter(Boolean).join(' · '))}</small></div></div>`;
   };
-  const l = n.notam ?? [], s = n.sup ?? [];
+  const l = n.notam ?? [];
   $('notam-info').textContent = `${l.length} en vigueur · hors obstacles`;
   $('notam').innerHTML = l.length ? l.map((x) => ligne(x, false)).join('') : vide('Aucun NOTAM en vigueur (hors obstacles).');
-  $('sup').innerHTML = s.length ? s.map((x) => ligne(x, true)).join('') : vide('Aucun SUP AIP signalé pour LFOB.');
 }
 
 function accueil() {
   soleil();
   const av = D?.flotte?.avions;
   const c = $('cartes');
-  if (!av?.length) { c.innerHTML = '<p class="vide">Données Aerogest indisponibles pour le moment.</p>'; }
+  if (!av?.length) { c.innerHTML = '<p class="vide">Données Aerogest indisponibles pour le moment.</p>'; $('activite').innerHTML = ''; }
   else {
     const l = triAvions(av);
-    c.style.gridTemplateColumns = `repeat(${Math.min(l.length, 4)}, minmax(0, 1fr))`;
+    // Jusqu'à 7 cartes sur une ligne ; avec moins d'avions, les cartes s'élargissent
+    c.style.gridTemplateColumns = `repeat(${Math.min(l.length, 7)}, minmax(0, 1fr))`;
     c.innerHTML = l.map(carte).join('');
+    $('activite').innerHTML = activite(l);
+    const act = $('activite').firstElementChild as HTMLElement | null;
+    if (act) act.style.gridTemplateRows = `auto repeat(${l.length}, minmax(0, 1fr))`;
   }
   notams();
 }
@@ -237,15 +251,16 @@ const classeType = (t: string | null) => (/instr|double|école|ecole|lâcher|lac
 
 function reservations() {
   const n = new Date();
-  const auj = jourParis(n), dem = jourParis(new Date(n.getTime() + 86400000));
+  const auj = jourParis(n);
   const now = minutesParis(n);
   const e = ephemeride(n) as Ephemeride;
   const ja = minutesParis(e.jourAero), na = minutesParis(e.nuitAero);
   const avions = triAvions(D?.flotte?.avions ?? []);
-  const instr = (D?.flotte?.instructeurs ?? []).map((i) => ({ ...i, creneaux: i.creneaux.filter((c) => String(c.debut).slice(0, 8) <= auj && String(c.fin).slice(0, 8) >= auj) }));
+  // Instructeurs : seulement ceux qui ont un vol ou une présence aujourd'hui sur Aerogest
+  const instr = (D?.flotte?.instructeurs ?? []).map((i) => ({ ...i, creneaux: i.creneaux.filter((c) => String(c.debut).slice(0, 8) <= auj && String(c.fin).slice(0, 8) >= auj) })).filter((i) => i.creneaux.length);
   const duJour = (j: string) => avions.flatMap((a) => (a.jour ?? []).filter((r) => r.debut.slice(0, 8) === j).map((r) => ({ ...r, immat: a.immat })))
     .sort((x, y) => x.debut.localeCompare(y.debut));
-  const jour = duJour(auj), demain = duJour(dem);
+  const jour = duJour(auj);
   // Bornes de la frise : jour aéronautique, élargi aux réservations
   const mins = (s: string, j: string) => { const [dj, m] = jm(s); return dj < j ? 0 : dj > j ? 1440 : m; };
   let d0 = Math.floor(ja / 60) * 60, d1 = Math.ceil(na / 60) * 60;
@@ -261,7 +276,7 @@ function reservations() {
   };
   const barre = (a: number, b: number, cls: string, t: string, s: string) => `<div class="rz ${cls}" style="left:${P(a)}%;width:${Math.max(0.6, P(b) - P(a))}%">${esc(t)}<small>${esc(s)}</small></div>`;
   const nbI = instr.length;
-  const hA = Math.max(46, Math.min(120, Math.floor((790 - nbI * 58 - 20) / Math.max(1, avions.length)) - 10));
+  const hA = Math.max(46, Math.min(130, Math.floor((780 - (nbI ? nbI * 58 + 20 : 0)) / Math.max(1, avions.length)) - 10));
   let html = '<div class="tl"><span></span><div class="hrs">';
   for (let h = d0; h <= d1; h += 60) html += `<i style="left:${P(h)}%">${p2(h / 60)}h</i>`;
   html += '</div>';
@@ -291,33 +306,9 @@ function reservations() {
   html += '</div><div class="leg"><span><i style="background:var(--r1)"></i>Vol</span><span><i style="background:var(--r2)"></i>Instruction</span><span><i style="background:var(--r3)"></i>Club / baptême</span><span><i style="background:#6d7c92"></i>Indisponible</span>'
     + (instr.some((i) => i.creneaux.some((c) => c.flottant)) ? '<span><i style="background:rgba(64,201,127,.4)"></i>Instructeur présent</span>' : '') + '<span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.5) 0 3px,transparent 3px 6px)"></i>Nuit aéronautique</span></div>';
   $('timeline').innerHTML = avions.length ? html : '<p class="vide">Données Aerogest indisponibles pour le moment.</p>';
-  $('tl-info').textContent = `Aerogest · heures locales · jour aéro. ${heureLocale(e.jourAero)} → ${heureLocale(e.nuitAero)}`;
+  const enCours = jour.filter((r) => mins(r.debut, auj) <= now && mins(r.fin, auj) > now).length;
+  $('tl-info').textContent = `${jour.length} vol${jour.length > 1 ? 's' : ''}${enCours ? ` · ${enCours} en cours` : ''} · heures locales · jour aéro. ${heureLocale(e.jourAero)} → ${heureLocale(e.nuitAero)}`;
 
-  // Instructeurs : Aerogest ne publie pas leurs présences, seulement leurs vols. On indique qui vole maintenant,
-  // le prochain vol du jour, ou « pas de vol prévu ».
-  if (!D?.flotte?.instructeurs) $('instr').innerHTML = '<p class="vide">Planning des instructeurs indisponible.</p>';
-  else {
-    const chips = instr.map((i) => {
-      const vols = i.creneaux.filter((c) => !c.flottant);
-      const enCours = vols.find((c) => mins(c.debut, auj) <= now && mins(c.fin, auj) > now);
-      const suiv = vols.find((c) => mins(c.debut, auj) > now);
-      const pres = i.creneaux.find((c) => c.flottant && mins(c.debut, auj) <= now && mins(c.fin, auj) > now);
-      const t = enCours ? `en vol jusqu’à ${agH(enCours.fin)}` : suiv ? `prochain vol à ${agH(suiv.debut)}` : pres ? `présent jusqu’à ${agH(pres.fin)}` : 'pas de vol prévu';
-      return { rang: enCours ? 0 : suiv ? 1 : 2, t: `<span class="chip${enCours ? ' vol' : pres ? ' on' : ''}">${esc(court(i.nom))}<small>${t}</small></span>` };
-    });
-    chips.sort((x, y) => x.rang - y.rang);
-    $('instr').innerHTML = chips.length ? chips.map((c) => c.t).join('') : '<p class="vide">Aucun instructeur au planning.</p>';
-  }
-
-  // Listes du jour et du lendemain
-  const ligne = (r: Resa & { immat: string }, cls = '') => `<div class="res ${cls}"><span class="h">${agH(r.debut)} → ${agH(r.fin)}</span><span class="im">${esc(r.immat)}</span>${L('', qui(r) || '—')}<span class="ty">${esc(r.type || 'Vol')}</span></div>`;
-  const ord = jour.map((r) => ({ r, cls: mins(r.fin, auj) <= now ? 'rp' : mins(r.debut, auj) <= now ? 'rn' : '' }));
-  const MAX = 13;
-  const visibles = ord.length > MAX ? ord.slice(Math.min(ord.findIndex((x) => x.cls !== 'rp') < 0 ? ord.length - MAX : Math.max(0, ord.findIndex((x) => x.cls !== 'rp') - 1), ord.length - MAX)).slice(0, MAX) : ord;
-  $('jour').innerHTML = jour.length ? visibles.map((x) => ligne(x.r as Resa & { immat: string }, x.cls)).join('') : '<p class="vide">Aucune réservation aujourd’hui.</p>';
-  $('jour-info').textContent = jour.length ? `${jour.length} vol${jour.length > 1 ? 's' : ''} · ${ord.filter((x) => x.cls === 'rn').length} en cours` : '';
-  $('demain').innerHTML = demain.length ? demain.slice(0, 5).map((r) => ligne(r)).join('') + (demain.length > 5 ? `<p class="vide">et ${demain.length - 5} autre${demain.length > 6 ? 's' : ''}</p>` : '') : '<p class="vide">Aucune réservation demain pour le moment.</p>';
-  $('demain-info').textContent = jourTxt(dem) === 'Demain' ? dateJ(dem).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' }) : '';
 }
 
 /* ------------------------------------------------------------------ */
@@ -374,7 +365,7 @@ function cadranVent(m: Metar) {
   let s = '<svg viewBox="-60 -60 120 120" class="cv-svg" aria-hidden="true">';
   for (let d = 0; d < 360; d += 10) {
     const [x1, y1] = pt(d, R), [x2, y2] = pt(d, R - 9);
-    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${d === 0 ? 'var(--bad)' : '#c9d2e6'}" stroke-width="4" stroke-linecap="round"/>`;
+    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${d === 0 ? 'var(--bad)' : 'var(--muted)'}" stroke-width="4" stroke-linecap="round"/>`;
   }
   if (dir != null && f) {
     const [a, b] = m.ventVar ?? [dir - 20, dir + 20];
@@ -382,11 +373,11 @@ function cadranVent(m: Metar) {
     const [ax, ay] = pt(a, R - 12), [bx, by] = pt(b, R - 12);
     s += `<path d="M0 0 L${ax.toFixed(1)} ${ay.toFixed(1)} A${R - 12} ${R - 12} 0 ${ouv > 180 ? 1 : 0} 1 ${bx.toFixed(1)} ${by.toFixed(1)} Z" fill="#1e9bff" opacity=".9"/>`;
     const [x1, y1] = pt(dir, R - 12), [x2, y2] = pt(dir + 180, R - 12);
-    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>`;
+    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>`;
     const [hx, hy] = pt(dir + 180, R - 12);
-    s += `<g transform="translate(${hx.toFixed(1)} ${hy.toFixed(1)}) rotate(${dir + 180})"><path d="M0 -2 L-5 8 L5 8 Z" fill="#fff"/></g>`;
+    s += `<g transform="translate(${hx.toFixed(1)} ${hy.toFixed(1)}) rotate(${dir + 180})"><path d="M0 -2 L-5 8 L5 8 Z" fill="var(--ink)"/></g>`;
   }
-  s += '<circle r="3" fill="#fff"/></svg>';
+  s += '<circle r="3" fill="var(--ink)"/></svg>';
   const gauche = f === 0 ? 'Calme' : m.ventDir === 'VRB' ? 'VRB' : dir != null ? `${String(dir).padStart(3, '0')}°` : '—';
   const droite = f === 0 || f == null ? '' : `${f} kt`;
   return `<div class="cv"><b>${gauche}</b>${s}<b>${droite}${m.rafales ? `<small>rafales ${m.rafales} kt</small>` : ''}${m.ventVar ? `<small class="v">variable ${String(m.ventVar[0]).padStart(3, '0')}° à ${String(m.ventVar[1]).padStart(3, '0')}°</small>` : ''}</b></div>`;
@@ -686,7 +677,7 @@ function montrer(i: number) {
   ecran = i;
   debutEcran = Date.now();
   document.querySelectorAll<HTMLElement>('.ecran').forEach((e) => e.classList.toggle('on', Number(e.dataset.e) === i));
-  document.querySelectorAll<HTMLElement>('#tabs button').forEach((b) => b.classList.toggle('on', Number(b.dataset.e) === i));
+  document.querySelectorAll<HTMLElement>('#points button').forEach((b) => b.classList.toggle('on', Number(b.dataset.e) === i));
   const s = $('scene');
   s.className = `s${i}`;
 }
@@ -695,7 +686,7 @@ function tic() {
   horloge();
   const auto = fige == null && Date.now() > pauseJusqua;
   const ecoule = (Date.now() - debutEcran) / 1000;
-  const b = document.querySelector<HTMLElement>('#tabs button.on');
+  const b = document.querySelector<HTMLElement>('#points button.on');
   if (b) b.style.setProperty('--p', auto ? String(Math.min(1, ecoule / DUREES[ecran])) : '1');
   if (auto && ecoule >= DUREES[ecran]) montrer((ecran + 1) % 4);
   majPied();
@@ -709,9 +700,10 @@ function echelle() {
 
 export function demarrer() {
   modeles = JSON.parse($('scene').dataset.modeles || '{}');
+  theme();
   echelle();
   addEventListener('resize', echelle);
-  document.querySelectorAll<HTMLElement>('#tabs button').forEach((b) => b.addEventListener('click', () => { pauseJusqua = Date.now() + 120000; montrer(Number(b.dataset.e)); }));
+  document.querySelectorAll<HTMLElement>('#points button').forEach((b) => b.addEventListener('click', () => { pauseJusqua = Date.now() + 120000; montrer(Number(b.dataset.e)); }));
   montrer(fige ?? 0);
   horloge();
   dessiner();
@@ -719,7 +711,7 @@ export function demarrer() {
   imagesInit();
   setInterval(tic, 1000);
   setInterval(charger, 60000);
-  setInterval(() => { soleil(); }, 60000);
+  setInterval(() => { soleil(); theme(); }, 60000);
   setInterval(() => { satellite(); radar(); arome(); }, 5 * 60000);
   // Rechargement complet chaque nuit (nouvelle version du site, mémoire du navigateur de la télé)
   setTimeout(() => location.reload(), (() => { const n = new Date(); const t = new Date(n); t.setHours(4, 0, 0, 0); if (t <= n) t.setDate(t.getDate() + 1); return t.getTime() - n.getTime(); })());
