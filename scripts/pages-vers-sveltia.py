@@ -72,7 +72,7 @@ conf = {
   'backend': {'name':'github','repo':'aeroclub-beauvais-tille/acbt_horizon','branch':'main','auth_methods':['token'],
               'commit_messages':{'create':'Ajout : {{collection}} « {{slug}} » (back-office)','update':'Modification : {{collection}} « {{slug}} » (back-office)','delete':'Suppression : {{collection}} « {{slug}} » (back-office)','uploadMedia':'Ajout du fichier {{path}} (back-office)','deleteMedia':'Suppression du fichier {{path}} (back-office)'}},
   'app_title': 'Back-office ACBT',
-  'logo': {'src': '../uploads/logo/logo-acbt.png'},
+  'logo': {'src': '../uploads/logo/logo-acbt-admin.svg'},
   'site_url': 'https://acbt60.pages.dev',
   'media_folder': 'public/uploads', 'public_folder': '/uploads',
   'output': {'omit_empty_optional_fields': False},
