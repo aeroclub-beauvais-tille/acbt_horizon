@@ -636,5 +636,6 @@ export function flotte() {
     if (info && d.maj) info.textContent = `Source Aerogest · mis à jour à ${new Date(d.maj).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}`;
   };
   charger();
-  setInterval(charger, 5 * 60_000);
+  setInterval(() => { if (!document.hidden) charger(); }, 60_000); // toutes les minutes
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) charger(); }); // au retour dans l'appli
 }

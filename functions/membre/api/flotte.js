@@ -3,12 +3,12 @@
 // On lit, comme le fait la page publique d'Aerogest :
 //   - le potentiel restant de chaque avion et son dernier vol (AircraftsTBOAPI) ;
 //   - les réservations du jour et des 6 jours suivants (bookingapi/getplanning), pour trouver la prochaine.
-// Le résultat est gardé 5 minutes en cache (la page Aerogest se rafraîchit elle-même toutes les 5 minutes).
+// Le résultat est gardé 1 minute en cache : l'onglet Flotte se rafraîchit toutes les minutes.
 // Les heures d'Aerogest sont en heure locale (Paris), au format AAAAMMJJHHmm.
 
 const AEROGEST = 'https://online.aerogest.fr';
 const CACHE_CLE = 'https://cache.acbt60.local/membre/api/flotte';
-const DUREE_CACHE = 300; // secondes
+const DUREE_CACHE = 60; // secondes
 const JOURS = 7;
 
 export async function onRequestGet({ env, waitUntil }) {
