@@ -381,10 +381,10 @@ function metarBloc() {
 }
 
 // Vent et pistes de LFOB : couronne façon station météo, les deux pistes à leur orientation réelle
-// (12/30 au 124°, 04/22 au 42°, la petite piste au nord de la grande), secteur bleu d'où vient le vent.
+// (12/30 au 124°, 04/22 au 42°, la petite piste au nord de la grande), cône bleu d'où vient le vent.
 const PISTES = [
-  { a: ['12', 120], b: ['30', 300], cap: 124, cx: -3, cy: 4, l: 74 },
-  { a: ['04', 40], b: ['22', 220], cap: 42, cx: 9, cy: -24, l: 30 },
+  { a: ['12', 120], b: ['30', 300], cap: 124, cx: -2.5, cy: 3, l: 58 },
+  { a: ['04', 40], b: ['22', 220], cap: 42, cx: 10, cy: -22, l: 24 },
 ] as const;
 function ventBloc() {
   const m = D?.metar;
@@ -394,21 +394,21 @@ function ventBloc() {
   $('vent-info').textContent = m ? `METAR ${m.heure ? hUtc(new Date(m.heure)) + ' UTC' : ''}` : '';
   const R = 54;
   const pt = (deg: number, r: number, x0 = 0, y0 = 0) => [x0 + r * Math.sin((deg * Math.PI) / 180), y0 - r * Math.cos((deg * Math.PI) / 180)];
-  let s = '<svg viewBox="-62 -62 124 124" aria-hidden="true">';
+  let s = '<svg viewBox="-70 -70 140 140" aria-hidden="true">';
   for (let d = 0; d < 360; d += 10) {
     const [x1, y1] = pt(d, R), [x2, y2] = pt(d, R - 6);
     s += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${d === 0 ? 'var(--bad)' : 'var(--muted)'}" stroke-width="2.6" stroke-linecap="round"/>`;
   }
   for (const [t, d] of [['N', 0], ['E', 90], ['S', 180], ['O', 270]] as const) {
-    const [x, y] = pt(d, R - 12);
-    s += `<text x="${x.toFixed(1)}" y="${(y + 2.6).toFixed(1)}" fill="var(--muted)" font-size="7" font-weight="800" text-anchor="middle">${t}</text>`;
+    const [x, y] = pt(d, R + 9);
+    s += `<text x="${x.toFixed(1)}" y="${(y + 3.2).toFixed(1)}" fill="var(--muted)" font-size="9" font-weight="800" text-anchor="middle">${t}</text>`;
   }
   if (dir != null && f) {
     const [a, b] = m!.ventVar ?? [dir - 15, dir + 15];
     const ouv = ((b - a) % 360 + 360) % 360;
     const r2 = R - 7;
     const [ax, ay] = pt(a, r2), [bx, by] = pt(b, r2);
-    s += `<path d="M0 0 L${ax.toFixed(2)} ${ay.toFixed(2)} A${r2} ${r2} 0 ${ouv > 180 ? 1 : 0} 1 ${bx.toFixed(2)} ${by.toFixed(2)} Z" fill="#1e9bff" opacity=".35"/>`;
+    s += `<path d="M0 0 L${ax.toFixed(2)} ${ay.toFixed(2)} A${r2} ${r2} 0 ${ouv > 180 ? 1 : 0} 1 ${bx.toFixed(2)} ${by.toFixed(2)} Z" fill="#1e9bff" opacity=".5"/>`;
   }
   // Pistes : bande grise, axe en pointillés, numéros aux seuils (le 12 au nord-ouest, le 04 au sud-ouest)
   for (const p of PISTES) {
@@ -418,12 +418,6 @@ function ventBloc() {
     const [lx1, ly1] = pt(p.cap + 180, p.l / 2 + 6, p.cx, p.cy), [lx2, ly2] = pt(p.cap, p.l / 2 + 6, p.cx, p.cy);
     s += `<text x="${lx1.toFixed(1)}" y="${(ly1 + 2.3).toFixed(1)}" fill="var(--ink)" font-size="6.5" font-weight="800" text-anchor="middle" font-family="JetBrains Mono, monospace">${p.a[0]}</text>`
       + `<text x="${lx2.toFixed(1)}" y="${(ly2 + 2.3).toFixed(1)}" fill="var(--ink)" font-size="6.5" font-weight="800" text-anchor="middle" font-family="JetBrains Mono, monospace">${p.b[0]}</text>`;
-  }
-  // Flèche : part du bord d'où vient le vent et pointe vers le terrain
-  if (dir != null && f) {
-    const [x1, y1] = pt(dir, R - 2), [x2, y2] = pt(dir, 14);
-    s += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="#1e9bff" stroke-width="2.6" stroke-linecap="round"/>`
-      + `<g transform="translate(${x2.toFixed(2)} ${y2.toFixed(2)}) rotate(${dir + 180})"><path d="M0 2 L-4.5 -7 L4.5 -7 Z" fill="#1e9bff"/></g>`;
   }
   s += '</svg>';
   const gauche = !m ? '—' : f === 0 ? 'Calme' : m.ventDir === 'VRB' ? 'VRB' : dir != null ? `${String(dir).padStart(3, '0')}°` : '—';
@@ -440,8 +434,9 @@ function ventBloc() {
     if (dir == null || f == null) return `<div class="qfu"><span class="n">${n}</span><div><b>${f === 0 ? 'Vent calme' : 'Vent variable'}</b><small>pas de composante</small></div></div>`;
     const c = comp(cap, f), cg = g ? comp(cap, g) : null;
     const t1 = c.face >= 0 ? `${c.face} kt de face` : `${-c.face} kt arrière`;
-    const t2 = `travers ${Math.abs(c.trav)} kt${c.trav ? (c.trav > 0 ? ' droite' : ' gauche') : ''}` + (cg ? ` · rafales ${Math.abs(cg.trav)} kt` : '');
-    return `<div class="qfu${n === meilleur ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${n === meilleur ? 'conseillée · ' : ''}${t2}</small></div></div>`;
+    const cote = (v: number) => (v > 0 ? ' droite' : v < 0 ? ' gauche' : '');
+    const t2 = `${Math.abs(c.trav)} kt travers${cote(c.trav)}` + (cg ? ` · rafales ${Math.abs(cg.trav)} kt` : '');
+    return `<div class="qfu${n === meilleur ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${t2}</small></div></div>`;
   }).join('');
   $('vent').innerHTML = `<div class="vd"><div class="t"><span>${gauche}</span>${droite}${sous}</div>${s}</div><div class="qfus">${qfus}</div>`;
 }
