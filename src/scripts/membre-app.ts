@@ -580,8 +580,8 @@ export function soleil() {
 /* ------------------------------------------------------------------ */
 /* Onglet Flotte : potentiels et réservations lus sur Aerogest (via /membre/api/flotte) */
 /* ------------------------------------------------------------------ */
-interface Resa { debut: string; fin: string; pilote: string | null; instructeur: string | null; type: string | null }
-interface AvionFlotte { immat: string; potentiel: number | null; tolerance: number; dernierVol: string | null; enCours: Resa | null; prochaine: Resa | null; indispo: { debut: string; fin: string; motif: string } | null }
+interface Resa { debut: string; fin: string; pilote: string | null; instructeur: string | null; type: string | null; duree?: number | null }
+interface AvionFlotte { occupe?: { debut: string; fin: string }[]; dernier?: { debut: string; fin: string; temps: string | null } | null; immat: string; potentiel: number | null; tolerance: number; dernierVol: string | null; enCours: Resa | null; prochaine: Resa | null; indispo: { debut: string; fin: string; motif: string } | null }
 
 const hhmm = (min: number) => { const n = min < 0; const a = Math.abs(min); return `${n ? '-' : ''}${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`; };
 // « AAAAMMJJHHmm » (heure de Paris) → objet simple
@@ -592,9 +592,59 @@ function quand(s: string) {
   const auj = jourParis(new Date());
   const dem = jourParis(new Date(Date.now() + 86400000));
   if (r.j === auj) return r.h;
-  if (r.j === dem) return `demain ${r.h}`;
+  if (r.j === dem) return `demain · ${r.h}`;
   const jour = r.date.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
-  return `${jour} ${r.h}`;
+  return `${jour} · ${r.h}`;
+}
+const vol = (r: Resa) => (r.duree ? ` (${Math.floor(r.duree / 60)} h ${String(r.duree % 60).padStart(2, '0')} de vol)` : '');
+const duree = (min: number) => (min < 60 ? `${min} min` : `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, '0')}`);
+// « AAAAMMJJHHmm » → [jour AAAAMMJJ, minutes depuis minuit]
+const jm = (s: string): [string, number] => [s.slice(0, 8), +s.slice(8, 10) * 60 + +s.slice(10, 12)];
+const minutesParis = (d: Date) => { const [h, m] = heureLocale(d).split(':').map(Number); return h * 60 + m; };
+
+/**
+ * Prochain créneau libre d'au moins 30 min, dans le jour aéronautique (lever − 30 min → coucher + 30 min),
+ * aujourd'hui ou dans les 6 jours suivants. Renvoie [jour, début, fin] en minutes (heure de Paris).
+ */
+function dispo(occupe: { debut: string; fin: string }[]): [string, number, number] | null {
+  const maint = new Date();
+  const [aujJ, aujM] = [jourParis(maint), minutesParis(maint)];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(maint.getTime() + i * 86400000);
+    const e = ephemeride(d);
+    if (!e) continue;
+    const j = jourParis(d);
+    let debut = Math.max(minutesParis(e.jourAero), j === aujJ ? aujM : 0);
+    const fin = minutesParis(e.nuitAero);
+    // Créneaux occupés ce jour-là, ramenés en minutes
+    const pris = occupe.map((o) => {
+      const [dj, dm] = jm(o.debut); const [fj, fm] = jm(o.fin);
+      if (fj < j || dj > j) return null;
+      return [dj < j ? 0 : dm, fj > j ? 1440 : fm] as [number, number];
+    }).filter(Boolean).sort((x, y) => x![0] - y![0]) as [number, number][];
+    for (const [pd, pf] of pris) {
+      if (pd - debut >= 30 && debut < fin) return [j, debut, Math.min(pd, fin)];
+      debut = Math.max(debut, pf);
+    }
+    if (fin - debut >= 30) return [j, debut, fin];
+  }
+  return null;
+}
+const hm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+function texteDispo(x: [string, number, number] | null) {
+  if (!x) return 'Aucune dans les 7 jours';
+  const [j, d, f] = x;
+  const jour = quand(`${j}${hm(d).replace(':', '')}`).replace(/ · \d\d:\d\d$|^\d\d:\d\d$/, '');
+  return `${jour ? jour + ' · ' : ''}${hm(d)} → ${hm(f)} (${duree(f - d)})`;
+}
+function texteDernier(a: AvionFlotte) {
+  if (a.dernier) {
+    const d = lireAg(a.dernier.debut), f = lireAg(a.dernier.fin);
+    const [dj, dm] = jm(a.dernier.debut); const [fj, fm] = jm(a.dernier.fin);
+    const min = (fj === dj ? 0 : 1440) + fm - dm;
+    return `${f.j.slice(6, 8)}/${f.j.slice(4, 6)} · ${d.h} → ${f.h} (${min > 0 ? duree(min) : a.dernier.temps ?? ''})`;
+  }
+  return a.dernierVol ? a.dernierVol.replace(/\/\d{4}\s+/, ' · ') : '—';
 }
 const qui = (r: Resa) => [r.pilote, r.instructeur && `avec ${r.instructeur}`].filter(Boolean).join(' ');
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
@@ -619,12 +669,13 @@ export function flotte() {
       const largeur = pot == null ? 0 : Math.max(0, Math.min(100, (pot / (50 * 60)) * 100));
       // [libellé, heure, nom] : l'heure à droite du libellé, le nom du pilote en entier sur sa propre ligne
       const lignes: [string, string, string?][] = [];
-      if (a.enCours) lignes.push(['Réservation en cours', `jusqu'à ${lireAg(a.enCours.fin).h}`, qui(a.enCours)]);
-      if (a.prochaine) lignes.push(['Prochaine réservation', quand(a.prochaine.debut), qui(a.prochaine)]);
+      if (a.enCours) lignes.push(['Réservation en cours', `jusqu'à ${lireAg(a.enCours.fin).h}` + vol(a.enCours), qui(a.enCours)]);
+      if (a.prochaine) lignes.push(['Prochaine réservation', quand(a.prochaine.debut) + vol(a.prochaine), qui(a.prochaine)]);
       else lignes.push(['Prochaine réservation', 'Aucune dans les 7 jours']);
-      lignes.push(['Dernier vol', a.dernierVol ? a.dernierVol.replace(/\/\d{4}/, '') : '—']);
+      lignes.push(['Prochaine disponibilité', texteDispo(dispo(a.occupe ?? []))]);
+      lignes.push(['Dernier vol', texteDernier(a)]);
       const bandeau = a.indispo
-        ? `<div class="fl-indispo"><b>${esc(a.indispo.motif)}</b><span>jusqu'au ${esc(/23:59|00:00/.test(lireAg(a.indispo.fin).h) ? quand(a.indispo.fin).replace(/ \d\d:\d\d$/, '') : quand(a.indispo.fin))}</span></div>` : '';
+        ? `<div class="fl-indispo"><b>${esc(a.indispo.motif)}</b><span>jusqu'au ${esc(/23:59|00:00/.test(lireAg(a.indispo.fin).h) ? quand(a.indispo.fin).replace(/ · \d\d:\d\d$/, '') : quand(a.indispo.fin))}</span></div>` : '';
       return `<article class="fl-carte${a.indispo ? ' fl-hs' : ''}" data-q="${esc(a.immat.toLowerCase())}">
         <div class="fl-tete"><span><b class="fl-im">${esc(a.immat)}</b>${modeles[a.immat] ? `<small>${esc(modeles[a.immat])}</small>` : ''}</span><span class="fl-etat fl-${etat[0]}"><i></i>${etat[1]}</span></div>
         <div class="fl-pot fl-${niv}"><span class="fl-val">${pot == null ? '—' : hhmm(pot)}</span><span class="fl-u">${pot != null && pot <= 0 ? 'visite dépassée' : 'de potentiel avant la visite'}${a.tolerance > 0 ? `, dont ${hhmm(a.tolerance)} de tolérance` : ''}</span></div>

@@ -58,6 +58,13 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch) {
     f(`${AEROGEST}/api/schedule/bookingapi/getplanning/${j}/0?token=${jeton}`, { method: 'POST', body: '', headers: { ...entetes(cookie), 'Content-Length': '0' } })
       .then((r) => (r.ok ? r.json() : null)).catch(() => null)));
 
+  // 4. Vols réellement effectués (même source que l'option « départs/retours » du planning public) :
+  //    pour la durée du dernier vol. Facultatif : si Aerogest ne répond pas, on garde la seule heure du dernier vol.
+  const datesVols = [...new Set(tbo.map((x) => (x.lastFlight || '').match(/^(\d\d)\/(\d\d)\/(\d{4})/)).filter(Boolean).map((m) => m[3] + m[2] + m[1]))].slice(0, 7);
+  const vols = (await Promise.all(datesVols.map((j) =>
+    f(`${AEROGEST}/api/FlightManagement/FlightAPI/GetSimple/${j}0000/`, { headers: entetes(cookie) })
+      .then((r) => (r.ok ? r.json() : [])).catch(() => [])))).flat().filter((v) => v && v.idAircraft && v.from && v.to);
+
   const avions = new Map(); // id → { immat, resas: [], indispos: [] }
   const avion = (id, immat) => {
     if (!avions.has(id)) avions.set(id, { id, immat: immat || immats.get(id) || '', resas: [], indispos: [] });
@@ -80,8 +87,13 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch) {
     const enCours = resas.find((r) => r.debut <= auj && r.fin > auj) || null;
     const prochaine = resas.find((r) => r.debut > auj) || null;
     const indispo = dedoublonner(a.indispos).find((r) => r.debut <= auj && r.fin > auj) || null;
+    const indispos = dedoublonner(a.indispos).filter((r) => r.fin > auj);
+    const dernier = vols.filter((v) => v.idAircraft === a.id && String(v.to) <= auj).sort((x, y) => String(y.to).localeCompare(String(x.to)))[0];
     return {
       immat: a.immat,
+      // Créneaux occupés à venir (réservations + indisponibilités), pour calculer la prochaine disponibilité
+      occupe: [...resas.filter((r) => r.fin > auj), ...indispos].map((r) => ({ debut: r.debut, fin: r.fin })),
+      dernier: dernier ? { debut: String(dernier.from), fin: String(dernier.to), temps: dernier.tps || null } : null,
       potentiel: typeof t?.pot === 'number' ? t.pot : null, // minutes avant la prochaine visite
       tolerance: t?.tol || 0,
       dernierVol: t?.lastFlight && t.lastFlight !== 'N/A' ? t.lastFlight : null, // « JJ/MM/AAAA HH:mm »
@@ -106,7 +118,14 @@ function resa(r) {
     pilote: nomPrenom(info.Pilote) || texte(r.content).split('\n')[0] || null,
     instructeur: info.Instructeur ? nomPrenom(info.Instructeur) : null,
     type: info.Type || null,
+    duree: duree(info['Durée de vol prévue']), // minutes de vol prévues à la réservation
   };
+}
+
+// « 01h30 » → 90
+function duree(s) {
+  const m = String(s || '').match(/(\d+)\s*h\s*(\d+)?/i);
+  return m ? Number(m[1]) * 60 + Number(m[2] || 0) : null;
 }
 
 function infobulle(t) {
