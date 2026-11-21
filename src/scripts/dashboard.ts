@@ -171,29 +171,32 @@ function carte(a: Avion) {
 }
 
 // Tableau d'activité : réservation en cours ou prochaine, prochaine dispo de plus de 30 min, dernier vol
+// Tableau d'activité : une ligne par avion, l'état actuel en pastille, puis la prochaine réservation et le dernier vol.
+// Le jour (« demain », « ven. 27/11 ») passe AVANT l'heure, dans une petite étiquette, pour se lire d'un coup d'œil.
 function activite(l: Avion[]) {
-  const cell = (cls: string, heure: string, jour: string, nom: string) => `<span class="${cls}"><b>${esc(heure)}</b>${jour ? `<em>${esc(jour)}</em>` : ''}${nom ? `<span class="nm2">${esc(nom)}</span>` : ''}</span>`;
-  const quiC = (r: { pilote?: string | null; instructeur?: string | null }) => [court(r.pilote ?? null), r.instructeur && `avec ${court(r.instructeur)}`].filter(Boolean).join(' ');
+  const quiC = (r: { pilote?: string | null; instructeur?: string | null }) => [court(r.pilote ?? null), r.instructeur && `+ ${court(r.instructeur)}`].filter(Boolean).join(' ');
   const auj = jourParis(new Date());
   const jr = (j: string) => (j === auj ? '' : jourTxt(j).toLowerCase());
-  let h = '<div class="act"><span class="th">Avion</span><span class="th">Réservation</span><span class="th">Prochaine dispo. &gt; 30 min</span><span class="th">Dernier vol</span>';
+  const jour = (j: string) => (j ? `<i>${esc(j)}</i>` : '');
+  const qui = (n: string) => (n ? `<span class="nm2">${esc(n)}</span>` : '');
+  let h = '<div class="act"><div class="ar th"><span>Avion</span><span>État</span><span>Prochaine réservation</span><span>Dernier vol</span></div>';
   for (const a of l) {
-    h += `<span class="im">${esc(a.immat)}</span>`;
-    const r = a.enCours ?? a.prochaine;
-    if (a.indispo) h += cell('r', 'Indisponible', '', `retour ${jourTxt(a.indispo.fin.slice(0, 8)).toLowerCase()}`);
-    else if (r) h += cell(a.enCours ? 'a' : '', `${agH(r.debut)} → ${agH(r.fin)}`, a.enCours ? 'en cours' : jr(r.debut.slice(0, 8)), quiC(r));
-    else h += cell('', 'Aucune', 'sur 7 jours', '');
-    if (a.indispo) h += '<span></span>';
-    else {
-      const x = dispo(a.occupe ?? []);
-      const eph = x ? ephemeride(dateJ(x[0])) : null;
-      const finJour = !!(x && eph && x[2] >= minutesParis(eph.nuitAero));
-      const toutJour = finJour && !!eph && x![1] <= minutesParis(eph.jourAero);
-      h += !x ? cell('', 'Aucune', 'sur 7 jours', '') : cell('gr', toutJour ? 'Toute la journée' : finJour ? `Dès ${hm(x[1])}` : `${hm(x[1])} → ${hm(x[2])}`, jr(x[0]), '');
+    let etat: string, resa: string;
+    if (a.indispo) {
+      etat = '<em class="pe r">Maintenance</em>';
+      resa = `<span class="mu">Retour prévu</span>${jour(jourTxt(a.indispo.fin.slice(0, 8)).toLowerCase())}`;
+    } else if (a.enCours) {
+      etat = '<em class="pe a">Réservé</em>';
+      resa = `<span class="mu">jusqu’à</span><b>${agH(a.enCours.fin)}</b>${qui(quiC(a.enCours))}`;
+    } else {
+      etat = '<em class="pe g">Libre</em>';
+      const r = a.prochaine;
+      resa = r ? `${jour(jr(r.debut.slice(0, 8)))}<b>${agH(r.debut)} – ${agH(r.fin)}</b>${qui(quiC(r))}` : '<span class="mu">Aucune sur 7 jours</span>';
     }
-    if (a.dernier) h += cell('', `${agH(a.dernier.debut)} → ${agH(a.dernier.fin)}`, jr(a.dernier.fin.slice(0, 8)), quiC(a.dernier));
-    else if (a.dernierVol) { const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/); h += cell('', m ? m[2] : a.dernierVol, m ? m[1] : '', ''); }
-    else h += '<span></span>';
+    let der = '';
+    if (a.dernier) der = `${jour(jr(a.dernier.fin.slice(0, 8)))}<b>${agH(a.dernier.debut)} – ${agH(a.dernier.fin)}</b>${qui(quiC(a.dernier))}`;
+    else if (a.dernierVol) { const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/); der = m ? `${jour(m[1])}<b>${m[2]}</b>` : esc(a.dernierVol); }
+    h += `<div class="ar${a.indispo ? ' off' : ''}"><span class="im">${esc(a.immat)}</span><span>${etat}</span><span>${resa}</span><span>${der}</span></div>`;
   }
   return h + '</div>';
 }

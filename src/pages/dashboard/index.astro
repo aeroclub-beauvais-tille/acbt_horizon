@@ -147,15 +147,19 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .ring.warn b { color: var(--warn); } .ring.bad b { color: var(--bad); }
   .e1 .r3 > .panel:first-child { display: flex; flex-direction: column; }
   #activite { flex: 1; min-height: 0; }
-  .act { height: 100%; display: grid; grid-template-columns: 112px repeat(3, minmax(0, 1fr)); column-gap: 18px; }
-  .act > span { display: flex; align-items: center; gap: 8px; min-width: 0; border-bottom: 1px solid var(--line); padding: 0 2px; white-space: nowrap; overflow: hidden; font-size: 17px; font-weight: 600; color: var(--ink2); }
-  .act > .th { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding-bottom: 6px; }
-  .act .im { font-family: var(--mono); font-weight: 700; font-size: 19px; color: var(--ink); }
-  .act b { font-weight: 800; color: var(--ink); flex: none; }
-  .act em { font-style: normal; font-size: 14px; font-weight: 700; color: var(--muted); flex: none; }
+  .act { height: 100%; display: flex; flex-direction: column; gap: 4px; }
+  .act .ar { flex: 1; min-height: 0; max-height: 64px; display: grid; grid-template-columns: 118px 150px minmax(0, 1.15fr) minmax(0, 1fr); column-gap: 16px; align-items: center; padding: 0 12px; border-radius: 10px; }
+  .act .ar:nth-child(even) { background: var(--panel2); }
+  .act .ar.th { flex: none; background: none; padding-bottom: 4px; }
+  .act .ar.th span { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+  .act .ar > span { display: flex; align-items: center; gap: 10px; min-width: 0; white-space: nowrap; overflow: hidden; font-size: 18px; font-weight: 600; color: var(--ink2); }
+  .act .im { font-family: var(--mono); font-weight: 700; font-size: 20px; color: var(--ink) !important; }
+  .act b { font-weight: 800; color: var(--ink); flex: none; font-variant-numeric: tabular-nums; }
+  .act i { font-style: normal; flex: none; font-size: 12.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); background: rgba(143,166,255,.14); border-radius: 6px; padding: 2px 7px; }
+  .act .mu { color: var(--muted); flex: none; }
   .act .nm2 { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-  .act .gr b { color: var(--ok); } .act .a b { color: var(--accent); } .act .r b { color: var(--bad); }
-  .act > span:nth-last-child(-n+4) { border-bottom: 0; }
+  .act .pe { font-style: normal; font-size: 14px; font-weight: 800; padding: 4px 12px; border-radius: 99px; }
+  .act .pe.g { color: var(--ok); background: var(--okbg); } .act .pe.a { color: var(--accent); background: rgba(143,166,255,.16); } .act .pe.r { color: var(--bad); background: var(--badbg); }
   .nl .n { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); align-items: start; }
   .nl .ic.l3 { font-size: 13px; letter-spacing: .3px; } .nl .ic.l4 { font-size: 11px; letter-spacing: .2px; }
   .nl .ic { width: 44px; height: 30px; border-radius: 7px; display: grid; place-items: center; font-weight: 900; font-size: 18px; color: #111; background: #f5c518; box-shadow: inset 0 0 0 2px #111, 0 0 0 1px #f5c518; letter-spacing: -.5px; }
