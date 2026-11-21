@@ -16,7 +16,7 @@ interface Avion {
 interface Creneau { debut: string; fin: string; texte: string | null; type: string | null; pilote: string | null; avion: string | null; flottant: boolean }
 interface Instructeur { nom: string; creneaux: Creneau[] }
 interface Nuage { type: string; hauteur: number | null; cb: string | null }
-interface Cond { regles: string | null; ventDir: number | 'VRB' | null; ventForce: number | null; rafales: number | null; visibilite: number | 'CAVOK' | null; nuages: Nuage[]; temps: { code: string; texte: string }[] }
+interface Cond { regles: string | null; ventDir: number | 'VRB' | null; ventForce: number | null; rafales: number | null; ventVar?: [number, number] | null; visibilite: number | 'CAVOK' | null; nuages: Nuage[]; temps: { code: string; texte: string }[] }
 interface Metar extends Cond { raw: string; heure: string | null; temperature: number | null; rosee: number | null; qnh: number | null }
 interface Periode extends Cond { type: string; probabilite: number | null; debut: string | null; fin: string | null; raw: string }
 interface Taf { raw: string; heure: string | null; periodes: Periode[] }
@@ -354,14 +354,41 @@ function metarBloc() {
   if (!m) { $('metar').innerHTML = '<h2>METAR LFOB</h2><p class="vide">METAR indisponible pour le moment.</p>'; return; }
   const h = utc(m.heure);
   const age = h ? Math.round((Date.now() - h.getTime()) / 60000) : null;
-  const w = m.ventForce === 0 ? 'Calme' : `${m.ventDir === 'VRB' ? 'VRB' : `${String(m.ventDir).padStart(3, '0')}°`} ${m.ventForce ?? '—'} kt${m.rafales ? ` G${m.rafales}` : ''}`;
   const plaf = m.nuages.length ? m.nuages.map((x) => `${x.type} ${x.hauteur != null ? nb(x.hauteur) : ''}${x.cb ? ' ' + x.cb : ''}`).join(' · ') + ' ft' : (m.visibilite === 'CAVOK' ? 'Aucun (CAVOK)' : 'Aucun signalé');
   const v = m.visibilite === 'CAVOK' ? 'CAVOK' : m.visibilite == null ? '—' : m.visibilite >= 9999 ? '≥ 10 km' : `${nb(m.visibilite)} m`;
   const tps = m.temps.map((x) => pheno(x.code)).join(', ');
   $('metar').innerHTML = `<h2>METAR LFOB <span class="r">${h ? `<span class="dot${age != null && age > 70 ? ' ko' : ''}"></span>&nbsp;${hUtc(h)} UTC · il y a ${age} min` : ''}</span></h2>`
-    + `<div class="raw">${esc(m.raw)}</div><div class="mt-v"><span class="cat ${esc(m.regles || '')}">${esc(m.regles || '—')}</span><b>${esc(w)}</b></div>`
+    + `<div class="raw">${esc(m.raw)}</div><div class="mt-v"><span class="cat ${esc(m.regles || '')}">${esc(m.regles || '—')}</span>${cadranVent(m)}</div>`
     + `<div class="kv"><div class="w"><small>Nuages</small><b>${esc(plaf)}</b></div><div><small>Visibilité${tps ? ' · temps' : ''}</small><b>${esc(v)}${tps ? ' · ' + esc(tps) : ''}</b></div>`
     + `<div><small>Temp. / rosée</small><b>${m.temperature ?? '—'} °C / ${m.rosee ?? '—'} °C</b></div><div><small>QNH</small><b>${m.qnh ?? '—'} hPa</b></div></div>`;
+}
+
+// Cadran du vent (façon station météo) : couronne de graduations, nord en rouge, secteur bleu d'où vient le vent
+// (secteur de variation s'il est annoncé), aiguille qui traverse le cadran dans le sens du vent.
+function cadranVent(m: Metar) {
+  const dir = typeof m.ventDir === 'number' ? m.ventDir : null;
+  const f = m.ventForce;
+  const R = 46;
+  const pt = (deg: number, r: number) => [r * Math.sin((deg * Math.PI) / 180), -r * Math.cos((deg * Math.PI) / 180)];
+  let s = '<svg viewBox="-60 -60 120 120" class="cv-svg" aria-hidden="true">';
+  for (let d = 0; d < 360; d += 10) {
+    const [x1, y1] = pt(d, R), [x2, y2] = pt(d, R - 9);
+    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${d === 0 ? 'var(--bad)' : '#c9d2e6'}" stroke-width="4" stroke-linecap="round"/>`;
+  }
+  if (dir != null && f) {
+    const [a, b] = m.ventVar ?? [dir - 20, dir + 20];
+    const ouv = ((b - a) % 360 + 360) % 360;
+    const [ax, ay] = pt(a, R - 12), [bx, by] = pt(b, R - 12);
+    s += `<path d="M0 0 L${ax.toFixed(1)} ${ay.toFixed(1)} A${R - 12} ${R - 12} 0 ${ouv > 180 ? 1 : 0} 1 ${bx.toFixed(1)} ${by.toFixed(1)} Z" fill="#1e9bff" opacity=".9"/>`;
+    const [x1, y1] = pt(dir, R - 12), [x2, y2] = pt(dir + 180, R - 12);
+    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>`;
+    const [hx, hy] = pt(dir + 180, R - 12);
+    s += `<g transform="translate(${hx.toFixed(1)} ${hy.toFixed(1)}) rotate(${dir + 180})"><path d="M0 -2 L-5 8 L5 8 Z" fill="#fff"/></g>`;
+  }
+  s += '<circle r="3" fill="#fff"/></svg>';
+  const gauche = f === 0 ? 'Calme' : m.ventDir === 'VRB' ? 'VRB' : dir != null ? `${String(dir).padStart(3, '0')}°` : '—';
+  const droite = f === 0 || f == null ? '' : `${f} kt`;
+  return `<div class="cv"><b>${gauche}</b>${s}<b>${droite}${m.rafales ? `<small>rafales ${m.rafales} kt</small>` : ''}${m.ventVar ? `<small class="v">variable ${String(m.ventVar[0]).padStart(3, '0')}° à ${String(m.ventVar[1]).padStart(3, '0')}°</small>` : ''}</b></div>`;
 }
 
 // Vent sur les pistes 12/30 et 04/22 : face/arrière et travers pour chaque sens, piste conseillée

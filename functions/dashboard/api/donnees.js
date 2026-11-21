@@ -25,7 +25,7 @@ export async function onRequestGet({ env, request, waitUntil }) {
     lireNotam(env, cache, waitUntil).catch((e) => ({ ok: false, raison: String(e.message || e) })),
     lireHistorique().catch(() => null),
   ]);
-  const corps = { ok: true, maj: new Date().toISOString(), flotte, maa, metar, taf, notam, historique, meteofrance: Boolean(env.METEOFRANCE_BASIC) };
+  const corps = { ok: true, maj: new Date().toISOString(), flotte, maa, metar, taf, notam, historique, meteofrance: Boolean(env.METEOFRANCE_BASIC || env.METEOFRANCE_APIKEY) };
   const rep = (portee) => new Response(JSON.stringify(corps), {
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': `${portee}, max-age=50` },
   });
@@ -72,6 +72,7 @@ function conditions(m) {
     ventDir: m.wind_direction?.repr === 'VRB' ? 'VRB' : m.wind_direction?.value ?? null,
     ventForce: m.wind_speed?.value ?? null,
     rafales: m.wind_gust?.value ?? null,
+    ventVar: (m.wind_variable_direction || []).length === 2 ? m.wind_variable_direction.map((x) => x.value) : null,
     visibilite: /CAVOK/.test(m.raw || '') ? 'CAVOK' : m.visibility?.value ?? null,
     nuages: (m.clouds || []).map((c) => ({ type: c.type, hauteur: c.altitude != null ? c.altitude * 100 : null, cb: c.modifier || null })),
     temps: (m.wx_codes || []).map((w) => ({ code: w.repr, texte: w.value })),
