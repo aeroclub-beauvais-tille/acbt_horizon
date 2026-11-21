@@ -684,7 +684,7 @@ export function flotte() {
     liste.innerHTML = avions.map((a) => {
       const etat = a.indispo ? ['bad', 'Indisponible'] : a.enCours ? ['info', 'Réservé'] : ['ok', 'Disponible'];
       const pot = a.potentiel;
-      const niv = pot == null ? '' : pot <= 0 ? 'bad' : pot <= 300 ? 'warn' : 'ok';
+      const niv = pot == null ? '' : pot < 120 ? 'bad' : pot <= 300 ? 'warn' : 'ok';
       const part = pot == null ? 0 : pot <= 0 ? 1 : Math.min(1, pot / (50 * 60));
       // Chaque texte tient sur une seule ligne (points de suspension si trop long)
       const L = (cls: string, t: string) => `<span class="fl-l ${cls}">${esc(t)}</span>`;
