@@ -15,7 +15,7 @@ backend:
     deleteMedia: Suppression du fichier {{path}} (back-office)
 app_title: Back-office ACBT
 logo:
-  src: ../uploads/logo/logo-acbt.png
+  src: ../uploads/logo/logo-acbt-admin.svg
 site_url: https://acbt60.pages.dev
 media_folder: public/uploads
 public_folder: /uploads
