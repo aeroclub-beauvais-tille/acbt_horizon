@@ -184,18 +184,18 @@ function activite(l: Avion[]) {
     let etat: string, resa: string;
     if (a.indispo) {
       etat = '<em class="pe r">Maintenance</em>';
-      resa = `<span class="mu">Retour prévu</span>${jour(jourTxt(a.indispo.fin.slice(0, 8)).toLowerCase())}`;
+      resa = `<b>${esc(jourTxt(a.indispo.fin.slice(0, 8)))}</b><span class="mu">retour prévu</span>`;
     } else if (a.enCours) {
       etat = '<em class="pe a">Réservé</em>';
-      resa = `<span class="mu">jusqu’à</span><b>${agH(a.enCours.fin)}</b>${qui(quiC(a.enCours))}`;
+      resa = `<b>${agH(a.enCours.debut)} – ${agH(a.enCours.fin)}</b>${qui(quiC(a.enCours))}<i>en cours</i>`;
     } else {
       etat = '<em class="pe g">Libre</em>';
       const r = a.prochaine;
-      resa = r ? `${jour(jr(r.debut.slice(0, 8)))}<b>${agH(r.debut)} – ${agH(r.fin)}</b>${qui(quiC(r))}` : '<span class="mu">Aucune sur 7 jours</span>';
+      resa = r ? `<b>${agH(r.debut)} – ${agH(r.fin)}</b>${qui(quiC(r))}${jour(jr(r.debut.slice(0, 8)))}` : '<span class="mu">Aucune sur 7 jours</span>';
     }
     let der = '';
-    if (a.dernier) der = `${jour(jr(a.dernier.fin.slice(0, 8)))}<b>${agH(a.dernier.debut)} – ${agH(a.dernier.fin)}</b>${qui(quiC(a.dernier))}`;
-    else if (a.dernierVol) { const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/); der = m ? `${jour(m[1])}<b>${m[2]}</b>` : esc(a.dernierVol); }
+    if (a.dernier) der = `<b>${agH(a.dernier.debut)} – ${agH(a.dernier.fin)}</b>${qui(quiC(a.dernier))}${jour(jr(a.dernier.fin.slice(0, 8)))}`;
+    else if (a.dernierVol) { const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/); der = m ? `<b>${m[2]}</b>${jour(m[1])}` : esc(a.dernierVol); }
     h += `<div class="ar${a.indispo ? ' off' : ''}"><span class="im">${esc(a.immat)}</span><span>${etat}</span><span>${resa}</span><span>${der}</span></div>`;
   }
   return h + '</div>';
