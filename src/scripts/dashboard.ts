@@ -619,11 +619,26 @@ async function radar() {
   }
 }
 
+// Prévision AROME-PI de Météo-France (WMS en EPSG:4326, via notre relais /dashboard/api/mf) : +1 h à +6 h
+const AR_BBOX = [LFOB.lat - 1.0, LFOB.lon - 2.7, LFOB.lat + 1.0, LFOB.lon + 2.7].map((v) => v.toFixed(4)).join(',');
+function arome() {
+  if (!D?.meteofrance) return;
+  $('arome-p').hidden = false;
+  const base = Math.floor(Date.now() / 900000) * 900000; // quart d'heure en cours (pas de 15 min d'AROME-PI)
+  const wmsMf = (t: number) => `/dashboard/api/mf?chemin=${encodeURIComponent(`/public/aromepi/1.0/wms/MF-NWP-HIGHRES-AROMEPI-001-FRANCE-WMS/GetMap?service=WMS&version=1.3.0&request=GetMap&layers=REFLECTIVITY_MAX_DBZ__GROUND_OR_WATER_SURFACE&styles=&crs=EPSG:4326&bbox=${AR_BBOX}&width=540&height=200&format=image/png&transparent=true&time=${new Date(t).toISOString().replace('.000', '')}`)}`;
+  const fond = `https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetMap&layers=osmgray:dark,osmgray:dark_labels&styles=&crs=EPSG:4326&bbox=${AR_BBOX}&width=540&height=200&format=image/png`;
+  $('arome').innerHTML = [0.5, 1, 2, 3, 4, 5].map((k) => {
+    const t = base + k * 3600000;
+    return `<div class="ar"><img class="fond" src="${fond}" alt=""><img src="${wmsMf(t)}" alt="" onerror="this.parentElement.style.opacity='.35'"><b>${k < 1 ? '+30 min' : `+${k} h`} · ${heureLocale(new Date(t))}</b><i></i></div>`;
+  }).join('');
+}
+
 function imagesInit() {
   preparer('sat', '', wms('backgrounds:ne_10m_coastline,osmgray:ne_10m_admin_0_boundary_lines_land', 'image/png', '&transparent=true'), true);
   preparer('rad', wms('osmgray:dark,osmgray:dark_labels', 'image/png'), '', false);
   satellite();
   radar();
+  arome();
 }
 
 /* ------------------------------------------------------------------ */
@@ -636,8 +651,10 @@ async function charger() {
     if (r.status === 401) { location.href = `/dashboard/connexion/?retour=${encodeURIComponent(location.pathname + location.search)}`; return; }
     const d = (await r.json()) as Donnees;
     if (!d?.ok) throw new Error('données');
+    const premier = !D;
     D = d;
     derniere = Date.now();
+    if (premier) arome();
     $('etat').classList.remove('ko');
   } catch {
     $('etat').classList.add('ko');
@@ -703,7 +720,7 @@ export function demarrer() {
   setInterval(tic, 1000);
   setInterval(charger, 60000);
   setInterval(() => { soleil(); }, 60000);
-  setInterval(() => { satellite(); radar(); }, 5 * 60000);
+  setInterval(() => { satellite(); radar(); arome(); }, 5 * 60000);
   // Rechargement complet chaque nuit (nouvelle version du site, mémoire du navigateur de la télé)
   setTimeout(() => location.reload(), (() => { const n = new Date(); const t = new Date(n); t.setHours(4, 0, 0, 0); if (t <= n) t.setDate(t.getDate() + 1); return t.getTime() - n.getTime(); })());
 }
