@@ -40,7 +40,10 @@ async function jeton(env, cache, waitUntil, neuf = false) {
     body: 'grant_type=client_credentials',
   });
   if (!r.ok) throw new Error(`jeton Météo-France ${r.status} ${(await r.text()).slice(0, 200)}`);
-  const { access_token: t } = await r.json();
+  const brut = await r.text();
+  let t;
+  try { ({ access_token: t } = JSON.parse(brut)); } catch { /* pas du JSON */ }
+  if (!t) throw new Error(`jeton Météo-France : réponse inattendue (${r.status}, ${r.headers.get('Content-Type')}, ${r.url}) ${brut.replace(/\s+/g, ' ').slice(0, 300)}`);
   if (cache) waitUntil?.(cache.put(new Request(CACHE_JETON), new Response(t, { headers: { 'Cache-Control': 'public, max-age=3300' } })));
   return t;
 }
