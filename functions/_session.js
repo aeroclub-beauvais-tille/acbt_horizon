@@ -28,3 +28,19 @@ export function egal(a, b) {
   for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
   return d === 0;
 }
+
+// Tableau de bord TV du club (/dashboard) : mot de passe à part (MOT_DE_PASSE_DASHBOARD, « acbt » par défaut),
+// cookie à part, valable un an, pour que la télé reste connectée.
+export const COOKIE_DASH = 'acbt_dash';
+export const motDePasseDash = (env) => String(env.MOT_DE_PASSE_DASHBOARD || 'acbt');
+export async function jetonDash(motDePasse) {
+  const data = new TextEncoder().encode(`acbt-dashboard:${String(motDePasse).trim().toLowerCase()}`);
+  const h = await crypto.subtle.digest('SHA-256', data);
+  return [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+export function lireCookieDash(request) {
+  const c = request.headers.get('Cookie') || '';
+  const m = c.match(new RegExp(`(?:^|;\\s*)${COOKIE_DASH}=([^;]+)`));
+  return m ? m[1] : '';
+}
+export const poserCookieDash = (valeur) => `${COOKIE_DASH}=${valeur}; Path=/; Max-Age=${UN_AN}; HttpOnly; Secure; SameSite=Lax`;

@@ -11,7 +11,7 @@ const rad = Math.PI / 180;
  * Calculateur solaire de la NOAA (algorithmes de Meeus) : donne les mêmes heures qu'Aerogest et Perfs
  * (ex. LFOB, 21/11/2026 : lever 08:11, coucher 17:02, heures locales tronquées à la minute).
  */
-function evenement(jour: Date, lat: number, lon: number, lever: boolean): Date | null {
+function evenement(jour: Date, lat: number, lon: number, lever: boolean, zenith = 90.833): Date | null {
   const j0 = Date.UTC(jour.getUTCFullYear(), jour.getUTCMonth(), jour.getUTCDate());
   let min = lever ? 360 : 1080; // minutes UTC, affinées par itération
   for (let i = 0; i < 3; i++) {
@@ -27,7 +27,7 @@ function evenement(jour: Date, lat: number, lon: number, lever: boolean): Date |
     const dec = Math.asin(Math.sin(eps * rad) * Math.sin(lam * rad));
     const y = Math.tan((eps * rad) / 2) ** 2;
     const eqt = (4 / rad) * (y * Math.sin(2 * L0 * rad) - 2 * e * Math.sin(M * rad) + 4 * e * y * Math.sin(M * rad) * Math.cos(2 * L0 * rad) - 0.5 * y * y * Math.sin(4 * L0 * rad) - 1.25 * e * e * Math.sin(2 * M * rad));
-    const cosH = Math.cos(90.833 * rad) / (Math.cos(lat * rad) * Math.cos(dec)) - Math.tan(lat * rad) * Math.tan(dec);
+    const cosH = Math.cos(zenith * rad) / (Math.cos(lat * rad) * Math.cos(dec)) - Math.tan(lat * rad) * Math.tan(dec);
     if (cosH > 1 || cosH < -1) return null;
     const ha = Math.acos(cosH) / rad;
     min = 720 - 4 * (lon + (lever ? ha : -ha)) - eqt;
@@ -35,7 +35,7 @@ function evenement(jour: Date, lat: number, lon: number, lever: boolean): Date |
   return new Date(j0 + min * 60000);
 }
 
-export interface Ephemeride { jourAero: Date; lever: Date; coucher: Date; nuitAero: Date }
+export interface Ephemeride { jourAero: Date; lever: Date; coucher: Date; nuitAero: Date; aubeCivile: Date | null; crepuscule: Date | null }
 
 /** Horaires du jour (date locale de `quand`) à LFOB. */
 export function ephemeride(quand = new Date(), lieu = LFOB): Ephemeride | null {
@@ -51,6 +51,9 @@ export function ephemeride(quand = new Date(), lieu = LFOB): Ephemeride | null {
     lever,
     coucher,
     nuitAero: new Date(coucher.getTime() + 30 * 60000),
+    // Crépuscule civil : soleil à 6° sous l'horizon
+    aubeCivile: evenement(jour, lieu.lat, lieu.lon, true, 96),
+    crepuscule: evenement(jour, lieu.lat, lieu.lon, false, 96),
   };
 }
 

@@ -1,0 +1,37 @@
+---
+// Coquille du tableau de bord TV du club : plein écran sombre, sans en-tête ni pied du site public.
+import manropeUrl from '../fonts/membre/manrope-var.woff2?url';
+import monoUrl from '../fonts/membre/jetbrains-mono-500.woff2?url';
+import { url } from '../lib/utils';
+interface Props { title: string }
+const { title } = Astro.props;
+const polices = `@font-face{font-family:'Manrope';font-style:normal;font-weight:300 800;font-display:swap;src:url(${manropeUrl}) format('woff2')}` +
+  `@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:500 700;font-display:swap;src:url(${monoUrl}) format('woff2')}`;
+---
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} · ACBT</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" href={url('/favicon.png')} type="image/png" />
+    <link rel="preload" href={manropeUrl} as="font" type="font/woff2" crossorigin />
+    <meta name="theme-color" content="#070d1c" />
+  </head>
+  <body>
+    <slot />
+  </body>
+</html>
+<style is:global set:html={polices}></style>
+<style is:global>
+  :root {
+    --bg: #070d1c; --panel: #0f1830; --panel2: #16213d; --line: #22305a;
+    --ink: #eef2fa; --ink2: #c7d0e4; --muted: #8792ad; --accent: #8fa6ff; --navy: #002A5A; --yellow: #ffb81f;
+    --ok: #40c97f; --okbg: rgba(64,201,127,.14); --warn: #ffb81f; --warnbg: rgba(255,184,31,.14); --bad: #ff6464; --badbg: rgba(255,100,100,.14);
+    --r1: #3d7fd6; --r2: #8b6ce0; --r3: #2d9b8a; --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); }
+  body { font-family: Manrope, system-ui, sans-serif; font-variant-numeric: tabular-nums; overflow: hidden; }
+</style>
