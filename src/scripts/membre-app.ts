@@ -1,5 +1,6 @@
 // Fonctions de l'appli « Espace membre » côté téléphone : connexion, installation, documents hors ligne.
 import { url } from '../lib/utils';
+import { ephemeride, heureLocale } from '../lib/soleil';
 
 const CLE = 'acbt-membre';
 const DOCS = 'acbt-membre-docs';
@@ -549,4 +550,85 @@ export async function horsLigne(zone: HTMLElement | null) {
     afficher(await compter());
     if (echecs && etat) etat.textContent += ` ${echecs} n'ont pas pu être téléchargés : réessayez avec une meilleure connexion.`;
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* Soleil à LFOB (onglet Météo) : jour aéronautique, lever, coucher, nuit aéronautique */
+/* ------------------------------------------------------------------ */
+
+export function soleil() {
+  const zone = document.getElementById('soleil');
+  if (!zone) return;
+  const e = ephemeride();
+  if (!e) return;
+  (Object.keys(e) as (keyof typeof e)[]).forEach((k) => {
+    const el = zone.querySelector<HTMLElement>(`[data-soleil="${k}"]`);
+    if (el) el.textContent = heureLocale(e[k]);
+  });
+  // Ce qui est en cours maintenant
+  const t = Date.now();
+  const etat = document.querySelector<HTMLElement>('[data-soleil-etat]');
+  if (etat) {
+    const nuit = t < e.jourAero.getTime() || t >= e.nuitAero.getTime();
+    etat.textContent = nuit ? 'Nuit aéronautique en cours' : `Jour aéronautique jusqu'à ${heureLocale(e.nuitAero)}`;
+    etat.dataset.nuit = nuit ? 'oui' : 'non';
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Onglet Flotte : potentiels et réservations lus sur Aerogest (via /membre/api/flotte) */
+/* ------------------------------------------------------------------ */
+interface Resa { debut: string; fin: string; pilote: string | null; instructeur: string | null; type: string | null }
+interface AvionFlotte { immat: string; potentiel: number | null; tolerance: number; dernierVol: string | null; enCours: Resa | null; prochaine: Resa | null; indispo: { debut: string; fin: string; motif: string } | null }
+
+const hhmm = (min: number) => { const n = min < 0; const a = Math.abs(min); return `${n ? '-' : ''}${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`; };
+// « AAAAMMJJHHmm » (heure de Paris) → objet simple
+const lireAg = (s: string) => ({ j: s.slice(0, 8), h: `${s.slice(8, 10)}:${s.slice(10, 12)}`, date: new Date(Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8), 12)) });
+const jourParis = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d).replace(/-/g, '');
+function quand(s: string) {
+  const r = lireAg(s);
+  const auj = jourParis(new Date());
+  const dem = jourParis(new Date(Date.now() + 86400000));
+  if (r.j === auj) return r.h;
+  if (r.j === dem) return `demain ${r.h}`;
+  const jour = r.date.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+  return `${jour} ${r.h}`;
+}
+const qui = (r: Resa) => [r.pilote, r.instructeur && `avec ${r.instructeur}`].filter(Boolean).join(' ');
+const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+
+export function flotte() {
+  const liste = document.getElementById('flotte-liste');
+  const info = document.getElementById('flotte-info');
+  if (!liste) return;
+  const modeles: Record<string, string> = JSON.parse(liste.dataset.modeles || '{}');
+  const api = liste.dataset.api!;
+  const charger = async () => {
+    let d: { ok: boolean; maj?: string; avions?: AvionFlotte[]; erreur?: string } | null = null;
+    try { d = await fetch(api, { cache: 'no-store' }).then((r) => r.json()); } catch { /* hors ligne */ }
+    if (!d?.ok || !d.avions?.length) {
+      if (!liste.children.length) liste.innerHTML = `<p class="fl-vide">Les données d'Aerogest ne sont pas disponibles pour le moment.</p>`;
+      return;
+    }
+    liste.innerHTML = d.avions.map((a) => {
+      const etat = a.indispo ? ['bad', 'Indisponible'] : a.enCours ? ['info', 'Réservé'] : ['ok', 'Disponible'];
+      const pot = a.potentiel;
+      const niv = pot == null ? '' : pot <= 0 ? 'bad' : pot <= 300 ? 'warn' : 'ok';
+      const largeur = pot == null ? 0 : Math.max(0, Math.min(100, (pot / (50 * 60)) * 100));
+      const lignes: [string, string][] = [];
+      if (a.indispo) lignes.push(['Indisponible', `jusqu'au ${quand(a.indispo.fin)} (${a.indispo.motif})`]);
+      if (a.enCours) lignes.push(['Réservation en cours', `jusqu'à ${lireAg(a.enCours.fin).h} (${qui(a.enCours)})`]);
+      lignes.push(['Prochaine réservation', a.prochaine ? `${quand(a.prochaine.debut)} (${qui(a.prochaine)})` : 'Aucune dans les 7 jours']);
+      lignes.push(['Dernier vol', a.dernierVol ? a.dernierVol.replace(/\/\d{4}/, '') : '—']);
+      return `<article class="fl-carte" data-q="${esc(a.immat.toLowerCase())}">
+        <div class="fl-tete"><span><b class="fl-im">${esc(a.immat)}</b>${modeles[a.immat] ? `<small>${esc(modeles[a.immat])}</small>` : ''}</span><span class="fl-etat fl-${etat[0]}"><i></i>${etat[1]}</span></div>
+        <div class="fl-pot fl-${niv}"><span class="fl-val">${pot == null ? '—' : hhmm(pot)}</span><span class="fl-u">${pot != null && pot <= 0 ? 'visite dépassée' : 'de potentiel avant la visite'}${a.tolerance > 0 ? `, dont ${hhmm(a.tolerance)} de tolérance` : ''}</span></div>
+        <div class="fl-jauge fl-${niv}"><i style="width:${largeur}%"></i></div>
+        <dl>${lignes.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+      </article>`;
+    }).join('');
+    if (info && d.maj) info.textContent = `Source Aerogest · mis à jour à ${new Date(d.maj).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}`;
+  };
+  charger();
+  setInterval(charger, 5 * 60_000);
 }
