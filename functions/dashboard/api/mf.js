@@ -27,8 +27,15 @@ export async function onRequestGet({ env, request, waitUntil }) {
 async function relayer(env, cache, waitUntil, cible) {
   // Clé d'API longue durée (portail Météo-France, « API Key ») : pas besoin de jeton OAuth
   if (env.METEOFRANCE_APIKEY) {
+    // Les cartes sont gardées 10 min en cache chez Cloudflare : toutes les télés partagent les mêmes images (quota de l'API)
+    const cle = new Request(cible.toString());
+    const deja = cache ? await cache.match(cle) : null;
+    if (deja) return deja;
     const r = await fetch(cible, { headers: { apikey: String(env.METEOFRANCE_APIKEY).trim() } });
-    return new Response(r.body, { status: r.status, headers: { 'Content-Type': r.headers.get('Content-Type') || 'application/octet-stream', 'Cache-Control': 'private, max-age=120' } });
+    const corps = await r.arrayBuffer();
+    const type = r.headers.get('Content-Type') || 'application/octet-stream';
+    if (cache && r.ok && /^image\//.test(type)) waitUntil?.(cache.put(cle, new Response(corps, { headers: { 'Content-Type': type, 'Cache-Control': 'public, max-age=600' } })));
+    return new Response(corps, { status: r.status, headers: { 'Content-Type': type, 'Cache-Control': 'private, max-age=600' } });
   }
   let r = await fetch(cible, { headers: { Authorization: `Bearer ${await jeton(env, cache, waitUntil)}` } });
   if (r.status === 401) r = await fetch(cible, { headers: { Authorization: `Bearer ${await jeton(env, cache, waitUntil, true)}` } });

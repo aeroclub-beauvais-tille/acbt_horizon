@@ -341,101 +341,94 @@ const decrire = (c: Cond) => {
   return t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Sans changement significatif';
 };
 
+const fr = (r: string | null, cls = '') => (r ? `<span class="fr ${esc(r)}${cls ? ' ' + cls : ''}">${esc(r)}</span>` : '');
+
 function metarBloc() {
   const m = D?.metar;
   if (!m) { $('metar').innerHTML = '<h2>METAR LFOB</h2><p class="vide">METAR indisponible pour le moment.</p>'; return; }
   const h = utc(m.heure);
   const age = h ? Math.round((Date.now() - h.getTime()) / 60000) : null;
-  const plaf = m.nuages.length ? m.nuages.map((x) => `${x.type} ${x.hauteur != null ? nb(x.hauteur) : ''}${x.cb ? ' ' + x.cb : ''}`).join(' · ') + ' ft' : (m.visibilite === 'CAVOK' ? 'Aucun (CAVOK)' : 'Aucun signalé');
-  const v = m.visibilite === 'CAVOK' ? 'CAVOK' : m.visibilite == null ? '—' : m.visibilite >= 9999 ? '≥ 10 km' : `${nb(m.visibilite)} m`;
+  const plafs = m.nuages.filter((x) => /BKN|OVC|VV/.test(x.type) && x.hauteur != null).map((x) => x.hauteur!);
+  const v = m.visibilite === 'CAVOK' ? 'CAVOK' : m.visibilite == null ? '—' : m.visibilite >= 9999 ? '10 km ou plus' : m.visibilite >= 5000 ? `${Math.round(m.visibilite / 1000)} km` : `${nb(m.visibilite)} m`;
   const tps = m.temps.map((x) => pheno(x.code)).join(', ');
+  const nu = m.nuages.length ? m.nuages.map((x) => `${(NUAGES[x.type] ?? x.type).replace(/^./, (c) => c.toUpperCase())}${x.hauteur != null ? ` à ${nb(x.hauteur)} ft` : ''}${x.cb ? ` (${x.cb})` : ''}`).join('<br>') : m.visibilite === 'CAVOK' ? 'Aucun (CAVOK)' : 'Aucun signalé';
+  const ligne = (k: string, val: string) => `<div><span>${k}</span><b>${val}</b></div>`;
   $('metar').innerHTML = `<h2>METAR LFOB <span class="r">${h ? `<span class="dot${age != null && age > 70 ? ' ko' : ''}"></span>&nbsp;${hUtc(h)} UTC · il y a ${age} min` : ''}</span></h2>`
-    + `<div class="raw">${esc(m.raw)}</div><div class="mt-v"><span class="cat ${esc(m.regles || '')}">${esc(m.regles || '—')}</span>${cadranVent(m)}</div>`
-    + `<div class="kv"><div class="w"><small>Nuages</small><b>${esc(plaf)}</b></div><div><small>Visibilité${tps ? ' · temps' : ''}</small><b>${esc(v)}${tps ? ' · ' + esc(tps) : ''}</b></div>`
-    + `<div><small>Temp. / rosée</small><b>${m.temperature ?? '—'} °C / ${m.rosee ?? '—'} °C</b></div><div><small>QNH</small><b>${m.qnh ?? '—'} hPa</b></div></div>`;
+    + `<div class="mt-h">${fr(m.regles, 'gd')}<span>${esc(m.regles === 'VFR' ? 'Conditions VFR' : m.regles === 'MVFR' ? 'VFR marginal' : m.regles === 'IFR' ? 'Conditions IFR' : m.regles === 'LIFR' ? 'IFR bas' : '')}</span></div>`
+    + `<div class="raw">${esc(m.raw)}</div><div class="rows">`
+    + ligne('Vent', esc(vent(m).replace(/^Vent /, '') || '—'))
+    + ligne('Visibilité', esc(v))
+    + ligne('Temps présent', esc(tps ? tps.replace(/^./, (c) => c.toUpperCase()) : 'Pas de phénomène significatif'))
+    + ligne('Nuages', nu)
+    + ligne('Plafond', plafs.length ? `${nb(Math.min(...plafs))} ft` : 'Aucun')
+    + ligne('Température', `${m.temperature ?? '—'} °C · rosée ${m.rosee ?? '—'} °C`)
+    + ligne('QNH', `${m.qnh ?? '—'} hPa`) + '</div>';
 }
 
-// Cadran du vent (façon station météo) : couronne de graduations, nord en rouge, secteur bleu d'où vient le vent
-// (secteur de variation s'il est annoncé), aiguille qui traverse le cadran dans le sens du vent.
-function cadranVent(m: Metar) {
-  const dir = typeof m.ventDir === 'number' ? m.ventDir : null;
-  const f = m.ventForce;
-  const R = 46;
-  const pt = (deg: number, r: number) => [r * Math.sin((deg * Math.PI) / 180), -r * Math.cos((deg * Math.PI) / 180)];
-  let s = '<svg viewBox="-60 -60 120 120" class="cv-svg" aria-hidden="true">';
-  for (let d = 0; d < 360; d += 10) {
-    const [x1, y1] = pt(d, R), [x2, y2] = pt(d, R - 9);
-    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${d === 0 ? 'var(--bad)' : 'var(--muted)'}" stroke-width="4" stroke-linecap="round"/>`;
-  }
-  if (dir != null && f) {
-    const [a, b] = m.ventVar ?? [dir - 20, dir + 20];
-    const ouv = ((b - a) % 360 + 360) % 360;
-    const [ax, ay] = pt(a, R - 12), [bx, by] = pt(b, R - 12);
-    s += `<path d="M0 0 L${ax.toFixed(1)} ${ay.toFixed(1)} A${R - 12} ${R - 12} 0 ${ouv > 180 ? 1 : 0} 1 ${bx.toFixed(1)} ${by.toFixed(1)} Z" fill="#1e9bff" opacity=".9"/>`;
-    const [x1, y1] = pt(dir, R - 12), [x2, y2] = pt(dir + 180, R - 12);
-    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>`;
-    const [hx, hy] = pt(dir + 180, R - 12);
-    s += `<g transform="translate(${hx.toFixed(1)} ${hy.toFixed(1)}) rotate(${dir + 180})"><path d="M0 -2 L-5 8 L5 8 Z" fill="var(--ink)"/></g>`;
-  }
-  s += '<circle r="3" fill="var(--ink)"/></svg>';
-  const gauche = f === 0 ? 'Calme' : m.ventDir === 'VRB' ? 'VRB' : dir != null ? `${String(dir).padStart(3, '0')}°` : '—';
-  const droite = f === 0 || f == null ? '' : `${f} kt`;
-  return `<div class="cv"><b>${gauche}</b>${s}<b>${droite}${m.rafales ? `<small>rafales ${m.rafales} kt</small>` : ''}${m.ventVar ? `<small class="v">variable ${String(m.ventVar[0]).padStart(3, '0')}° à ${String(m.ventVar[1]).padStart(3, '0')}°</small>` : ''}</b></div>`;
-}
-
-// Vent sur les pistes 12/30 et 04/22 : face/arrière et travers pour chaque sens, piste conseillée
-const PISTES = [{ nom: '12 / 30', a: ['12', 120], b: ['30', 300] }, { nom: '04 / 22', a: ['04', 40], b: ['22', 220] }] as const;
-function pistes() {
+// Vent et pistes de LFOB : couronne façon station météo, les deux pistes à leur orientation réelle
+// (12/30 au 124°, 04/22 au 42°, la petite piste au nord de la grande), secteur bleu d'où vient le vent.
+const PISTES = [
+  { a: ['12', 120], b: ['30', 300], cap: 124, cx: -3, cy: 4, l: 74 },
+  { a: ['04', 40], b: ['22', 220], cap: 42, cx: 9, cy: -24, l: 30 },
+] as const;
+function ventBloc() {
   const m = D?.metar;
   const dir = typeof m?.ventDir === 'number' ? m.ventDir : null;
   const f = m?.ventForce ?? null;
   const g = m?.rafales ?? null;
-  $('vent-info').textContent = m ? (f === 0 ? 'vent calme' : dir == null ? `variable ${f ?? '—'} kt` : `${String(dir).padStart(3, '0')}° ${f} kt${g ? ` G${g}` : ''}`) : '';
-  const comp = (cap: number, s: number) => { const a = ((dir! - cap) * Math.PI) / 180; return { face: Math.round(s * Math.cos(a)), trav: Math.round(s * Math.sin(a)) }; };
-  // Sens conseillé : le plus de vent de face (vent d'au moins 3 kt et de direction connue)
+  $('vent-info').textContent = m ? `METAR ${m.heure ? hUtc(new Date(m.heure)) + ' UTC' : ''}` : '';
+  const R = 54;
+  const pt = (deg: number, r: number, x0 = 0, y0 = 0) => [x0 + r * Math.sin((deg * Math.PI) / 180), y0 - r * Math.cos((deg * Math.PI) / 180)];
+  let s = '<svg viewBox="-62 -62 124 124" aria-hidden="true">';
+  for (let d = 0; d < 360; d += 10) {
+    const [x1, y1] = pt(d, R), [x2, y2] = pt(d, R - 6);
+    s += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${d === 0 ? 'var(--bad)' : 'var(--muted)'}" stroke-width="2.6" stroke-linecap="round"/>`;
+  }
+  for (const [t, d] of [['N', 0], ['E', 90], ['S', 180], ['O', 270]] as const) {
+    const [x, y] = pt(d, R - 12);
+    s += `<text x="${x.toFixed(1)}" y="${(y + 2.6).toFixed(1)}" fill="var(--muted)" font-size="7" font-weight="800" text-anchor="middle">${t}</text>`;
+  }
+  if (dir != null && f) {
+    const [a, b] = m!.ventVar ?? [dir - 15, dir + 15];
+    const ouv = ((b - a) % 360 + 360) % 360;
+    const r2 = R - 7;
+    const [ax, ay] = pt(a, r2), [bx, by] = pt(b, r2);
+    s += `<path d="M0 0 L${ax.toFixed(2)} ${ay.toFixed(2)} A${r2} ${r2} 0 ${ouv > 180 ? 1 : 0} 1 ${bx.toFixed(2)} ${by.toFixed(2)} Z" fill="#1e9bff" opacity=".35"/>`;
+  }
+  // Pistes : bande grise, axe en pointillés, numéros aux seuils (le 12 au nord-ouest, le 04 au sud-ouest)
+  for (const p of PISTES) {
+    const [x1, y1] = pt(p.cap + 180, p.l / 2, p.cx, p.cy), [x2, y2] = pt(p.cap, p.l / 2, p.cx, p.cy);
+    s += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="var(--ink2)" stroke-width="6.5" stroke-linecap="butt" opacity=".9"/>`
+      + `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="var(--panel)" stroke-width=".7" stroke-dasharray="2.5 2"/>`;
+    const [lx1, ly1] = pt(p.cap + 180, p.l / 2 + 6, p.cx, p.cy), [lx2, ly2] = pt(p.cap, p.l / 2 + 6, p.cx, p.cy);
+    s += `<text x="${lx1.toFixed(1)}" y="${(ly1 + 2.3).toFixed(1)}" fill="var(--ink)" font-size="6.5" font-weight="800" text-anchor="middle" font-family="JetBrains Mono, monospace">${p.a[0]}</text>`
+      + `<text x="${lx2.toFixed(1)}" y="${(ly2 + 2.3).toFixed(1)}" fill="var(--ink)" font-size="6.5" font-weight="800" text-anchor="middle" font-family="JetBrains Mono, monospace">${p.b[0]}</text>`;
+  }
+  // Flèche : part du bord d'où vient le vent et pointe vers le terrain
+  if (dir != null && f) {
+    const [x1, y1] = pt(dir, R - 2), [x2, y2] = pt(dir, 14);
+    s += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="#1e9bff" stroke-width="2.6" stroke-linecap="round"/>`
+      + `<g transform="translate(${x2.toFixed(2)} ${y2.toFixed(2)}) rotate(${dir + 180})"><path d="M0 2 L-4.5 -7 L4.5 -7 Z" fill="#1e9bff"/></g>`;
+  }
+  s += '</svg>';
+  const gauche = !m ? '—' : f === 0 ? 'Calme' : m.ventDir === 'VRB' ? 'VRB' : dir != null ? `${String(dir).padStart(3, '0')}°` : '—';
+  const sous = m?.ventVar ? `<small>variable ${String(m.ventVar[0]).padStart(3, '0')}° à ${String(m.ventVar[1]).padStart(3, '0')}°</small>` : '';
+  const droite = f == null || f === 0 ? '' : `<span>${f} kt</span>${g ? `<small class="raf">rafales ${g} kt</small>` : ''}`;
+  // Composantes pour chaque sens de piste, sens conseillé = le plus de vent de face (à partir de 3 kt)
+  const comp = (cap: number, v: number) => { const a = ((dir! - cap) * Math.PI) / 180; return { face: Math.round(v * Math.cos(a)), trav: Math.round(v * Math.sin(a)) }; };
   let meilleur = '';
   if (dir != null && f != null && f >= 3) {
     let max = -Infinity;
     for (const p of PISTES) for (const [n, cap] of [p.a, p.b]) { const c = comp(cap, f); if (c.face > max) { max = c.face; meilleur = n; } }
   }
-  $('pistes').innerHTML = PISTES.map((p) => {
-    const co = [p.a[0], p.b[0]].includes(meilleur as never);
-    const sens = [p.a, p.b].map(([n, cap]) => {
-      if (dir == null || f == null) return `<div class="qfu"><span class="n">${n}</span><div><b>${f === 0 ? 'Vent calme' : 'Vent variable'}</b><small>pas de composante calculable</small></div></div>`;
-      const c = comp(cap, f);
-      const cg = g ? comp(cap, g) : null;
-      const t1 = c.face >= 0 ? `${c.face} kt de face` : `${-c.face} kt arrière`;
-      const t2 = `travers ${Math.abs(c.trav)} kt ${c.trav > 0 ? 'droite' : c.trav < 0 ? 'gauche' : ''}`.trim() + (cg ? ` · rafales ${Math.abs(cg.trav)} kt` : '');
-      return `<div class="qfu${n === meilleur ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${t2}</small></div></div>`;
-    }).join('');
-    return `<div class="pi${co ? ' co' : ''}">${rose(p.a[1], p.a[0], p.b[0], dir)}<div><h3>Piste ${p.nom}${co ? '<small>conseillée par le vent</small>' : ''}</h3>${sens}</div></div>`;
+  const qfus = PISTES.flatMap((p) => [p.a, p.b]).map(([n, cap]) => {
+    if (dir == null || f == null) return `<div class="qfu"><span class="n">${n}</span><div><b>${f === 0 ? 'Vent calme' : 'Vent variable'}</b><small>pas de composante</small></div></div>`;
+    const c = comp(cap, f), cg = g ? comp(cap, g) : null;
+    const t1 = c.face >= 0 ? `${c.face} kt de face` : `${-c.face} kt arrière`;
+    const t2 = `travers ${Math.abs(c.trav)} kt${c.trav ? (c.trav > 0 ? ' droite' : ' gauche') : ''}` + (cg ? ` · rafales ${Math.abs(cg.trav)} kt` : '');
+    return `<div class="qfu${n === meilleur ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${n === meilleur ? 'conseillée · ' : ''}${t2}</small></div></div>`;
   }).join('');
-}
-
-function rose(cap: number, na: string, nb2: string, dir: number | null) {
-  const R = 92;
-  let s = `<svg viewBox="-110 -110 220 220" aria-hidden="true"><circle r="${R}" fill="none" stroke="var(--line)" stroke-width="1.5"/>`;
-  for (let d = 0; d < 360; d += 10) {
-    const a = (d * Math.PI) / 180, l = d % 90 === 0 ? 12 : d % 30 === 0 ? 7 : 3;
-    s += `<line x1="${(R * Math.sin(a)).toFixed(1)}" y1="${(-R * Math.cos(a)).toFixed(1)}" x2="${((R - l) * Math.sin(a)).toFixed(1)}" y2="${(-(R - l) * Math.cos(a)).toFixed(1)}" stroke="var(--muted)" stroke-width="${d % 90 === 0 ? 2 : 1}"/>`;
-  }
-  for (const [t, d] of [['N', 0], ['E', 90], ['S', 180], ['O', 270]] as const) {
-    const a = (d * Math.PI) / 180;
-    s += `<text x="${(72 * Math.sin(a)).toFixed(1)}" y="${(-72 * Math.cos(a) + 5).toFixed(1)}" fill="var(--muted)" font-size="14" font-weight="700" text-anchor="middle">${t}</text>`;
-  }
-  // Piste : rectangle orienté au cap, numéros aux deux seuils
-  s += `<g transform="rotate(${cap})"><rect x="-8" y="-62" width="16" height="124" rx="2" fill="#3a4766" stroke="var(--ink2)" stroke-width="1.2"/><line x1="0" y1="-50" x2="0" y2="50" stroke="var(--ink)" stroke-width="1.4" stroke-dasharray="6 5"/>`
-    + `<text y="-46" transform="rotate(180 0 -50)" fill="var(--ink)" font-size="12" font-weight="800" text-anchor="middle" font-family="JetBrains Mono, monospace" dy="4">${nb2}</text>`
-    + `<text y="54" fill="var(--ink)" font-size="12" font-weight="800" text-anchor="middle" font-family="JetBrains Mono, monospace" dy="-4" transform="rotate(180 0 50)">${na}</text></g>`;
-  // Flèche du vent : vient de la direction annoncée, pointe vers le centre
-  if (dir != null) {
-    const a = (dir * Math.PI) / 180;
-    const x1 = 100 * Math.sin(a), y1 = -100 * Math.cos(a), x2 = 26 * Math.sin(a), y2 = -26 * Math.cos(a);
-    const ang = (dir + 180) % 360;
-    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="var(--yellow)" stroke-width="4" stroke-linecap="round"/>`
-      + `<g transform="translate(${x2.toFixed(1)} ${y2.toFixed(1)}) rotate(${ang})"><path d="M0 4 L-8 -10 L8 -10 Z" fill="var(--yellow)"/></g><circle cx="${x1.toFixed(1)}" cy="${y1.toFixed(1)}" r="4" fill="var(--yellow)"/>`;
-  }
-  return s + '</svg>';
+  $('vent').innerHTML = `<div class="vd"><div class="t"><span>${gauche}</span>${droite}${sous}</div>${s}</div><div class="qfus">${qfus}</div>`;
 }
 
 function tafBloc() {
@@ -453,7 +446,7 @@ function tafBloc() {
     let ty = i === 0 ? 'Période de base' : TYPES[p.type] ?? p.type;
     if (p.probabilite) ty = `Probabilité ${p.probabilite} %${p.type === 'TEMPO' ? ' · temporaire' : ''}`;
     const code = i === 0 ? '' : p.raw;
-    return `<div class="per${on ? ' on' : ''}"><div class="q"><b>${d ? lbl(d) : ''} → ${f ? lbl(f).replace(/^(Auj\.|Dem\.)/, (x) => x.toLowerCase()) : ''}</b><small>${esc(ty)}${on ? ' · en cours' : ''}</small></div><div class="d">${esc(decrire(p))}${code ? `<code>${esc(code)}</code>` : ''}</div></div>`;
+    return `<div class="per${on ? ' on' : ''}"><div class="q"><b>${d ? lbl(d) : ''} → ${f ? lbl(f).replace(/^(Auj\.|Dem\.)/, (x) => x.toLowerCase()) : ''}</b><small>${esc(ty)}${on ? ' · en cours' : ''}</small></div>${fr(p.regles)}<div class="d">${esc(decrire(p))}${code ? `<code>${esc(code)}</code>` : ''}</div></div>`;
   }).join('');
   $('taf').innerHTML = `<h2>TAF LFOB <span class="r">${h ? `émis ${hUtc(h)} UTC · ` : ''}heures UTC</span></h2><div class="raw">${esc(t.raw)}</div>${per}`;
 }
@@ -461,73 +454,16 @@ function tafBloc() {
 function maaBloc() {
   const l = (D?.maa ?? []).slice(0, 10);
   const n = Date.now();
-  $('maa-info').textContent = D?.maa == null ? '' : l.length ? `${l.length} en vigueur ou à venir · par ordre de validité · UTC` : 'aucun en vigueur';
+  $('maa-info').textContent = D?.maa == null ? '' : l.length ? `${l.length} en vigueur ou à venir · UTC` : '';
   const t = (iso: string | null) => { const d = utc(iso); return d ? `${jmUtc(d)} ${hUtc(d)}` : '…'; };
   $('maa').innerHTML = D?.maa == null ? '<p class="vide">MAA indisponibles pour le moment.</p>'
     : l.length ? l.map((m) => {
       const on = m.debut && Date.parse(m.debut) <= n;
       return `<div class="m${on ? ' on' : ''}"><span class="no">${esc((m.numero || '').split('/')[0])}</span><b>${esc(m.motif || 'Avertissement d’aérodrome')}</b><span class="v"><small>${on ? 'EN COURS' : 'À VENIR'}</small>${t(m.debut)}<br>→ ${t(m.fin)}</span></div>`;
     }).join('') : '<p class="vide">Aucun MAA en vigueur pour LFOB.</p>';
-  const peu = l.length <= 3;
-  $('maa').parentElement!.classList.toggle('peu', peu);
-  if (peu) evolution();
 }
 
-// Courbe d'évolution : vent, rafales et plafond observés (METAR des 12 dernières heures) puis prévus (TAF)
-function evolution() {
-  const n = Date.now();
-  const t0 = n - 9 * 3600000, t1 = n + 15 * 3600000;
-  const obs = (D?.historique ?? []).filter((h) => Date.parse(h.t) >= t0);
-  // Prévision heure par heure : période de base + BECMG/FM appliqués, TEMPO/PROB en pointillés
-  const prev: { t: number; vent: number | null; raf: number | null; plaf: number | null; tv: number | null; tp: number | null }[] = [];
-  const pers = D?.taf?.periodes ?? [];
-  const plafond = (c: Cond) => { const p = c.nuages.filter((x) => /BKN|OVC|VV/.test(x.type) && x.hauteur != null).map((x) => x.hauteur!); return p.length ? Math.min(...p) : c.nuages.length || c.visibilite === 'CAVOK' ? 9999 : null; };
-  for (let t = Math.ceil(n / 3600000) * 3600000; t <= t1; t += 3600000) {
-    let v: number | null = null, r: number | null = null, pl: number | null = null, tv: number | null = null, tp: number | null = null;
-    for (const p of pers) {
-      const d = Date.parse(p.debut || ''), f = Date.parse(p.fin || '');
-      if (p.type === 'TEMPO' || p.type === 'INTER' || p.probabilite) {
-        if (d <= t && t < f) { tv = Math.max(tv ?? 0, p.rafales ?? p.ventForce ?? 0) || tv; const x = plafond(p); if (x != null && x < 9999) tp = Math.min(tp ?? 99999, x); }
-        continue;
-      }
-      // Période de base, FM et BECMG : s'appliquent dès leur début, jusqu'à la fin du TAF
-      if (!(d <= t)) continue;
-      if (p.ventForce != null) { v = p.ventForce; r = p.rafales; }
-      const x = plafond(p);
-      if (x != null) pl = x;
-    }
-    prev.push({ t, vent: v, raf: r, plaf: pl, tv, tp });
-  }
-  const W = 560, H = 380, G = 46, Dr = 16, hV = 150, hP = 150, y0 = 24, y1 = y0 + hV + 40;
-  const X = (t: number) => G + ((t - t0) / (t1 - t0)) * (W - G - Dr);
-  const vmax = Math.max(20, ...obs.map((o) => o.rafales ?? o.vent ?? 0), ...prev.map((p) => Math.max(p.raf ?? 0, p.vent ?? 0, p.tv ?? 0))) + 5;
-  const YV = (v: number) => y0 + hV - (v / vmax) * hV;
-  const PMAX = 5000;
-  const YP = (p: number) => y1 + hP - (Math.min(p, PMAX) / PMAX) * hP;
-  const ligne = (pts: [number, number][], c: string, dash = '') => (pts.length > 1 ? `<polyline points="${pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(' ')}" fill="none" stroke="${c}" stroke-width="2.5"${dash ? ` stroke-dasharray="${dash}"` : ''} stroke-linejoin="round"/>` : '');
-  let s = `<svg viewBox="0 0 ${W} ${H}">`;
-  // axes et grilles
-  for (const v of [0, 10, 20, 30, 40].filter((v) => v <= vmax)) s += `<line x1="${G}" x2="${W - Dr}" y1="${YV(v)}" y2="${YV(v)}" stroke="var(--line)"/><text x="${G - 8}" y="${YV(v) + 4}" fill="var(--muted)" font-size="12" text-anchor="end">${v}</text>`;
-  for (const p of [0, 1000, 2000, 3000, 5000]) s += `<line x1="${G}" x2="${W - Dr}" y1="${YP(p)}" y2="${YP(p)}" stroke="var(--line)"/><text x="${G - 8}" y="${YP(p) + 4}" fill="var(--muted)" font-size="12" text-anchor="end">${p >= 5000 ? '≥5k' : p ? `${p / 1000}k` : '0'}</text>`;
-  s += `<text x="${G}" y="${y0 - 8}" fill="var(--ink2)" font-size="13" font-weight="700">Vent et rafales (kt)</text><text x="${G}" y="${y1 - 8}" fill="var(--ink2)" font-size="13" font-weight="700">Plafond (ft)</text>`;
-  for (let t = Math.ceil(t0 / 10800000) * 10800000; t <= t1; t += 10800000) {
-    const d = new Date(t);
-    s += `<text x="${X(t)}" y="${H - 4}" fill="var(--muted)" font-size="12" text-anchor="middle">${p2(d.getUTCHours())}Z</text>`;
-  }
-  s += `<line x1="${X(n)}" x2="${X(n)}" y1="${y0 - 4}" y2="${y1 + hP}" stroke="var(--bad)" stroke-width="2"/>`;
-  // observé
-  s += ligne(obs.filter((o) => o.vent != null).map((o) => [X(Date.parse(o.t)), YV(o.vent!)]), 'var(--accent)');
-  for (const o of obs) if (o.rafales) s += `<circle cx="${X(Date.parse(o.t))}" cy="${YV(o.rafales)}" r="3.5" fill="var(--warn)"/>`;
-  s += ligne(obs.filter((o) => o.plafond != null).map((o) => [X(Date.parse(o.t)), YP(o.plafond!)]), 'var(--ok)');
-  // prévu
-  s += ligne(prev.filter((p) => p.vent != null).map((p) => [X(p.t), YV(p.vent!)]), 'var(--accent)', '6 5');
-  for (const p of prev) { if (p.raf) s += `<circle cx="${X(p.t)}" cy="${YV(p.raf)}" r="3.5" fill="none" stroke="var(--warn)" stroke-width="2"/>`; if (p.tv) s += `<rect x="${X(p.t) - 3}" y="${YV(p.tv) - 3}" width="6" height="6" fill="var(--warn)" opacity=".6"/>`; if (p.tp != null) s += `<rect x="${X(p.t) - 3}" y="${YP(p.tp) - 3}" width="6" height="6" fill="var(--ok)" opacity=".6"/>`; }
-  s += ligne(prev.filter((p) => p.plaf != null).map((p) => [X(p.t), YP(p.plaf!)]), 'var(--ok)', '6 5');
-  s += `<text x="${X(n) - 6}" y="${y0 + 12}" fill="var(--muted)" font-size="12" text-anchor="end">observé</text><text x="${X(n) + 6}" y="${y0 + 12}" fill="var(--muted)" font-size="12">prévu (TAF)</text></svg>`;
-  $('evol').innerHTML = `<h3>Évolution à LFOB <span>trait plein : METAR · pointillés : TAF · carrés : TEMPO</span></h3>${s}`;
-}
-
-function meteo() { metarBloc(); pistes(); tafBloc(); maaBloc(); }
+function meteo() { metarBloc(); ventBloc(); tafBloc(); maaBloc(); }
 
 /* ------------------------------------------------------------------ */
 /* 4. Satellite (EUMETView) et radar (RainViewer), animés sur 2 h      */
@@ -582,8 +518,8 @@ function animer(id: string, cadres: { t: number; src: string }[]) {
       n.i = (n.i + 1) % ok.length;
       n.cadres.forEach((c) => c.img.classList.toggle('on', c === ok[n.i]));
       const d = new Date(ok[n.i].t);
-      $(`${id === 'sat' ? 'sat' : 'rad'}-h`).textContent = `${hUtc(d)} UTC`;
-      ($(`${id === 'sat' ? 'sat' : 'rad'}-b`) as HTMLElement).style.width = `${ok.length > 1 ? (n.i / (ok.length - 1)) * 100 : 100}%`;
+      $(`${id}-h`).textContent = id === 'aro' ? `${ok[n.i].t - Date.now() < 3600000 ? `+${Math.max(0, Math.round((ok[n.i].t - Date.now()) / 60000))} min` : `+${Math.round((ok[n.i].t - Date.now()) / 1800000) / 2} h`.replace('.5', ' h 30').replace(' h h', ' h')} · ${heureLocale(d)}` : `${hUtc(d)} UTC`;
+      ($(`${id}-b`) as HTMLElement).style.width = `${ok.length > 1 ? (n.i / (ok.length - 1)) * 100 : 100}%`;
     }
     n.minuteur = window.setTimeout(pas, ok.length && n.i === ok.length - 1 ? 2500 : 450);
   };
@@ -610,18 +546,30 @@ async function radar() {
   }
 }
 
-// Prévision AROME-PI de Météo-France (WMS en EPSG:4326, via notre relais /dashboard/api/mf) : +1 h à +6 h
-const AR_BBOX = [LFOB.lat - 1.0, LFOB.lon - 2.7, LFOB.lat + 1.0, LFOB.lon + 2.7].map((v) => v.toFixed(4)).join(',');
+// Prévision AROME-PI de Météo-France, animée de +30 min à +6 h par pas de 30 min (WMS en EPSG:4326, via /dashboard/api/mf).
+// Cadre presque carré au sol autour de LFOB (1° de longitude ≈ 0,65° de latitude à 49° N).
+const AR = { dLat: 1.6, dLon: 2.45 };
+const AR_BBOX = [LFOB.lat - AR.dLat, LFOB.lon - AR.dLon, LFOB.lat + AR.dLat, LFOB.lon + AR.dLon].map((v) => v.toFixed(4)).join(',');
+let aromePret = false;
 function arome() {
   if (!D?.meteofrance) return;
-  $('arome-p').hidden = false;
-  const base = Math.floor(Date.now() / 900000) * 900000; // quart d'heure en cours (pas de 15 min d'AROME-PI)
-  const wmsMf = (t: number) => `/dashboard/api/mf?chemin=${encodeURIComponent(`/public/aromepi/1.0/wms/MF-NWP-HIGHRES-AROMEPI-001-FRANCE-WMS/GetMap?service=WMS&version=1.3.0&request=GetMap&layers=REFLECTIVITY_MAX_DBZ__GROUND_OR_WATER_SURFACE&styles=&crs=EPSG:4326&bbox=${AR_BBOX}&width=540&height=200&format=image/png&transparent=true&time=${new Date(t).toISOString().replace('.000', '')}`)}`;
-  const fond = `https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetMap&layers=osmgray:dark,osmgray:dark_labels&styles=&crs=EPSG:4326&bbox=${AR_BBOX}&width=540&height=200&format=image/png`;
-  $('arome').innerHTML = [0.5, 1, 2, 3, 4, 5].map((k) => {
-    const t = base + k * 3600000;
-    return `<div class="ar"><img class="fond" src="${fond}" alt=""><img src="${wmsMf(t)}" alt="" onerror="this.parentElement.style.opacity='.35'"><b>${k < 1 ? '+30 min' : `+${k} h`} · ${heureLocale(new Date(t))}</b><i></i></div>`;
-  }).join('');
+  $('aro-p').hidden = false;
+  document.querySelector('.e4')!.classList.add('trois');
+  if (!aromePret) {
+    const fond = `https://view.eumetsat.int/geoserver/ows?service=WMS&version=1.3.0&request=GetMap&layers=osmgray:dark,osmgray:dark_labels&styles=&crs=EPSG:4326&bbox=${AR_BBOX}&width=1024&height=1024&format=image/png`;
+    const c = $('aro');
+    const k = TAILLE_IMG / 2;
+    const villes = VILLES.map(([nm, la, lo]) => `<span class="pt" style="left:calc(50% + ${(((lo - LFOB.lon) / AR.dLon) * k).toFixed(0)}px);top:calc(50% - ${(((la - LFOB.lat) / AR.dLat) * k).toFixed(0)}px)">${nm}</span>`).join('');
+    c.innerHTML = `<img class="fond" src="${fond}" alt=""><div class="cadres"></div>${villes}<div class="lfob"><i></i><span>LFOB</span></div><div class="msg" id="aro-msg"></div>`;
+    aromePret = true;
+  }
+  const base = Math.floor(Date.now() / 1800000) * 1800000;
+  const cadres = [];
+  for (let k = 1; k <= 12; k++) {
+    const t = base + k * 1800000;
+    cadres.push({ t, src: `/dashboard/api/mf?chemin=${encodeURIComponent(`/public/aromepi/1.0/wms/MF-NWP-HIGHRES-AROMEPI-001-FRANCE-WMS/GetMap?service=WMS&version=1.3.0&request=GetMap&layers=REFLECTIVITY_MAX_DBZ__GROUND_OR_WATER_SURFACE&styles=&crs=EPSG:4326&bbox=${AR_BBOX}&width=800&height=800&format=image/png&transparent=true&time=${new Date(t).toISOString().replace('.000', '')}`)}` });
+  }
+  animer('aro', cadres);
 }
 
 function imagesInit() {
@@ -712,7 +660,8 @@ export function demarrer() {
   setInterval(tic, 1000);
   setInterval(charger, 60000);
   setInterval(() => { soleil(); theme(); }, 60000);
-  setInterval(() => { satellite(); radar(); arome(); }, 5 * 60000);
+  setInterval(() => { satellite(); radar(); }, 5 * 60000);
+  setInterval(arome, 15 * 60000);
   // Rechargement complet chaque nuit (nouvelle version du site, mémoire du navigateur de la télé)
   setTimeout(() => location.reload(), (() => { const n = new Date(); const t = new Date(n); t.setHours(4, 0, 0, 0); if (t <= n) t.setDate(t.getDate() + 1); return t.getTime() - n.getTime(); })());
 }
