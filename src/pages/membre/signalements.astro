@@ -232,7 +232,7 @@ const avions = (await getCollection('avions', (a) => a.data.actif))
 
 <style>
   .ecran { min-height: 100svh; display: flex; flex-direction: column; background: var(--bg); }
-  .haut { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 0 16px 0 8px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: var(--bar-ink); }
+  .haut { display: flex; align-items: center; gap: 10px; min-height: calc(54px + env(safe-area-inset-top, 0px)); padding: 0 16px 0 8px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: var(--bar-ink); }
   .retour { display: grid; place-items: center; width: 34px; height: 34px; color: var(--bar-ic); }
   .retour svg { width: 22px; height: 22px; }
   .haut :global(.logo) { --logo-h: 40px; --logo-rouge: var(--bar-rouge); color: var(--bar-ink); }
