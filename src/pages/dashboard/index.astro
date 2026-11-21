@@ -215,10 +215,15 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   /* 3. Météo */
   .e3 { grid-template-columns: 600px 1fr 620px; }
   .raw { font-family: var(--mono); font-size: 16px; line-height: 1.5; background: var(--panel2); border-radius: 10px; padding: 10px 14px; color: var(--ink2); word-break: break-word; }
-  .mt-v { display: flex; align-items: center; gap: 18px; margin: 14px 0 12px; }
+  .mt-v { display: flex; align-items: center; gap: 18px; margin: 8px 0 8px; }
   .cat { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 18px; padding: 6px 14px; border-radius: 99px; background: var(--okbg); color: var(--ok); }
   .cat.MVFR { background: rgba(143,166,255,.16); color: var(--accent); } .cat.IFR, .cat.LIFR { background: var(--badbg); color: var(--bad); }
-  .mt-v b { font-size: 40px; font-weight: 800; }
+  .mt-v { justify-content: space-between; }
+  .cv { display: flex; align-items: center; gap: 14px; margin-right: 10px; }
+  .cv > b { font-size: 34px; font-weight: 800; line-height: 1.05; }
+  .cv > b small { display: block; font-size: 14px; color: var(--warn); font-weight: 700; }
+  .cv > b small.v { color: var(--muted); }
+  .cv-svg { width: 120px; height: 120px; }
   .kv { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 10px; }
   .kv .w { grid-column: 1 / -1; }
   .kv div { background: var(--panel2); border-radius: 10px; padding: 9px 12px; min-width: 0; }
