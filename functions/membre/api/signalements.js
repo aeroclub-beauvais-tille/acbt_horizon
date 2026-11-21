@@ -28,7 +28,8 @@ export async function onRequestGet({ env }) {
   return json({ ok: true, signalements: results.map((r) => ({ ...r, photos: r.photos ? String(r.photos).split(',').map(Number) : [] })) });
 }
 
-export async function onRequestPost({ request, env, waitUntil }) {
+export async function onRequestPost(context) {
+  const { request, env } = context;
   if (!env.DB) return json({ ok: false, erreur: 'Base non reliée.' }, 503);
   let f;
   try { f = await request.formData(); } catch { return json({ ok: false, erreur: 'Demande illisible.' }, 400); }
@@ -55,7 +56,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
 
   const site = new URL(request.url).origin;
   const resume = probleme.length > 140 ? probleme.slice(0, 137) + '…' : probleme;
-  waitUntil(alerter(env, site, {
+  context.waitUntil(alerter(env, site, {
     titre: `Signalement technique ${avion}`,
     texte: (nom ? `${nom} : ` : '') + resume,
     lien: `/membre/signalements/#s${id}`,
