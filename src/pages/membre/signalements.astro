@@ -4,6 +4,10 @@
 import MembreApp from '../../layouts/MembreApp.astro';
 import Logo from '../../components/Logo.astro';
 import { url } from '../../lib/utils';
+import { getCollection } from 'astro:content';
+const avions = (await getCollection('avions', (a) => a.data.actif))
+  .sort((a, b) => a.data.ordre - b.data.ordre)
+  .map((a) => a.data.immatriculation ?? a.data.nom);
 ---
 <MembreApp title="Signalements">
   <div class="ecran" id="ecran" data-api={url('/membre/api/signalements')} data-alertes={url('/membre/api/alertes')} data-sw={url('/sw-membre.js')} data-racine={url('/')}>
@@ -17,7 +21,7 @@ import { url } from '../../lib/utils';
 
     <main class="corps">
       <div class="filtres" role="group" aria-label="Filtrer">
-        <select id="f-avion" aria-label="Avion"><option value="">Tous les avions</option></select>
+        <select id="f-avion" aria-label="Avion"><option value="">Tous les avions</option>{avions.map((im) => <option value={im}>{im}</option>)}</select>
         <label class="coche"><input type="checkbox" id="f-traites" /> Voir aussi les traités</label>
       </div>
       <p class="etat" id="etat">Chargement…</p>
