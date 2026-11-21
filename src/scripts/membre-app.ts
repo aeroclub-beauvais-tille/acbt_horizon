@@ -704,7 +704,7 @@ export function flotte() {
         lignes.push(ligne('Réservation suivante', qui(p) || jourTxt(p.debut.slice(0, 8)), `${lireAg(p.debut).h} → ${lireAg(p.fin).h}`, jourTxt(p.debut.slice(0, 8))));
       }
       const x = dispo(a.occupe ?? []);
-      lignes.push(x ? ligne('Prochaine dispo.', jourTxt(x[0]), `${hm(x[1])} → ${hm(x[2])}`, duree(x[2] - x[1]), 'fl-vert') : ligne('Prochaine dispo.', 'dans les 7 jours', 'Aucune', '', 'fl-vert'));
+      lignes.push(x ? ligne('Prochaine dispo. > 30 min', jourTxt(x[0]), `${hm(x[1])} → ${hm(x[2])}`, duree(x[2] - x[1]), 'fl-vert') : ligne('Prochaine dispo. > 30 min', 'dans les 7 jours', 'Aucune', '', 'fl-vert'));
       if (a.dernier) {
         const dd = lireAg(a.dernier.debut), ff = lireAg(a.dernier.fin);
         const [dj, dm] = jm(a.dernier.debut); const [fj, fm] = jm(a.dernier.fin);
