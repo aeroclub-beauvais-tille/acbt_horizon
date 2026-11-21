@@ -6,7 +6,10 @@ backend:
   repo: aeroclub-beauvais-tille/acbt_horizon
   branch: main
   auth_methods:
+  - oauth
   - token
+  base_url: https://acbt60.pages.dev
+  auth_endpoint: api/auth
   commit_messages:
     create: 'Ajout : {{collection}} « {{slug}} » (back-office)'
     update: 'Modification : {{collection}} « {{slug}} » (back-office)'

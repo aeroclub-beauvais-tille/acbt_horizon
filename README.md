@@ -70,3 +70,10 @@ Décocher « Avion affiché sur le site » pour le masquer en gardant sa fiche, 
   et une notification push part vers les téléphones des responsables abonnés.
 - Abonnement : sur `/membre/signalements/`, « Recevoir les alertes sur ce téléphone » avec le mot de passe admin.
   Les clés VAPID sont créées toutes seules dans la base (table `reglages`) : rien à régler.
+
+## Connexion GitHub au back-office (/admin)
+
+Bouton « Se connecter avec GitHub » : `functions/api/auth.js` et `functions/api/callback.js`.
+Réglages Cloudflare (Variables et secrets) : `GITHUB_CLIENT_ID` et `GITHUB_CLIENT_SECRET`, issus d'une OAuth App de l'organisation GitHub
+(Homepage `https://acbt60.pages.dev`, Authorization callback URL `https://acbt60.pages.dev/api/callback`).
+Si le domaine change, mettre à jour `base_url` dans `scripts/pages-vers-sveltia.py` et l'URL de rappel de l'OAuth App.
