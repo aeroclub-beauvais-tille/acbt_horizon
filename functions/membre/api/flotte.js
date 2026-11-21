@@ -10,6 +10,8 @@ const AEROGEST = 'https://online.aerogest.fr';
 const CACHE_CLE = 'https://cache.acbt60.local/membre/api/flotte';
 const DUREE_CACHE = 60; // secondes
 const JOURS = 7;
+// Ordre d'affichage (choix du club). Les avions masqués dans Aerogest n'apparaissent simplement pas.
+const ORDRE = ['F-GCAL', 'F-BXEK', 'F-BTBS', 'F-BTXS', 'F-BTKG', 'F-BTBJ', 'F-BIXA'];
 
 export async function onRequestGet({ env, waitUntil }) {
   if (!env.AEROGEST_PLANNING_URL) {
@@ -88,8 +90,8 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch) {
       indispo,
     };
   });
-  // Ordre de la page Aerogest
-  const ordre = [...immats.values()];
+  // Ordre voulu par le club, puis les autres avions dans l'ordre de la page Aerogest
+  const ordre = [...ORDRE, ...immats.values()];
   liste.sort((x, y) => rang(ordre, x.immat) - rang(ordre, y.immat));
   return { ok: true, maj: maintenant.toISOString(), planning: plannings.some(Boolean), avions: liste };
 }
