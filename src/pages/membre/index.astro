@@ -413,10 +413,13 @@ const onglets = [
   .soleil b { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .soleil b i { font-style: normal; font-size: .58rem; font-weight: 700; color: var(--muted); margin-left: 3px; letter-spacing: .03em; }
   .soleil > div:first-child b span, .soleil .nuit b span { color: var(--accent-text, var(--accent)); }
-  .sj { display: block; height: 5px; margin: 6px 10px 0; border-radius: 9px; background: var(--surface-2); overflow: hidden; }
-  .sj i { display: block; height: 100%; width: 0; border-radius: 9px; background: var(--accent); transition: width .4s; }
-  .sj i[data-etat='proche'] { background: var(--warn); }
-  .sj i[data-etat='nuit'] { background: var(--muted); }
+  /* Case « Nuit aéro. » : elle se remplit (de gauche à droite) du début du jour aéro jusqu'à la nuit aéro */
+  .soleil .nuit { position: relative; overflow: hidden; border-radius: 0 13px 13px 0; }
+  .soleil .nuit > small, .soleil .nuit > b { position: relative; z-index: 1; }
+  .sj { position: absolute; inset: 0; z-index: 0; }
+  .sj i { display: block; height: 100%; width: 0; background: var(--accent-soft); box-shadow: inset -2px 0 0 var(--accent); transition: width .4s; }
+  .sj i[data-etat='proche'] { background: var(--warn-bg); box-shadow: inset -2px 0 0 var(--warn); }
+  .sj i[data-etat='nuit'] { background: var(--surface-2); box-shadow: none; }
   #maa-zone:not([hidden]), .maa-rien:not([hidden]) { margin-bottom: 12px; }
 
   /* Flotte */
