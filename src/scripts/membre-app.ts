@@ -565,13 +565,15 @@ export function soleil() {
     const el = zone.querySelector<HTMLElement>(`[data-soleil="${k}"]`);
     if (el) el.textContent = heureLocale(e[k]);
   });
-  // Ce qui est en cours maintenant
-  const t = Date.now();
-  const etat = document.querySelector<HTMLElement>('[data-soleil-etat]');
-  if (etat) {
-    const nuit = t < e.jourAero.getTime() || t >= e.nuitAero.getTime();
-    etat.textContent = nuit ? 'Nuit aéronautique en cours' : `Jour aéronautique jusqu'à ${heureLocale(e.nuitAero)}`;
-    etat.dataset.nuit = nuit ? 'oui' : 'non';
+  // Jauge du jour aéronautique (dans « Nuit aéro. ») : se remplit du début du jour aéro jusqu'à la nuit aéro
+  const j = zone.querySelector<HTMLElement>('[data-soleil-jauge]');
+  if (j) {
+    const t = Date.now(), d = e.jourAero.getTime(), f = e.nuitAero.getTime();
+    const p = Math.max(0, Math.min(1, (t - d) / (f - d)));
+    j.style.width = `${(p * 100).toFixed(1)}%`;
+    j.dataset.etat = t >= f || t < d ? 'nuit' : f - t <= 3600_000 ? 'proche' : 'jour';
+    const reste = Math.round((f - t) / 60000);
+    j.parentElement!.title = t >= f || t < d ? 'Nuit aéronautique en cours' : `Nuit aéronautique dans ${Math.floor(reste / 60)} h ${String(reste % 60).padStart(2, '0')}`;
   }
 }
 

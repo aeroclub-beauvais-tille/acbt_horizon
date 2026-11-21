@@ -143,18 +143,17 @@ const onglets = [
         </a>
       </template>
 
+      <div class="soleil" id="soleil" aria-label="Soleil à LFOB, heures locales">
+        <div><small>Jour aéro.</small><b><span data-soleil="jourAero">--:--</span><i>LT</i></b></div>
+        <div><small>Lever</small><b><span data-soleil="lever">--:--</span><i>LT</i></b></div>
+        <div><small>Coucher</small><b><span data-soleil="coucher">--:--</span><i>LT</i></b></div>
+        <div class="nuit"><small>Nuit aéro.</small><b><span data-soleil="nuitAero">--:--</span><i>LT</i></b><span class="sj" title="Avancement du jour aéronautique"><i data-soleil-jauge></i></span></div>
+      </div>
+
       <h2 class="bt">Météo du terrain</h2>
       <div class="carte-metar"><Metar /></div>
       <div class="carte-metar carte-taf"><Taf /></div>
 
-      <h2 class="bt bt-soleil">Soleil à LFOB <span class="soleil-etat" data-soleil-etat></span></h2>
-      <div class="soleil" id="soleil">
-        <div><small>Jour aéro.</small><b data-soleil="jourAero">--:--</b></div>
-        <div><small>Lever</small><b data-soleil="lever">--:--</b></div>
-        <div><small>Coucher</small><b data-soleil="coucher">--:--</b></div>
-        <div><small>Nuit aéro.</small><b data-soleil="nuitAero">--:--</b></div>
-      </div>
-      <p class="soleil-note">Heures locales. Le jour aéronautique commence 30 min avant le lever du soleil, la nuit aéronautique 30 min après son coucher.</p>
       <p class="aide-ios" id="aide-ios" hidden>Sur iPhone : touchez <b>Partager</b> en bas de Safari, puis <b>Sur l'écran d'accueil</b>.</p>
     </section>
 
@@ -406,17 +405,19 @@ const onglets = [
   .carte-metar { padding: 15px 16px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; }
   .carte-taf { margin-top: 10px; }
 
-  /* Soleil */
-  .bt-soleil { margin-top: 22px; justify-content: space-between; }
-  .soleil-etat { text-transform: none; letter-spacing: 0; font-weight: 600; font-size: .8rem; color: var(--ok); }
-  .soleil-etat[data-nuit='oui'] { color: var(--accent-text, var(--accent)); }
-  .soleil { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
-  .soleil div { padding: 12px 6px; text-align: center; border-left: 1px solid var(--line); }
-  .soleil div:first-child { border-left: 0; }
+  /* Soleil (en haut de l'onglet Météo, sous le MAA) */
+  .soleil { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 18px; }
+  .soleil > div { padding: 10px 6px 11px; text-align: center; border-left: 1px solid var(--line); }
+  .soleil > div:first-child { border-left: 0; }
   .soleil small { display: block; color: var(--muted); font-size: .72rem; font-weight: 600; margin-bottom: 2px; white-space: nowrap; }
-  .soleil b { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-  .soleil div:first-child b, .soleil div:last-child b { color: var(--accent-text, var(--accent)); }
-  .soleil-note { margin: 8px 2px 0; font-size: .74rem; color: var(--muted); line-height: 1.4; }
+  .soleil b { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .soleil b i { font-style: normal; font-size: .58rem; font-weight: 700; color: var(--muted); margin-left: 3px; letter-spacing: .03em; }
+  .soleil > div:first-child b span, .soleil .nuit b span { color: var(--accent-text, var(--accent)); }
+  .sj { display: block; height: 5px; margin: 6px 10px 0; border-radius: 9px; background: var(--surface-2); overflow: hidden; }
+  .sj i { display: block; height: 100%; width: 0; border-radius: 9px; background: var(--accent); transition: width .4s; }
+  .sj i[data-etat='proche'] { background: var(--warn); }
+  .sj i[data-etat='nuit'] { background: var(--muted); }
+  #maa-zone:not([hidden]), .maa-rien:not([hidden]) { margin-bottom: 12px; }
 
   /* Flotte */
   .fl-liste { display: grid; gap: 12px; }
