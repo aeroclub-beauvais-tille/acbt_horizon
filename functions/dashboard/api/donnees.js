@@ -157,7 +157,8 @@ async function lireNotam(env, cache, waitUntil, debug) {
       sup: /\bSUP\s*(?:AIP\s*)?\d+\/\d+/i.test(texteNet),
       obstacle: q[1] === 'OB' || q[1] === 'OL' || /\b(OBST|CRANE|GRUE)/i.test(texteNet),
     };
-  }).filter((n) => !n.obstacle && !(n.fin && /^\d{4}-/.test(n.fin) && Date.parse(n.fin) < maintenant));
+  }).filter((n, i, l) => !n.obstacle && !(n.fin && /^\d{4}-/.test(n.fin) && Date.parse(n.fin) < maintenant) && l.findIndex((x) => x.numero === n.numero) === i)
+    .sort((a, b) => String(b.debut).localeCompare(String(a.debut)));
   const corps = { ok: true, source: hote.includes('staging') ? 'test' : 'prod', total: items.length, notam: liste.filter((n) => !n.sup), sup: liste.filter((n) => n.sup) };
   if (cache) waitUntil?.(cache.put(new Request(CACHE_NOTAM), new Response(JSON.stringify(corps), { headers: { 'Cache-Control': 'public, max-age=600' } })));
   return corps;
