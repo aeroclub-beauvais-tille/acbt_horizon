@@ -656,6 +656,13 @@ function texteDernier(a: AvionFlotte) {
   }
   return a.dernierVol ? a.dernierVol.replace(/\/\d{4}\s+/, ' · ') : '—';
 }
+// Jour seul : « Aujourd'hui », « Demain » ou « Dim. 23/11 »
+function jourTxt(j: string) {
+  if (j === jourParis(new Date())) return 'Aujourd’hui';
+  if (j === jourParis(new Date(Date.now() + 86400000))) return 'Demain';
+  const t = new Date(Date.UTC(+j.slice(0, 4), +j.slice(4, 6) - 1, +j.slice(6, 8), 12)).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
 const qui = (r: Resa) => [r.pilote, r.instructeur && `avec ${r.instructeur}`].filter(Boolean).join(' ');
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
@@ -676,22 +683,47 @@ export function flotte() {
       const etat = a.indispo ? ['bad', 'Indisponible'] : a.enCours ? ['info', 'Réservé'] : ['ok', 'Disponible'];
       const pot = a.potentiel;
       const niv = pot == null ? '' : pot <= 0 ? 'bad' : pot <= 300 ? 'warn' : 'ok';
-      const largeur = pot == null ? 0 : Math.max(0, Math.min(100, (pot / (50 * 60)) * 100));
-      // [libellé, heure, nom] : l'heure à droite du libellé, le nom du pilote en entier sur sa propre ligne
-      const lignes: [string, string, string?][] = [];
-      if (a.enCours) lignes.push(['Réservation en cours', `jusqu'à ${lireAg(a.enCours.fin).h}` + vol(a.enCours), qui(a.enCours)]);
-      if (a.prochaine) lignes.push(['Prochaine réservation', quand(a.prochaine.debut) + vol(a.prochaine), qui(a.prochaine)]);
-      else lignes.push(['Prochaine réservation', 'Aucune dans les 7 jours']);
-      lignes.push(['Prochaine disponibilité', texteDispo(dispo(a.occupe ?? []))]);
-      lignes.push(['Dernier vol', texteDernier(a), a.dernier ? [a.dernier.pilote, a.dernier.instructeur && `avec ${a.dernier.instructeur}`].filter(Boolean).join(' ') || undefined : undefined]);
+      const part = pot == null ? 0 : pot <= 0 ? 1 : Math.min(1, pot / (50 * 60));
+      // Chaque texte tient sur une seule ligne (points de suspension si trop long)
+      const L = (cls: string, t: string) => `<span class="fl-l ${cls}">${esc(t)}</span>`;
+      // Réservation en cours, sinon prochaine réservation, à côté du cadran
+      const r = a.enCours ?? a.prochaine;
+      const haut = r
+        ? L('fl-lbl', a.enCours ? 'Réservation en cours' : 'Prochaine réservation')
+          + L('fl-jour', jourTxt(r.debut.slice(0, 8)) + (r.duree ? ` · ${duree(r.duree)} de vol` : ''))
+          + L('fl-gros', `${lireAg(r.debut).h} → ${lireAg(r.fin).h}`)
+          + (qui(r) ? L('fl-nom', qui(r)) : '')
+        : L('fl-lbl', 'Prochaine réservation') + L('fl-jour', 'dans les 7 jours') + L('fl-gros', 'Aucune');
+      const ligne = (lbl: string, sous: string, heure: string, petit: string, cls = '') =>
+        `<div class="fl-r"><span class="fl-g">${L('fl-lbl ' + cls, lbl)}${sous ? L(cls ? 'fl-jour' : 'fl-nom', sous) : ''}</span><span class="fl-h">${esc(heure)}<small>${esc(petit)}</small></span></div>`;
+      const lignes: string[] = [];
+      if (a.enCours && a.prochaine) {
+        const p = a.prochaine;
+        lignes.push(ligne('Réservation suivante', qui(p) || jourTxt(p.debut.slice(0, 8)), `${lireAg(p.debut).h} → ${lireAg(p.fin).h}`, jourTxt(p.debut.slice(0, 8))));
+      }
+      const x = dispo(a.occupe ?? []);
+      lignes.push(x ? ligne('Prochaine dispo.', jourTxt(x[0]), `${hm(x[1])} → ${hm(x[2])}`, duree(x[2] - x[1]), 'fl-vert') : ligne('Prochaine dispo.', 'dans les 7 jours', 'Aucune', '', 'fl-vert'));
+      if (a.dernier) {
+        const dd = lireAg(a.dernier.debut), ff = lireAg(a.dernier.fin);
+        const [dj, dm] = jm(a.dernier.debut); const [fj, fm] = jm(a.dernier.fin);
+        const min = (fj === dj ? 0 : 1440) + fm - dm;
+        const nom = [a.dernier.pilote, a.dernier.instructeur && `avec ${a.dernier.instructeur}`].filter(Boolean).join(' ');
+        lignes.push(ligne('Dernier vol', nom, `${dd.h} → ${ff.h}`, `${ff.j.slice(6, 8)}/${ff.j.slice(4, 6)} · ${min > 0 ? duree(min) : a.dernier.temps ?? ''}`));
+      } else if (a.dernierVol) {
+        const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/);
+        lignes.push(ligne('Dernier vol', '', m ? m[2] : a.dernierVol, m ? m[1] : ''));
+      } else lignes.push(ligne('Dernier vol', '', '—', ''));
       const bandeau = a.indispo
         ? `<div class="fl-indispo"><b>${esc(a.indispo.motif)}</b><span>jusqu'au ${esc(/23:59|00:00/.test(lireAg(a.indispo.fin).h) ? quand(a.indispo.fin).replace(/ · \d\d:\d\d$/, '') : quand(a.indispo.fin))}</span></div>` : '';
       return `<article class="fl-carte${a.indispo ? ' fl-hs' : ''}" data-q="${esc(a.immat.toLowerCase())}">
-        <div class="fl-tete"><span><b class="fl-im">${esc(a.immat)}</b>${modeles[a.immat] ? `<small>${esc(modeles[a.immat])}</small>` : ''}</span><span class="fl-etat fl-${etat[0]}"><i></i>${etat[1]}</span></div>
-        <div class="fl-pot fl-${niv}"><span class="fl-val">${pot == null ? '—' : hhmm(pot)}</span><span class="fl-u">${pot != null && pot <= 0 ? 'visite dépassée' : 'de potentiel avant la visite'}${a.tolerance > 0 ? `, dont ${hhmm(a.tolerance)} de tolérance` : ''}</span></div>
-        <div class="fl-jauge fl-${niv}"><i style="width:${largeur}%"></i></div>
+        <div class="fl-tete"><span class="fl-l"><b class="fl-im">${esc(a.immat)}</b>${modeles[a.immat] ? `<small>${esc(modeles[a.immat])}</small>` : ''}</span><span class="fl-etat fl-${etat[0]}"><i></i>${etat[1]}</span></div>
         ${bandeau}
-        <dl>${lignes.map(([k, v, n]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd>${n ? `<dd class="fl-nom">${esc(n)}</dd>` : ''}</div>`).join('')}</dl>
+        <div class="fl-haut">
+          <div class="fl-cadran fl-${niv}"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17"/><circle class="fl-arc" cx="20" cy="20" r="17" stroke-dasharray="${(part * 106.8).toFixed(1)} 107"/></svg><div><b>${pot == null ? '—' : hhmm(pot)}</b><small>${pot != null && pot <= 0 ? 'visite dépassée' : 'avant visite'}</small></div></div>
+          <div class="fl-g">${haut}</div>
+        </div>
+        <div class="fl-lignes">${lignes.join('')}</div>
+        ${a.tolerance > 0 ? `<p class="fl-tol">dont ${hhmm(a.tolerance)} de tolérance</p>` : ''}
       </article>`;
     }).join('');
     if (info && d.maj) info.textContent = `Source Aerogest · mis à jour à ${new Date(d.maj).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}`;
