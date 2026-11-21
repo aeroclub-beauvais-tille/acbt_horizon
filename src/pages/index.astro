@@ -22,7 +22,7 @@ const h1 = italique(pg.titre);
 const nf = (x: number) => x.toLocaleString('fr-FR');
 
 // L'accueil est un sommaire : chaque rubrique du site y a un seul chapitre, qui renvoie vers sa page.
-// Le détail (prix, simulateur, fiches avions) ne figure que sur la page concernée.
+// Le détail (prix, fiches avions) ne figure que sur la page concernée.
 const prixMin = Math.min(...t.formules.flatMap((x) => x.prix.map((p) => p.prix)));
 const HREFS = ['/decouvrir-le-vol', '/formations', '/club/flotte', '/club'];
 const remplir = (txt: string) => txt
