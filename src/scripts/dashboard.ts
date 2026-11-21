@@ -429,9 +429,8 @@ function ventBloc() {
   const metar = D?.metar;
   // Secours METAR si la station n'a rien envoyé de neuf depuis 18 min (3 mesures manquées) ou si sa mesure a plus de 40 min
   const st = OBS && Date.now() - obsRecu <= 18 * 60000 && Date.now() - OBS.t < 40 * 60000 ? OBS : null;
-  // La station ne donne pas le secteur de variation : on reprend celui du METAR s'il a moins de 40 min
-  const varMetar = metar?.ventVar && metar.heure && Date.now() - Date.parse(metar.heure) < 40 * 60000 ? metar.ventVar : null;
-  const m = st ? { ventDir: st.dir ?? (st.f ? 'VRB' : null), ventForce: st.f, rafales: st.g, ventVar: varMetar as [number, number] | null } : metar;
+  // La station ne donne pas de secteur de variation : « variable » seulement quand on affiche le METAR
+  const m = st ? { ventDir: st.dir ?? (st.f ? 'VRB' : null), ventForce: st.f, rafales: st.g, ventVar: null as [number, number] | null } : metar;
   const dir = typeof m?.ventDir === 'number' ? m.ventDir : null;
   const f = m?.ventForce ?? null;
   const g = m?.rafales ?? null;
@@ -470,7 +469,7 @@ function ventBloc() {
   }
   s += '</svg>';
   const gauche = !m ? '—' : f === 0 ? 'Calme' : m.ventDir === 'VRB' ? 'VRB' : dir != null ? `${String(dir).padStart(3, '0')}°` : '—';
-  const sous = m?.ventVar ? `<small>variable ${String(m.ventVar[0]).padStart(3, '0')}° à ${String(m.ventVar[1]).padStart(3, '0')}°${st ? ' (METAR)' : ''}</small>` : m?.ventDir === 'VRB' && f ? '<small>direction variable</small>' : '';
+  const sous = st ? '' : m?.ventVar ? `<div class="vsous">variable ${String(m.ventVar[0]).padStart(3, '0')}° à ${String(m.ventVar[1]).padStart(3, '0')}°</div>` : m?.ventDir === 'VRB' && f ? '<div class="vsous">direction variable</div>' : '';
   const droite = f == null || f === 0 ? '' : `<i class="sep"></i><span>${f} kt</span>${g ? `<small class="raf">rafales ${g} kt</small>` : ''}`;
   // Composantes pour chaque sens de piste, sens conseillé = le plus de vent de face (à partir de 3 kt)
   const comp = (cap: number, v: number) => { const a = ((dir! - cap) * Math.PI) / 180; return { face: Math.round(v * Math.cos(a)), trav: Math.round(v * Math.sin(a)) }; };
@@ -488,7 +487,7 @@ function ventBloc() {
     return `<div class="qfu${n === meilleur ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${t2}</small></div></div>`;
   }).join('');
   const avant = $('vent').querySelector('.qfus')?.innerHTML;
-  $('vent').innerHTML = `<div class="vd"><div class="t"><span>${gauche}</span>${droite}${sous}</div>${s}</div><div class="qfus">${qfus}</div>`;
+  $('vent').innerHTML = `<div class="vd"><div class="t"><span>${gauche}</span>${droite}</div>${sous}${s}</div><div class="qfus">${qfus}</div>`;
   const g2 = $('vent').querySelector<SVGGElement>('.cone');
   if (g2) {
     const v = Number(g2.dataset.vers);
