@@ -712,7 +712,12 @@ export function flotte() {
         lignes.push(ligne('Réservation suivante', qui(p) || jourTxt(p.debut.slice(0, 8)), `${lireAg(p.debut).h} → ${lireAg(p.fin).h}`, jourTxt(p.debut.slice(0, 8))));
       }
       const x = dispo(a.occupe ?? []);
-      if (!hs) lignes.push(x ? ligne('Prochaine dispo. > 30 min', jourTxt(x[0]), `${hm(x[1])} → ${hm(x[2])}`, duree(x[2] - x[1]), 'fl-vert') : ligne('Prochaine dispo. > 30 min', 'dans les 7 jours', 'Aucune', '', 'fl-vert'));
+      // Créneau qui va jusqu'à la nuit aéro : « Dès 15:00 » ; tout le jour aéro : « Toute la journée »
+      const eph = x ? ephemeride(new Date(Date.UTC(+x[0].slice(0, 4), +x[0].slice(4, 6) - 1, +x[0].slice(6, 8), 12))) : null;
+      const finJour = !!(x && eph && x[2] >= minutesParis(eph.nuitAero));
+      const toutJour = finJour && !!eph && x![1] <= minutesParis(eph.jourAero);
+      const creneau: [string, string] = !x ? ['', ''] : toutJour ? ['Toute la journée', 'aucune réservation'] : finJour ? [`Dès ${hm(x[1])}`, 'jusqu’à la nuit aéro.'] : [`${hm(x[1])} → ${hm(x[2])}`, duree(x[2] - x[1])];
+      if (!hs) lignes.push(x ? ligne('Prochaine dispo. > 30 min', jourTxt(x[0]), creneau[0], creneau[1], 'fl-vert') : ligne('Prochaine dispo. > 30 min', 'dans les 7 jours', 'Aucune', '', 'fl-vert'));
       if (a.dernier) {
         const dd = lireAg(a.dernier.debut), ff = lireAg(a.dernier.fin);
         const [dj, dm] = jm(a.dernier.debut); const [fj, fm] = jm(a.dernier.fin);
