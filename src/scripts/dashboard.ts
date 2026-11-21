@@ -386,12 +386,33 @@ const PISTES = [
   { a: ['12', 120], b: ['30', 300], cap: 124, cx: -2.5, cy: 3, l: 58 },
   { a: ['04', 40], b: ['22', 220], cap: 42, cx: 10, cy: -22, l: 24 },
 ] as const;
+// Vent mesuré par la station Météo-France de Beauvais-Tillé (60639001), une mesure toutes les 6 min (API Observation v2).
+// Repli sur le METAR (toutes les 30 min) si la station ne répond pas ou si sa mesure a plus de 30 min.
+interface Obs { dir: number | null; f: number; g: number | null; t: number }
+let OBS: Obs | null = null;
+let obsLu = 0;
+async function lireObs() {
+  if (Date.now() - obsLu < 110000) return;
+  obsLu = Date.now();
+  try {
+    const r = await fetch(`/dashboard/api/mf?chemin=${encodeURIComponent('/public/DPObs/v2/station/infrahoraire-6m?id_station=60639001&format=json')}`, { cache: 'no-store', credentials: 'same-origin' });
+    const l = await r.json();
+    const o = Array.isArray(l) ? l.filter((x) => x && typeof x.ff === 'number').sort((a, b) => Date.parse(b.validity_time) - Date.parse(a.validity_time))[0] : null;
+    if (!o) return;
+    const kt = (ms: number) => Math.round(ms * 1.94384);
+    const f = kt(o.ff), g = typeof o.raf10 === 'number' ? kt(o.raf10) : null;
+    OBS = { dir: f > 0 && typeof o.dd === 'number' ? Math.round(o.dd / 10) * 10 % 360 || 360 : null, f, g: g != null && g - f >= 5 && g >= 10 ? g : null, t: Date.parse(o.validity_time) };
+  } catch { /* on garde la dernière mesure ou le METAR */ }
+}
+
 function ventBloc() {
-  const m = D?.metar;
+  const metar = D?.metar;
+  const st = OBS && Date.now() - OBS.t < 30 * 60000 ? OBS : null;
+  const m = st ? { ventDir: st.dir ?? (st.f ? 'VRB' : null), ventForce: st.f, rafales: st.g, ventVar: null as [number, number] | null } : metar;
   const dir = typeof m?.ventDir === 'number' ? m.ventDir : null;
   const f = m?.ventForce ?? null;
   const g = m?.rafales ?? null;
-  $('vent-info').textContent = m ? `METAR ${m.heure ? hUtc(new Date(m.heure)) + ' UTC' : ''}` : '';
+  $('vent-info').textContent = st ? `Station LFOB ${hUtc(new Date(st.t))} UTC · toutes les 6 min` : metar ? `METAR ${metar.heure ? hUtc(new Date(metar.heure)) + ' UTC' : ''}` : '';
   const R = 54;
   const pt = (deg: number, r: number, x0 = 0, y0 = 0) => [x0 + r * Math.sin((deg * Math.PI) / 180), y0 - r * Math.cos((deg * Math.PI) / 180)];
   let s = '<svg viewBox="-70 -70 140 140" aria-hidden="true">';
@@ -616,6 +637,7 @@ async function charger() {
     D = d;
     derniere = Date.now();
     if (premier) arome();
+    await lireObs();
     $('etat').classList.remove('ko');
   } catch {
     $('etat').classList.add('ko');
