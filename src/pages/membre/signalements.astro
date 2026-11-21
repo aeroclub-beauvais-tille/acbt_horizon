@@ -199,6 +199,11 @@ const avions = (await getCollection('avions', (a) => a.data.actif))
     try {
       if (Notification.permission !== 'granted') { montrerErreur('Les notifications sont coupées pour cette appli dans les réglages du téléphone.'); return; }
       const reg = await enregistrement();
+      // 1) Notification affichée directement par le téléphone, sans passer par Google ou Apple
+      let local = '';
+      try {
+        await reg!.showNotification('Test 1 : affichage', { body: "Le téléphone sait afficher les notifications de l'appli.", tag: 'acbt-test-local', icon: ecran.dataset.racine + 'icones/membre-192.png' });
+      } catch (err) { local = String((err as Error)?.message || err); }
       const sub = reg && await reg.pushManager.getSubscription();
       let nom = '';
       try { nom = localStorage.getItem('acbt-nom') || ''; } catch { /* rien */ }
@@ -208,11 +213,11 @@ const avions = (await getCollection('avions', (a) => a.data.actif))
       try { localStorage.setItem('acbt-admin-alertes', mdp); } catch { /* rien */ }
       const t = d.ceTelephone;
       const service = t ? (SERVICES[t.service] || t.service) : '';
-      resultat.textContent = !t
+      resultat.textContent = (local ? `Test 1 refusé par le téléphone : ${local}. ` : 'Test 1 envoyé par le téléphone. ') + (!t
         ? `Ce téléphone n'est pas enregistré (${d.abonnes} téléphone(s) abonné(s)). Touchez « Ne plus recevoir les alertes » puis réactivez-les.`
         : t.ok
-          ? `Envoyé (service ${service}). La notification doit arriver dans quelques secondes. ${d.abonnes} téléphone(s) abonné(s).`
-          : `Refusé par le service ${service} : ${t.statut} ${t.message}`.trim();
+          ? `Test 2 envoyé par le serveur (service ${service}), il doit arriver dans quelques secondes. ${d.abonnes} téléphone(s) abonné(s).`
+          : `Refusé par le service ${service} : ${t.statut} ${t.message}`.trim());
       resultat.hidden = false;
     } catch {
       montrerErreur("Le test n'a pas abouti (réseau ?).");
