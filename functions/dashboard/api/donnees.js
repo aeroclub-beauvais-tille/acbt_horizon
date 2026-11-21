@@ -15,7 +15,7 @@ export async function onRequestGet({ env, request, waitUntil }) {
     const deja = await cache.match(new Request(CACHE));
     if (deja) return deja;
   }
-  const [flotte, maa, metar, taf, notam, historique] = await Promise.all([
+  const [flotte, maa, metar, taf, notam, historique, vigilance] = await Promise.all([
     env.AEROGEST_PLANNING_URL
       ? lireFlotte(env.AEROGEST_PLANNING_URL, new Date(), fetch, { jour: true, instructeurs: true, brut: debug === 'instructeurs' }).catch(() => null)
       : null,
@@ -24,8 +24,9 @@ export async function onRequestGet({ env, request, waitUntil }) {
     avwx(env, 'taf').catch(() => null),
     lireNotam(env, cache, waitUntil, debug === 'notam', (new URL(request.url).searchParams.get('lieu') || 'LFOB').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4)).catch((e) => ({ ok: false, raison: String(e.message || e) })),
     lireHistorique().catch(() => null),
+    lireVigilance(env, cache, waitUntil).catch(() => null),
   ]);
-  const corps = { ok: true, maj: new Date().toISOString(), flotte, maa, metar, taf, notam, historique, meteofrance: Boolean(env.METEOFRANCE_BASIC || env.METEOFRANCE_APIKEY), meteofranceExpire: expiration(env.METEOFRANCE_APIKEY) };
+  const corps = { ok: true, maj: new Date().toISOString(), flotte, maa, metar, taf, notam, historique, vigilance, meteofrance: Boolean(env.METEOFRANCE_BASIC || env.METEOFRANCE_APIKEY), meteofranceExpire: expiration(env.METEOFRANCE_APIKEY) };
   const rep = (portee) => new Response(JSON.stringify(corps), {
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': `${portee}, max-age=50` },
   });
@@ -166,5 +167,45 @@ async function lireNotam(env, cache, waitUntil, debug, lieu = 'LFOB') {
   if (debug && lieu !== 'LFOB') return { ok: true, lieu, total: items.length, snowtam: liste.filter((n) => n.snow), exemples: items.filter((it) => /SNOW/i.test(JSON.stringify(it))).slice(0, 2) };
   const corps = { ok: true, source: hote.includes('staging') ? 'test' : 'prod', total: items.length, notam: liste.filter((n) => !n.sup), sup: liste.filter((n) => n.sup) };
   if (cache) waitUntil?.(cache.put(new Request(CACHE_NOTAM), new Response(JSON.stringify(corps), { headers: { 'Cache-Control': 'public, max-age=600' } })));
+  return corps;
+}
+
+// Vigilance météo de Météo-France (API DPVigilance, abonnement « Vigilance ») : l'Oise et ses 6 départements voisins.
+// Gardée 10 min en cache. Pour chaque département : les phénomènes jaune, orange ou rouge d'aujourd'hui et de demain,
+// avec le début et la fin de la vigilance (les zones littorales « 7610 » sont rattachées à la Seine-Maritime).
+const DEPARTEMENTS = [['60', 'Oise'], ['80', 'Somme'], ['02', 'Aisne'], ['95', 'Val-d’Oise'], ['77', 'Seine-et-Marne'], ['27', 'Eure'], ['76', 'Seine-Maritime']];
+const PHENOMENES = { 1: 'vent violent', 2: 'pluie-inondation', 3: 'orages', 4: 'crues', 5: 'neige-verglas', 6: 'canicule', 7: 'grand froid', 8: 'avalanches', 9: 'vagues-submersion' };
+const CACHE_VIGILANCE = 'https://cache.acbt60.local/dashboard/api/vigilance';
+async function lireVigilance(env, cache, waitUntil) {
+  if (!env.METEOFRANCE_APIKEY) return null;
+  if (cache) {
+    const deja = await cache.match(new Request(CACHE_VIGILANCE));
+    if (deja) return deja.json();
+  }
+  const r = await fetch('https://public-api.meteofrance.fr/public/DPVigilance/v1/cartevigilance/encours', { headers: { apikey: String(env.METEOFRANCE_APIKEY).trim(), Accept: 'application/json' } });
+  if (!r.ok) return null;
+  const j = await r.json();
+  const periodes = j?.product?.periods || [];
+  const departements = DEPARTEMENTS.map(([id, nom]) => {
+    const ph = {};
+    for (const p of periodes) {
+      for (const d of p.timelaps?.domain_ids || []) {
+        if (d.domain_id !== id && d.domain_id !== `${id}10`) continue;
+        for (const it of d.phenomenon_items || []) {
+          for (const t of it.timelaps_items || []) {
+            if (Number(t.color_id) < 2) continue;
+            const x = (ph[it.phenomenon_id] ||= { phenomene: PHENOMENES[it.phenomenon_id] || 'phénomène', couleur: 0, debut: t.begin_time, fin: t.end_time });
+            x.couleur = Math.max(x.couleur, Number(t.color_id));
+            if (t.begin_time < x.debut) x.debut = t.begin_time;
+            if (t.end_time > x.fin) x.fin = t.end_time;
+          }
+        }
+      }
+    }
+    const liste = Object.values(ph).sort((a, b) => b.couleur - a.couleur || a.debut.localeCompare(b.debut));
+    return { id, nom, couleur: liste.length ? liste[0].couleur : 1, phenomenes: liste };
+  });
+  const corps = { maj: j?.product?.update_time || null, departements };
+  if (cache) waitUntil?.(cache.put(new Request(CACHE_VIGILANCE), new Response(JSON.stringify(corps), { headers: { 'Cache-Control': 'public, max-age=600' } })));
   return corps;
 }

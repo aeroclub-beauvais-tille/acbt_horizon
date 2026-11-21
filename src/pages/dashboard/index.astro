@@ -11,7 +11,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
 <Dashboard title="Tableau de bord">
   <div id="scene" data-modeles={JSON.stringify(modeles)}>
     <header class="top">
-      <div class="brand"><Logo class="lg" /><div><b>Aéroclub Beauvais-Tillé</b><small>LFOB</small></div></div>
+      <div class="brand"><Logo class="lg" /><div><b>Aéroclub de Beauvais-Tillé</b><small>LFOB</small></div></div>
       <div class="alertes" id="alertes"></div>
       <div class="clock"><span class="h" data-h="local"></span><span class="cu"><span class="u"><span data-h="utc"></span> UTC</span><span class="d" data-h="date"></span></span></div>
     </header>
@@ -39,6 +39,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
       <div class="col">
         <div class="panel metar-p" id="metar"></div>
         <div class="panel maa-p"><h2>MAA LFOB <span class="r" id="maa-info"></span></h2><div id="maa"></div></div>
+        <div class="panel vigi-p" hidden><h2>Vigilance Météo-France <span class="r">Oise et voisins</span></h2><div id="vigi"></div></div>
       </div>
       <div class="panel vent-p"><h2>Vent et pistes <span class="r" id="vent-info"></span></h2><div id="vent"></div></div>
       <div class="panel" id="taf"></div>
@@ -190,9 +191,13 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .nl .actif { display: inline-block; font-size: 11.5px; font-weight: 900; letter-spacing: .6px; color: #fff; background: #23a55a; border-radius: 5px; padding: 1px 7px; margin-right: 8px; vertical-align: 1px; }
   .nl b .no { font-weight: 600; color: var(--muted); font-size: 14px; white-space: nowrap; }
   .nl .n:last-child { border-bottom: 0; }
+  #vent .cone { transition: transform 2.5s cubic-bezier(.4, 0, .2, 1); }
+  #vent .vd .t, #vent .qfus { transition: opacity .45s; }
+  #vent.maj .vd .t, #vent.maj .qfus { animation: fondu .9s ease; }
+  @keyframes fondu { 0% { opacity: .25; } 100% { opacity: 1; } }
   .nl b { font-size: 16.5px; font-weight: 700; display: block; }
   .e1 .r3 > .panel:last-child { display: flex; flex-direction: column; }
-  #notam { flex: 1; min-height: 0; overflow: hidden; position: relative; -webkit-mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); }
+  #notam { padding: 0 3px; flex: 1; min-height: 0; overflow: hidden; position: relative; -webkit-mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); }
   #notam .def { animation: defile var(--duree, 60s) linear infinite; }
   @keyframes defile { from { transform: translateY(0); } to { transform: translateY(-50%); } }
   .nl small { display: block; color: var(--muted); font-size: 14px; font-weight: 600; margin-top: 3px; }
@@ -283,6 +288,18 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .m .v { text-align: right; font-size: 15px; font-weight: 800; white-space: nowrap; line-height: 1.3; }
   .m .v small { display: block; font-size: 11.5px; letter-spacing: .5px; color: var(--warn); line-height: 1.2; }
   .m.on .v small { color: var(--bad); }
+  .vigi-p[hidden] { display: none; }
+  .vigi-p { flex: 0 0 auto; }
+  .vigi-p .vide { display: flex; align-items: center; gap: 10px; padding: 0; }
+  .vigi-p .vide::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
+  .vg { display: grid; grid-template-columns: 12px 140px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 4px 0; font-size: 15px; }
+  .vg i { width: 11px; height: 11px; border-radius: 50%; background: var(--ok); align-self: start; margin-top: 6px; }
+  .vg b { font-weight: 700; white-space: nowrap; }
+  .vg .pas { color: var(--muted); }
+  .vg small { color: var(--muted); font-size: 13.5px; white-space: nowrap; }
+  .vg > span > span { display: inline-block; font-weight: 800; font-size: 13.5px; border-radius: 5px; padding: 1px 8px; margin: 1px 6px 1px 0; color: #111; }
+  .vg span.c2 { background: #f5c518; } .vg span.c3 { background: #ff8a1f; } .vg span.c4 { background: #e0364f; color: #fff; }
+  .vg i.c2 { background: #f5c518; } .vg i.c3 { background: #ff8a1f; } .vg i.c4 { background: var(--bad); }
   .maa-p .vide { display: flex; align-items: center; gap: 10px; padding: 0; }
   .maa-p .vide::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
   .metar-p:has(~ .maa-p #maa.liste) { flex: 0 0 auto; }
