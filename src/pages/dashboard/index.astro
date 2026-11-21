@@ -2,6 +2,7 @@
 // Tableau de bord TV du club (acbt60.fr/dashboard), protégé par mot de passe (middleware Cloudflare).
 // Quatre écrans en alternance : Accueil, Réservations, Météo, Radar et satellite. Données rafraîchies chaque minute.
 import Dashboard from '../../layouts/Dashboard.astro';
+import Logo from '../../components/Logo.astro';
 import { getCollection } from 'astro:content';
 const avions = await getCollection('avions', (a) => a.data.actif);
 const modele = (t: string) => t.replace(/-\d+.*$| Petit Prince| Paris-Nice/g, '').trim().replace(/^Robin |^Jodel /, '');
@@ -10,7 +11,8 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
 <Dashboard title="Tableau de bord">
   <div id="scene" data-modeles={JSON.stringify(modeles)}>
     <header class="top">
-      <div class="brand"><div class="lg">ACBT</div><div><b>Aéroclub Beauvais-Tillé</b><small>LFOB</small></div></div>
+      <div class="brand"><Logo class="lg" /><div><b>Aéroclub Beauvais-Tillé</b><small>LFOB</small></div></div>
+      <div class="alertes" id="alertes"></div>
       <div class="clock"><span class="h" data-h="local"></span><span class="cu"><span class="u"><span data-h="utc"></span> UTC</span><span class="d" data-h="date"></span></span></div>
     </header>
 
@@ -50,12 +52,12 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
         <div class="anim"><span>-2 h</span><div class="barre"><i id="sat-b"></i></div><span>maintenant</span></div>
       </div>
       <div class="panel img-p">
-        <div class="img-t"><b>Radar</b><span>précipitations · RainViewer</span><em id="rad-h"></em></div>
+        <div class="img-t"><b>Pluie observée</b><span>radar des 2 dernières heures · RainViewer</span><em id="rad-h"></em></div>
         <div class="carte" id="rad"></div>
         <div class="anim"><span>-2 h</span><div class="barre"><i id="rad-b"></i></div><span>maintenant</span></div>
       </div>
       <div class="panel img-p" id="aro-p" hidden>
-        <div class="img-t"><b>Prévision</b><span>pluie simulée · Météo-France AROME-PI</span><em id="aro-h"></em></div>
+        <div class="img-t"><b>Prévision de pluie</b><span>jusqu’à +6 h · modèle AROME-PI de Météo-France</span><em id="aro-h"></em></div>
         <div class="carte" id="aro"></div>
         <div class="anim"><span>maintenant</span><div class="barre"><i id="aro-b"></i></div><span>+6 h</span></div>
       </div>
@@ -75,7 +77,16 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   #scene { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; padding: 22px 28px 44px; display: grid; grid-template-rows: auto 1fr; gap: 18px; }
   .top { display: flex; align-items: center; gap: 44px; height: 62px; }
   .brand { display: flex; align-items: center; gap: 16px; }
-  .brand .lg { width: 58px; height: 58px; border-radius: 12px; background: var(--navy); display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #fff; }
+  .alertes { flex: 1; min-width: 0; display: flex; justify-content: center; gap: 12px; }
+  .al { display: inline-flex; align-items: center; gap: 12px; min-width: 0; max-width: 100%; padding: 10px 22px; border-radius: 99px; font-size: 19px; font-weight: 700; color: var(--ink2); background: var(--panel); border: 1.5px solid var(--line); white-space: nowrap; overflow: hidden; }
+  .al::before { content: ''; flex: none; width: 12px; height: 12px; border-radius: 50%; background: currentColor; }
+  .al b { font-weight: 800; flex: none; } .al span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .al.a-ok { color: var(--ok); border-color: var(--ok); background: var(--okbg); } .al.a-ok span { color: var(--ink2); }
+  .al.a-av { color: var(--warn); border-color: var(--warn); background: var(--warnbg); } .al.a-av span { color: var(--ink); }
+  .al.a-on { color: var(--bad); border-color: var(--bad); background: var(--badbg); } .al.a-on span { color: var(--ink); }
+  .al.a-on::before { animation: clignote 1.6s ease-in-out infinite; }
+  @keyframes clignote { 50% { opacity: .25; } }
+  .brand { --logo-h: 58px; --logo-rouge: #ec091d; color: var(--ink); }
   .brand b { font-size: 30px; font-weight: 800; display: block; line-height: 1.1; }
   .brand small { color: var(--muted); font-size: 17px; font-weight: 600; }
   .clock { margin-left: auto; display: flex; align-items: center; gap: 16px; }
@@ -147,19 +158,30 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .ring.warn b { color: var(--warn); } .ring.bad b { color: var(--bad); }
   .e1 .r3 > .panel:first-child { display: flex; flex-direction: column; }
   #activite { flex: 1; min-height: 0; }
-  .act { height: 100%; display: grid; grid-template-columns: 112px repeat(3, minmax(0, 1fr)); column-gap: 18px; }
-  .act > span { display: flex; align-items: center; gap: 8px; min-width: 0; border-bottom: 1px solid var(--line); padding: 0 2px; white-space: nowrap; overflow: hidden; font-size: 17px; font-weight: 600; color: var(--ink2); }
-  .act > .th { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding-bottom: 6px; }
-  .act .im { font-family: var(--mono); font-weight: 700; font-size: 19px; color: var(--ink); }
-  .act b { font-weight: 800; color: var(--ink); flex: none; }
-  .act em { font-style: normal; font-size: 14px; font-weight: 700; color: var(--muted); flex: none; }
+  .act { height: 100%; display: flex; flex-direction: column; gap: 4px; }
+  .act .ar { flex: 1; min-height: 0; max-height: 64px; display: grid; grid-template-columns: 118px 150px minmax(0, 1.15fr) minmax(0, 1fr); column-gap: 16px; align-items: center; padding: 0 12px; border-radius: 10px; }
+  .act .ar:nth-child(even) { background: var(--panel2); }
+  .act .ar.th { flex: none; background: none; padding-bottom: 4px; }
+  .act .ar.th span { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+  .act .ar > span { display: flex; align-items: center; gap: 10px; min-width: 0; white-space: nowrap; overflow: hidden; font-size: 18px; font-weight: 600; color: var(--ink2); }
+  .act .im { font-family: var(--mono); font-weight: 700; font-size: 20px; color: var(--ink) !important; }
+  .act b { font-weight: 800; color: var(--ink); flex: none; font-variant-numeric: tabular-nums; }
+  .act i { font-style: normal; flex: none; font-size: 12.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: var(--accent); background: rgba(143,166,255,.14); border-radius: 6px; padding: 2px 7px; }
+  .act .mu { color: var(--muted); flex: none; }
   .act .nm2 { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-  .act .gr b { color: var(--ok); } .act .a b { color: var(--accent); } .act .r b { color: var(--bad); }
-  .act > span:nth-last-child(-n+4) { border-bottom: 0; }
-  .nl .n { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: start; }
+  .act .pe { font-style: normal; font-size: 14px; font-weight: 800; padding: 4px 12px; border-radius: 99px; }
+  .act .pe.g { color: var(--ok); background: var(--okbg); } .act .pe.a { color: var(--accent); background: rgba(143,166,255,.16); } .act .pe.r { color: var(--bad); background: var(--badbg); }
+  .nl .n { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); align-items: start; }
+  .nl .ic.l3 { font-size: 13px; letter-spacing: .3px; } .nl .ic.l4 { font-size: 11px; letter-spacing: .2px; }
+  .nl .ic { width: 44px; height: 30px; border-radius: 7px; display: grid; place-items: center; font-weight: 900; font-size: 18px; color: #111; background: #f5c518; box-shadow: inset 0 0 0 2px #111, 0 0 0 1px #f5c518; letter-spacing: -.5px; }
+  .nl .ic.rouge { background: #e0364f; color: #fff; box-shadow: inset 0 0 0 2px #fff3, 0 0 0 1px #e0364f; }
+  .nl .ic.bleu { background: #1e9bff; color: #fff; box-shadow: none; } .nl .ic.violet { background: #8b6cff; color: #fff; box-shadow: none; }
+  .nl .ic.neige { background: #e8f6ff; color: #0b5fa5; box-shadow: inset 0 0 0 2px #0b5fa5; }
+  .nl .ic.gris { background: var(--panel2); color: var(--ink2); box-shadow: inset 0 0 0 1.5px var(--muted); }
+  .nl b em { font-style: normal; color: var(--bad); }
+  .nl .actif { display: inline-block; font-size: 11.5px; font-weight: 900; letter-spacing: .6px; color: #fff; background: #23a55a; border-radius: 5px; padding: 1px 7px; margin-right: 8px; vertical-align: 1px; }
+  .nl b .no { font-weight: 600; color: var(--muted); font-size: 14px; white-space: nowrap; }
   .nl .n:last-child { border-bottom: 0; }
-  .nl .tag { font-size: 13px; font-weight: 800; padding: 4px 8px; border-radius: 7px; text-align: center; background: rgba(143,166,255,.16); color: var(--accent); }
-  .nl .tag.pis { background: var(--warnbg); color: var(--warn); } .nl .tag.su { background: var(--okbg); color: var(--ok); }
   .nl b { font-size: 16.5px; font-weight: 700; display: block; }
   .e1 .r3 > .panel:last-child { display: flex; flex-direction: column; }
   #notam { flex: 1; min-height: 0; overflow: hidden; position: relative; -webkit-mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); }
@@ -177,16 +199,22 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .lab small { display: block; color: var(--muted); font-size: 13px; font-weight: 600; }
   .lab.ins b { font-family: Manrope, sans-serif; font-size: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .trk { position: relative; height: 84px; border-radius: 8px; background: var(--panel2); overflow: hidden; }
-  .trk.ins { height: 48px; }
-  .trk .g { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
+  .trk.ins { height: 64px; }
+  .trk .g { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); opacity: .7; }
+  .trk .g.d { opacity: 1; } .trk .g.h { width: 1.5px; background: var(--muted); opacity: .5; }
+  .trk .lim { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--warn); opacity: .9; }
+  .lims { grid-column: 2; position: relative; height: 26px; margin-top: -6px; }
+  .lims em { position: absolute; transform: translateX(-2px); font-style: normal; font-size: 14px; font-weight: 800; color: var(--warn); background: var(--warnbg); border-left: 2px solid var(--warn); padding: 2px 8px; border-radius: 0 6px 6px 0; white-space: nowrap; }
+  .lims em.fin { transform: translateX(calc(-100% + 2px)); border-left: 0; border-right: 2px solid var(--warn); border-radius: 6px 0 0 6px; }
   .trk .nuit { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, rgba(143,166,255,.18) 0 6px, transparent 6px 12px); }
   .trk .passe { position: absolute; top: 0; bottom: 0; left: 0; background: rgba(0,0,0,.22); z-index: 2; pointer-events: none; }
-  .rz { position: absolute; top: 7px; bottom: 7px; border-radius: 6px; color: #fff; font-size: 18px; font-weight: 700; padding: 6px 10px; white-space: nowrap; overflow: hidden; line-height: 1.2; z-index: 1; background: var(--r1); border-right: 2px solid var(--panel2); }
-  .rz small { display: block; font-size: 14px; font-weight: 600; opacity: .9; }
+  .rz { position: absolute; top: 7px; bottom: 7px; border-radius: 6px; color: #fff; padding: 6px 9px; overflow: hidden; line-height: 1.18; z-index: 1; background: var(--r1); border-right: 2px solid var(--panel2); display: flex; flex-direction: column; gap: 2px; }
+  .rz b { font-size: 17px; font-weight: 800; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .rz small { display: block; font-size: 14px; font-weight: 700; opacity: .92; overflow-wrap: anywhere; }
   .rz.ins { background: var(--r2); } .rz.clu { background: var(--r3); }
   .rz.mnt { background: repeating-linear-gradient(45deg, #5b6a80 0 10px, #6d7c92 10px 20px); }
-  .trk.ins .rz { top: 6px; bottom: 6px; padding: 7px 10px; font-size: 16px; }
-  .trk.ins .rz small { display: none; }
+  .trk.ins .rz { top: 5px; bottom: 5px; padding: 5px 9px; }
+  .trk.ins .rz b { font-size: 15px; -webkit-line-clamp: 1; }
   .trk.ins .rz.pres { background: rgba(64,201,127,.22); color: var(--ok); border: 1px solid rgba(64,201,127,.5); }
   .trk .now { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--bad); z-index: 3; }
   .sep { grid-column: 1 / -1; height: 1px; background: var(--line); margin: 4px 0; }
@@ -257,7 +285,9 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   /* 4. Radar et satellite */
   .e4 { grid-template-columns: repeat(var(--n4, 2), minmax(0, 1fr)); }
   .e4.trois { --n4: 3; }
-  .e4.trois .img-t span { display: none; }
+  .e4.trois .img-t { flex-wrap: wrap; row-gap: 2px; }
+  .e4.trois .img-t span { order: 3; flex-basis: 100%; font-size: 14px; color: var(--muted); }
+  .e4.trois .img-t b { font-size: 24px; }
   .img-p { display: flex; flex-direction: column; padding: 16px 20px; }
   .img-t { display: flex; align-items: baseline; gap: 14px; margin-bottom: 12px; }
   .img-t b { font-size: 26px; font-weight: 800; } .img-t span { color: var(--ink2); font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -21,7 +21,7 @@ interface Metar extends Cond { raw: string; heure: string | null; temperature: n
 interface Periode extends Cond { type: string; probabilite: number | null; debut: string | null; fin: string | null; raw: string }
 interface Taf { raw: string; heure: string | null; periodes: Periode[] }
 interface Maa { id: string; numero: string | null; motif: string | null; debut: string | null; fin: string | null }
-interface Notam { numero: string; sujet: string | null; debut: string | null; fin: string | null; texte: string }
+interface Notam { numero: string; snow?: boolean; sujet: string | null; debut: string | null; fin: string | null; texte: string }
 interface Histo { t: string; vent: number | null; rafales: number | null; dir: number | null; plafond: number | null }
 interface Donnees {
   ok: boolean; maj: string;
@@ -171,37 +171,49 @@ function carte(a: Avion) {
 }
 
 // Tableau d'activité : réservation en cours ou prochaine, prochaine dispo de plus de 30 min, dernier vol
+// Tableau d'activité : une ligne par avion, l'état actuel en pastille, puis la prochaine réservation et le dernier vol.
+// Le jour (« demain », « ven. 27/11 ») passe AVANT l'heure, dans une petite étiquette, pour se lire d'un coup d'œil.
 function activite(l: Avion[]) {
-  const cell = (cls: string, heure: string, jour: string, nom: string) => `<span class="${cls}"><b>${esc(heure)}</b>${jour ? `<em>${esc(jour)}</em>` : ''}${nom ? `<span class="nm2">${esc(nom)}</span>` : ''}</span>`;
-  const quiC = (r: { pilote?: string | null; instructeur?: string | null }) => [court(r.pilote ?? null), r.instructeur && `avec ${court(r.instructeur)}`].filter(Boolean).join(' ');
+  const quiC = (r: { pilote?: string | null; instructeur?: string | null }) => [court(r.pilote ?? null), r.instructeur && `+ ${court(r.instructeur)}`].filter(Boolean).join(' ');
   const auj = jourParis(new Date());
   const jr = (j: string) => (j === auj ? '' : jourTxt(j).toLowerCase());
-  let h = '<div class="act"><span class="th">Avion</span><span class="th">Réservation</span><span class="th">Prochaine dispo. &gt; 30 min</span><span class="th">Dernier vol</span>';
+  const jour = (j: string) => (j ? `<i>${esc(j)}</i>` : '');
+  const qui = (n: string) => (n ? `<span class="nm2">${esc(n)}</span>` : '');
+  let h = '<div class="act"><div class="ar th"><span>Avion</span><span>État</span><span>Prochaine réservation</span><span>Dernier vol</span></div>';
   for (const a of l) {
-    h += `<span class="im">${esc(a.immat)}</span>`;
-    const r = a.enCours ?? a.prochaine;
-    if (a.indispo) h += cell('r', 'Indisponible', '', `retour ${jourTxt(a.indispo.fin.slice(0, 8)).toLowerCase()}`);
-    else if (r) h += cell(a.enCours ? 'a' : '', `${agH(r.debut)} → ${agH(r.fin)}`, a.enCours ? 'en cours' : jr(r.debut.slice(0, 8)), quiC(r));
-    else h += cell('', 'Aucune', 'sur 7 jours', '');
-    if (a.indispo) h += '<span></span>';
-    else {
-      const x = dispo(a.occupe ?? []);
-      const eph = x ? ephemeride(dateJ(x[0])) : null;
-      const finJour = !!(x && eph && x[2] >= minutesParis(eph.nuitAero));
-      const toutJour = finJour && !!eph && x![1] <= minutesParis(eph.jourAero);
-      h += !x ? cell('', 'Aucune', 'sur 7 jours', '') : cell('gr', toutJour ? 'Toute la journée' : finJour ? `Dès ${hm(x[1])}` : `${hm(x[1])} → ${hm(x[2])}`, jr(x[0]), '');
+    let etat: string, resa: string;
+    if (a.indispo) {
+      etat = '<em class="pe r">Maintenance</em>';
+      resa = `<span class="mu">Retour prévu</span>${jour(jourTxt(a.indispo.fin.slice(0, 8)).toLowerCase())}`;
+    } else if (a.enCours) {
+      etat = '<em class="pe a">Réservé</em>';
+      resa = `<span class="mu">jusqu’à</span><b>${agH(a.enCours.fin)}</b>${qui(quiC(a.enCours))}`;
+    } else {
+      etat = '<em class="pe g">Libre</em>';
+      const r = a.prochaine;
+      resa = r ? `${jour(jr(r.debut.slice(0, 8)))}<b>${agH(r.debut)} – ${agH(r.fin)}</b>${qui(quiC(r))}` : '<span class="mu">Aucune sur 7 jours</span>';
     }
-    if (a.dernier) h += cell('', `${agH(a.dernier.debut)} → ${agH(a.dernier.fin)}`, jr(a.dernier.fin.slice(0, 8)), quiC(a.dernier));
-    else if (a.dernierVol) { const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/); h += cell('', m ? m[2] : a.dernierVol, m ? m[1] : '', ''); }
-    else h += '<span></span>';
+    let der = '';
+    if (a.dernier) der = `${jour(jr(a.dernier.fin.slice(0, 8)))}<b>${agH(a.dernier.debut)} – ${agH(a.dernier.fin)}</b>${qui(quiC(a.dernier))}`;
+    else if (a.dernierVol) { const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/); der = m ? `${jour(m[1])}<b>${m[2]}</b>` : esc(a.dernierVol); }
+    h += `<div class="ar${a.indispo ? ' off' : ''}"><span class="im">${esc(a.immat)}</span><span>${etat}</span><span>${resa}</span><span>${der}</span></div>`;
   }
   return h + '</div>';
 }
 
-const SUJETS: Record<string, [string, string]> = {
-  M: ['Piste', 'pis'], L: ['Balisage', 'pis'], F: ['Installation', ''], N: ['Radionav', ''], I: ['Radionav', ''], G: ['GNSS', ''],
-  C: ['Comm', ''], S: ['Service', ''], P: ['Procédure', ''], A: ['Espace', ''], R: ['Espace', ''], W: ['Activité', ''], O: ['Divers', ''],
-};
+// Badge carré par catégorie (2 premières lettres du code Q) : lettre + nom, façon ForeFlight
+const ANTENNE = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 11v10"/><circle cx="12" cy="9" r="1.6" fill="currentColor"/><path d="M8.5 5.5a5 5 0 0 0 0 7M15.5 5.5a5 5 0 0 1 0 7M5.5 3a9 9 0 0 0 0 12.5M18.5 3a9 9 0 0 1 0 12.5"/></svg>';
+const CATS: [RegExp, string, string, string][] = [
+  [/^M[XY]/, 'TWY', 'Taxiway', 'jaune'], [/^M[KNP]/, 'APN', 'Aire de trafic', 'jaune'], [/^M/, 'RWY', 'Piste', 'rouge'],
+  [/^L/, 'LGT', 'Balisage', 'jaune'], [/^[NI]/, ANTENNE, 'Radionav', 'gris'], [/^G/, 'GNSS', 'GNSS', 'bleu'],
+  [/^C/, 'COM', 'Comm', 'bleu'], [/^[AR]/, 'AIR', 'Espace', 'violet'], [/^P/, 'PROC', 'Procédure', 'violet'],
+  [/^W/, 'ACT', 'Activité', 'violet'], [/^S/, 'SVC', 'Service', 'gris'], [/^F/, 'AD', 'Aérodrome', 'gris'],
+];
+const cat = (q: string | null) => CATS.find(([re]) => re.test(q || '')) ?? [null, 'INFO', 'Divers', 'gris'] as const;
+// Mots d'indisponibilité en rouge (abréviations développées comme ForeFlight)
+const ROUGES = /\b(CLSD|CLOSED|U\/S|UNSERVICEABLE|OUT OF ORDER|OUT OF SERVICE|NOT AVBL|NOT AVAILABLE|SUSPENDED|PROHIBITED|FORBIDDEN|UNUSABLE|INUTILISABLE|HORS SERVICE|FERME|FERMEE|INTERDIT|INTERDITE|WITHDRAWN)\b/g;
+const texteNotam = (t: string) => esc(t).replace(ROUGES, (m) => `<em>${m === 'CLSD' ? 'CLOSED' : m === 'U/S' ? 'UNSERVICEABLE' : m === 'NOT AVBL' ? 'NOT AVAILABLE' : m}</em>`);
+const actif = (debut: string | null) => { const d = utc(debut); return !!d && d.getTime() <= Date.now(); };
 function validite(debut: string | null, fin: string | null) {
   const d = utc(debut), f = fin && /^\d{4}-/.test(fin) ? new Date(fin) : null;
   const t = (x: Date) => `${jmUtc(x)} ${hUtc(x)}`;
@@ -218,8 +230,8 @@ function notams() {
     return;
   }
   const ligne = (x: Notam, sup: boolean) => {
-    const s = SUJETS[(x.sujet || 'O')[0]] ?? SUJETS.O;
-    return `<div class="n"><span class="tag ${sup ? 'su' : s[1]}">${sup ? 'SUP AIP' : s[0]}</span><div><b>${esc(x.texte)}</b><small>${esc([validite(x.debut, x.fin), x.numero].filter(Boolean).join(' · '))}</small></div></div>`;
+    const [, l, nom, coul] = sup ? [null, 'SUP', 'SUP AIP', 'gris'] : x.snow ? [null, 'SNOW', 'SNOWTAM · état des pistes', 'neige'] : cat(x.sujet);
+    return `<div class="n"><span class="ic ${coul}${l.length > 2 && !l.startsWith('<') ? ' l' + l.length : ''}" title="${nom}">${l}</span><div><b>${texteNotam(x.texte)} <span class="no">${esc(x.numero || '')}</span></b><small>${actif(x.debut) ? '<span class="actif">ACTIF</span>' : ''}${esc(validite(x.debut, x.fin))}</small></div></div>`;
   };
   const l = n.notam ?? [];
   $('notam-info').textContent = `${l.length} en vigueur · hors obstacles`;
@@ -283,18 +295,21 @@ function reservations() {
   const P = (m: number) => Math.max(0, Math.min(100, ((m - d0) / (d1 - d0)) * 100));
   const fond = () => {
     let g = '';
-    for (let h = d0 + 60; h < d1; h += 60) g += `<span class="g" style="left:${P(h)}%"></span>`;
+    // Traits tous les quarts d'heure (comme Aerogest) : heure > demi-heure > quart
+    for (let m = d0 + 15; m < d1; m += 15) g += `<span class="g${m % 60 === 0 ? ' h' : m % 30 === 0 ? ' d' : ''}" style="left:${P(m)}%"></span>`;
     g += `<span class="nuit" style="left:0;width:${P(ja)}%"></span><span class="nuit" style="left:${P(na)}%;right:0"></span>`;
+    g += `<span class="lim" style="left:${P(ja)}%"></span><span class="lim" style="left:${P(na)}%"></span>`;
     if (now > d0) g += `<span class="passe" style="width:${P(now)}%"></span>`;
     if (now >= d0 && now <= d1) g += `<span class="now" style="left:${P(now)}%"></span>`;
     return g;
   };
-  const barre = (a: number, b: number, cls: string, t: string, s: string) => `<div class="rz ${cls}" style="left:${P(a)}%;width:${Math.max(0.6, P(b) - P(a))}%">${esc(t)}<small>${esc(s)}</small></div>`;
+  const barre = (a: number, b: number, cls: string, t: string, ...s: string[]) => `<div class="rz ${cls}" style="left:${P(a)}%;width:${Math.max(0.6, P(b) - P(a))}%"><b>${esc(t)}</b>${s.filter(Boolean).map((x) => `<small>${esc(x)}</small>`).join('')}</div>`;
   const nbI = instr.length;
-  const hA = Math.max(46, Math.min(130, Math.floor((780 - (nbI ? nbI * 58 + 20 : 0)) / Math.max(1, avions.length)) - 10));
+  const hA = Math.max(46, Math.min(130, Math.floor((750 - (nbI ? nbI * 74 + 20 : 0)) / Math.max(1, avions.length)) - 10));
   let html = '<div class="tl"><span></span><div class="hrs">';
   for (let h = d0; h <= d1; h += 60) html += `<i style="left:${P(h)}%">${p2(h / 60)}h</i>`;
-  html += '</div>';
+  html += '</div><span></span><div class="lims">'
+    + `<em style="left:${P(ja)}%">Jour aéro. ${heureLocale(e.jourAero)}</em><em class="fin" style="left:${P(na)}%">Nuit aéro. ${heureLocale(e.nuitAero)}</em></div>`;
   for (const a of avions) {
     let b = '';
     for (const x of (a.indispos ?? []).filter((x) => x.debut.slice(0, 8) <= auj && x.fin.slice(0, 8) >= auj)) {
@@ -302,8 +317,7 @@ function reservations() {
       b += barre(mins(x.debut, auj), mins(x.fin, auj), 'mnt', motif, x.fin.slice(0, 8) > auj ? `jusqu’au ${x.fin.slice(6, 8)}/${x.fin.slice(4, 6)}` : `jusqu’à ${agH(x.fin)}`);
     }
     for (const r of (a.jour ?? []).filter((r) => r.debut.slice(0, 8) === auj)) {
-      const s = `${agH(r.debut)} – ${agH(r.fin)}${r.instructeur ? ` · avec ${court(r.instructeur)}` : ''}`;
-      b += barre(mins(r.debut, auj), mins(r.fin, auj), classeType(r.type), court(r.pilote) || r.type || 'Réservé', s);
+      b += barre(mins(r.debut, auj), mins(r.fin, auj), classeType(r.type), court(r.pilote) || r.type || 'Réservé', `${agH(r.debut)} – ${agH(r.fin)}`, r.instructeur ? `avec ${court(r.instructeur)}` : '');
     }
     html += `<div class="lab"><b>${esc(a.immat)}</b><small>${esc(modeles[a.immat] || '')}</small></div><div class="trk" style="height:${hA}px">${fond()}${b}</div>`;
   }
@@ -313,13 +327,13 @@ function reservations() {
       let b = '';
       for (const c of i.creneaux) {
         const t = `${agH(c.debut)} – ${agH(c.fin)}`;
-        b += c.flottant ? barre(mins(c.debut, auj), mins(c.fin, auj), 'pres', `Disponible ${t}`, '') : barre(mins(c.debut, auj), mins(c.fin, auj), classeType(c.type), `${court(c.pilote) || c.texte || 'Vol'} · ${t}`, '');
+        b += c.flottant ? barre(mins(c.debut, auj), mins(c.fin, auj), 'pres', 'Disponible', t) : barre(mins(c.debut, auj), mins(c.fin, auj), classeType(c.type), court(c.pilote) || c.texte || 'Vol', t);
       }
       html += `<div class="lab ins"><b>${esc(court(i.nom))}</b></div><div class="trk ins">${fond()}${b}</div>`;
     }
   }
   html += '</div><div class="leg"><span><i style="background:var(--r1)"></i>Vol</span><span><i style="background:var(--r2)"></i>Instruction</span><span><i style="background:var(--r3)"></i>Club / baptême</span><span><i style="background:#6d7c92"></i>Indisponible</span>'
-    + (instr.some((i) => i.creneaux.some((c) => c.flottant)) ? '<span><i style="background:rgba(64,201,127,.4)"></i>Instructeur présent</span>' : '') + '<span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.5) 0 3px,transparent 3px 6px)"></i>Nuit aéronautique</span></div>';
+    + (instr.some((i) => i.creneaux.some((c) => c.flottant)) ? '<span><i style="background:rgba(64,201,127,.4)"></i>Instructeur présent</span>' : '') + '<span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.5) 0 3px,transparent 3px 6px)"></i>Nuit aéronautique</span><span><i style="width:3px;background:var(--warn)"></i>Limite jour / nuit aéro.</span><span><i style="width:2px;background:var(--muted)"></i>Traits tous les 1/4 h</span></div>';
   $('timeline').innerHTML = avions.length ? html : '<p class="vide">Données Aerogest indisponibles pour le moment.</p>';
   const enCours = jour.filter((r) => mins(r.debut, auj) <= now && mins(r.fin, auj) > now).length;
   $('tl-info').textContent = `${jour.length} vol${jour.length > 1 ? 's' : ''}${enCours ? ` · ${enCours} en cours` : ''} · heures locales · jour aéro. ${heureLocale(e.jourAero)} → ${heureLocale(e.nuitAero)}`;
@@ -387,10 +401,11 @@ const PISTES = [
   { a: ['04', 40], b: ['22', 220], cap: 42, cx: 10, cy: -22, l: 24 },
 ] as const;
 // Vent mesuré par la station Météo-France de Beauvais-Tillé (60639001), une mesure toutes les 6 min (API Observation v2).
-// Repli sur le METAR (toutes les 30 min) si la station ne répond pas ou si sa mesure a plus de 30 min.
+// Repli sur le METAR (toutes les 30 min) si la station ne répond pas ou si rien de neuf depuis 18 min.
 interface Obs { dir: number | null; f: number; g: number | null; t: number }
 let OBS: Obs | null = null;
 let obsLu = 0;
+let obsRecu = 0; // dernière fois qu'une NOUVELLE mesure est arrivée
 async function lireObs() {
   if (Date.now() - obsLu < 110000) return;
   obsLu = Date.now();
@@ -401,18 +416,24 @@ async function lireObs() {
     if (!o) return;
     const kt = (ms: number) => Math.round(ms * 1.94384);
     const f = kt(o.ff), g = typeof o.raf10 === 'number' ? kt(o.raf10) : null;
-    OBS = { dir: f > 0 && typeof o.dd === 'number' ? Math.round(o.dd / 10) * 10 % 360 || 360 : null, f, g: g != null && g - f >= 5 && g >= 10 ? g : null, t: Date.parse(o.validity_time) };
+    const t = Date.parse(o.validity_time);
+    if (!OBS || t > OBS.t) obsRecu = Date.now();
+    OBS = { dir: f > 0 && typeof o.dd === 'number' ? Math.round(o.dd / 10) * 10 % 360 || 360 : null, f, g: g != null && g - f >= 5 && g >= 10 ? g : null, t };
   } catch { /* on garde la dernière mesure ou le METAR */ }
 }
 
 function ventBloc() {
   const metar = D?.metar;
-  const st = OBS && Date.now() - OBS.t < 30 * 60000 ? OBS : null;
+  // Secours METAR si la station n'a rien envoyé de neuf depuis 18 min (3 mesures manquées) ou si sa mesure a plus de 40 min
+  const st = OBS && Date.now() - obsRecu <= 18 * 60000 && Date.now() - OBS.t < 40 * 60000 ? OBS : null;
   const m = st ? { ventDir: st.dir ?? (st.f ? 'VRB' : null), ventForce: st.f, rafales: st.g, ventVar: null as [number, number] | null } : metar;
   const dir = typeof m?.ventDir === 'number' ? m.ventDir : null;
   const f = m?.ventForce ?? null;
   const g = m?.rafales ?? null;
-  $('vent-info').textContent = st ? `Station LFOB ${hUtc(new Date(st.t))} UTC · toutes les 6 min` : metar ? `METAR ${metar.heure ? hUtc(new Date(metar.heure)) + ' UTC' : ''}` : '';
+  // Point vert : la station envoie bien ses mesures ; rouge : rien de neuf depuis 18 min (3 mesures de 6 min manquées) ou repli sur le METAR
+  const capte = !!st;
+  $('vent-info').innerHTML = st ? `<span class="dot${capte ? '' : ' ko'}"></span>&nbsp;Station LFOB (seuil 30) · ${hUtc(new Date(st.t))} UTC · toutes les 6 min`
+    : metar ? `<span class="dot ko"></span>&nbsp;Secours METAR (station muette) ${metar.heure ? hUtc(new Date(metar.heure)) + ' UTC' : ''}` : '';
   const R = 54;
   const pt = (deg: number, r: number, x0 = 0, y0 = 0) => [x0 + r * Math.sin((deg * Math.PI) / 180), y0 - r * Math.cos((deg * Math.PI) / 180)];
   let s = '<svg viewBox="-70 -70 140 140" aria-hidden="true">';
@@ -561,7 +582,7 @@ function animer(id: string, cadres: { t: number; src: string }[]) {
       n.i = (n.i + 1) % ok.length;
       n.cadres.forEach((c) => c.img.classList.toggle('on', c === ok[n.i]));
       const d = new Date(ok[n.i].t);
-      $(`${id}-h`).textContent = id === 'aro' ? `${(() => { const m = Math.max(0, Math.round((ok[n.i].t - Date.now()) / 60000)); return m < 60 ? `+${m} min` : `+${Math.floor(m / 60)} h${m % 60 >= 15 ? ` ${p2(m % 60)}` : ''}`; })()} · ${heureLocale(d)}` : `${hUtc(d)} UTC`;
+      $(`${id}-h`).textContent = id === 'aro' ? `${(() => { const m = Math.max(0, Math.round((ok[n.i].t - Date.now()) / 600000) * 10); return m < 60 ? `+${m} min` : `+${Math.floor(m / 60)} h${m % 60 >= 15 ? ` ${p2(m % 60)}` : ''}`; })()} · ${heureLocale(d)}` : `${hUtc(d)} UTC`;
       ($(`${id}-b`) as HTMLElement).style.width = `${ok.length > 1 ? (n.i / (ok.length - 1)) * 100 : 100}%`;
     }
     n.minuteur = window.setTimeout(pas, ok.length && n.i === ok.length - 1 ? 2500 : 450);
@@ -645,8 +666,26 @@ async function charger() {
   dessiner();
 }
 
+// Bandeau du haut : alertes météo (MAA) et SNOWTAM, en cours ou à venir ; sinon « aucune alerte »
+function alertes() {
+  const b = $('alertes');
+  if (!D || D.maa == null) { b.innerHTML = ''; return; }
+  const n = Date.now();
+  const t = (iso: string | null) => { const d = utc(iso); return d ? (jmUtc(d) === jmUtc(new Date()) ? hUtc(d) : `${jmUtc(d)} ${hUtc(d)}`) : '…'; };
+  const enCours = D.maa.filter((m) => m.debut && Date.parse(m.debut) <= n);
+  const aVenir = D.maa.filter((m) => !(m.debut && Date.parse(m.debut) <= n));
+  const snow = (D.notam?.notam ?? []).filter((x) => x.snow);
+  const plus = (l: unknown[]) => (l.length > 1 ? ` (+${l.length - 1})` : '');
+  const h: string[] = [];
+  if (snow.length) h.push(`<div class="al a-on"><b>SNOWTAM en vigueur</b><span>état des pistes publié · voir NOTAM</span></div>`);
+  if (enCours.length) h.push(`<div class="al a-on"><b>Alerte météo en cours</b><span>${esc(enCours[0].motif || 'MAA')}${enCours[0].fin ? ` jusqu’à ${t(enCours[0].fin)} UTC` : ''}${plus(enCours)}</span></div>`);
+  else if (aVenir.length) h.push(`<div class="al a-av"><b>Alerte météo à venir</b><span>${esc(aVenir[0].motif || 'MAA')} dès ${t(aVenir[0].debut)} UTC${plus(aVenir)}</span></div>`);
+  if (!h.length) h.push(`<div class="al a-ok"><b>Aucune alerte météo</b><span>ni MAA ni SNOWTAM, en cours ou à venir</span></div>`);
+  b.innerHTML = h.join('');
+}
+
 function dessiner() {
-  for (const f of [accueil, reservations, meteo]) { try { f(); } catch (e) { console.error(e); } }
+  for (const f of [alertes, accueil, reservations, meteo]) { try { f(); } catch (e) { console.error(e); } }
   majPied();
 }
 
