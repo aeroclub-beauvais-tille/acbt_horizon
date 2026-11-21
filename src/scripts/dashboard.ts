@@ -295,18 +295,21 @@ function reservations() {
   const P = (m: number) => Math.max(0, Math.min(100, ((m - d0) / (d1 - d0)) * 100));
   const fond = () => {
     let g = '';
-    for (let h = d0 + 60; h < d1; h += 60) g += `<span class="g" style="left:${P(h)}%"></span>`;
+    // Traits tous les quarts d'heure (comme Aerogest) : heure > demi-heure > quart
+    for (let m = d0 + 15; m < d1; m += 15) g += `<span class="g${m % 60 === 0 ? ' h' : m % 30 === 0 ? ' d' : ''}" style="left:${P(m)}%"></span>`;
     g += `<span class="nuit" style="left:0;width:${P(ja)}%"></span><span class="nuit" style="left:${P(na)}%;right:0"></span>`;
+    g += `<span class="lim" style="left:${P(ja)}%"></span><span class="lim" style="left:${P(na)}%"></span>`;
     if (now > d0) g += `<span class="passe" style="width:${P(now)}%"></span>`;
     if (now >= d0 && now <= d1) g += `<span class="now" style="left:${P(now)}%"></span>`;
     return g;
   };
-  const barre = (a: number, b: number, cls: string, t: string, s: string) => `<div class="rz ${cls}" style="left:${P(a)}%;width:${Math.max(0.6, P(b) - P(a))}%">${esc(t)}<small>${esc(s)}</small></div>`;
+  const barre = (a: number, b: number, cls: string, t: string, ...s: string[]) => `<div class="rz ${cls}" style="left:${P(a)}%;width:${Math.max(0.6, P(b) - P(a))}%"><b>${esc(t)}</b>${s.filter(Boolean).map((x) => `<small>${esc(x)}</small>`).join('')}</div>`;
   const nbI = instr.length;
-  const hA = Math.max(46, Math.min(130, Math.floor((780 - (nbI ? nbI * 58 + 20 : 0)) / Math.max(1, avions.length)) - 10));
+  const hA = Math.max(46, Math.min(130, Math.floor((750 - (nbI ? nbI * 74 + 20 : 0)) / Math.max(1, avions.length)) - 10));
   let html = '<div class="tl"><span></span><div class="hrs">';
   for (let h = d0; h <= d1; h += 60) html += `<i style="left:${P(h)}%">${p2(h / 60)}h</i>`;
-  html += '</div>';
+  html += '</div><span></span><div class="lims">'
+    + `<em style="left:${P(ja)}%">Jour aéro. ${heureLocale(e.jourAero)}</em><em class="fin" style="left:${P(na)}%">Nuit aéro. ${heureLocale(e.nuitAero)}</em></div>`;
   for (const a of avions) {
     let b = '';
     for (const x of (a.indispos ?? []).filter((x) => x.debut.slice(0, 8) <= auj && x.fin.slice(0, 8) >= auj)) {
@@ -314,8 +317,7 @@ function reservations() {
       b += barre(mins(x.debut, auj), mins(x.fin, auj), 'mnt', motif, x.fin.slice(0, 8) > auj ? `jusqu’au ${x.fin.slice(6, 8)}/${x.fin.slice(4, 6)}` : `jusqu’à ${agH(x.fin)}`);
     }
     for (const r of (a.jour ?? []).filter((r) => r.debut.slice(0, 8) === auj)) {
-      const s = `${agH(r.debut)} – ${agH(r.fin)}${r.instructeur ? ` · avec ${court(r.instructeur)}` : ''}`;
-      b += barre(mins(r.debut, auj), mins(r.fin, auj), classeType(r.type), court(r.pilote) || r.type || 'Réservé', s);
+      b += barre(mins(r.debut, auj), mins(r.fin, auj), classeType(r.type), court(r.pilote) || r.type || 'Réservé', `${agH(r.debut)} – ${agH(r.fin)}`, r.instructeur ? `avec ${court(r.instructeur)}` : '');
     }
     html += `<div class="lab"><b>${esc(a.immat)}</b><small>${esc(modeles[a.immat] || '')}</small></div><div class="trk" style="height:${hA}px">${fond()}${b}</div>`;
   }
@@ -325,13 +327,13 @@ function reservations() {
       let b = '';
       for (const c of i.creneaux) {
         const t = `${agH(c.debut)} – ${agH(c.fin)}`;
-        b += c.flottant ? barre(mins(c.debut, auj), mins(c.fin, auj), 'pres', `Disponible ${t}`, '') : barre(mins(c.debut, auj), mins(c.fin, auj), classeType(c.type), `${court(c.pilote) || c.texte || 'Vol'} · ${t}`, '');
+        b += c.flottant ? barre(mins(c.debut, auj), mins(c.fin, auj), 'pres', 'Disponible', t) : barre(mins(c.debut, auj), mins(c.fin, auj), classeType(c.type), court(c.pilote) || c.texte || 'Vol', t);
       }
       html += `<div class="lab ins"><b>${esc(court(i.nom))}</b></div><div class="trk ins">${fond()}${b}</div>`;
     }
   }
   html += '</div><div class="leg"><span><i style="background:var(--r1)"></i>Vol</span><span><i style="background:var(--r2)"></i>Instruction</span><span><i style="background:var(--r3)"></i>Club / baptême</span><span><i style="background:#6d7c92"></i>Indisponible</span>'
-    + (instr.some((i) => i.creneaux.some((c) => c.flottant)) ? '<span><i style="background:rgba(64,201,127,.4)"></i>Instructeur présent</span>' : '') + '<span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.5) 0 3px,transparent 3px 6px)"></i>Nuit aéronautique</span></div>';
+    + (instr.some((i) => i.creneaux.some((c) => c.flottant)) ? '<span><i style="background:rgba(64,201,127,.4)"></i>Instructeur présent</span>' : '') + '<span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.5) 0 3px,transparent 3px 6px)"></i>Nuit aéronautique</span><span><i style="width:3px;background:var(--warn)"></i>Limite jour / nuit aéro.</span><span><i style="width:2px;background:var(--muted)"></i>Traits tous les 1/4 h</span></div>';
   $('timeline').innerHTML = avions.length ? html : '<p class="vide">Données Aerogest indisponibles pour le moment.</p>';
   const enCours = jour.filter((r) => mins(r.debut, auj) <= now && mins(r.fin, auj) > now).length;
   $('tl-info').textContent = `${jour.length} vol${jour.length > 1 ? 's' : ''}${enCours ? ` · ${enCours} en cours` : ''} · heures locales · jour aéro. ${heureLocale(e.jourAero)} → ${heureLocale(e.nuitAero)}`;
@@ -424,7 +426,7 @@ function ventBloc() {
   const dir = typeof m?.ventDir === 'number' ? m.ventDir : null;
   const f = m?.ventForce ?? null;
   const g = m?.rafales ?? null;
-  $('vent-info').textContent = st ? `Station LFOB ${hUtc(new Date(st.t))} UTC · toutes les 6 min` : metar ? `METAR ${metar.heure ? hUtc(new Date(metar.heure)) + ' UTC' : ''}` : '';
+  $('vent-info').textContent = st ? `Station LFOB (seuil 30) · ${hUtc(new Date(st.t))} UTC · toutes les 6 min` : metar ? `METAR ${metar.heure ? hUtc(new Date(metar.heure)) + ' UTC' : ''}` : '';
   const R = 54;
   const pt = (deg: number, r: number, x0 = 0, y0 = 0) => [x0 + r * Math.sin((deg * Math.PI) / 180), y0 - r * Math.cos((deg * Math.PI) / 180)];
   let s = '<svg viewBox="-70 -70 140 140" aria-hidden="true">';
