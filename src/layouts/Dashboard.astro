@@ -30,8 +30,16 @@ const polices = `@font-face{font-family:'Manrope';font-style:normal;font-weight:
     --ink: #eef2fa; --ink2: #c7d0e4; --muted: #8792ad; --accent: #8fa6ff; --navy: #002A5A; --yellow: #ffb81f;
     --ok: #40c97f; --okbg: rgba(64,201,127,.14); --warn: #ffb81f; --warnbg: rgba(255,184,31,.14); --bad: #ff6464; --badbg: rgba(255,100,100,.14);
     --r1: #3d7fd6; --r2: #8b6ce0; --r3: #2d9b8a; --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --civ1: #1b2c5c; --civ2: #3b5aa0; --passe: rgba(0,0,0,.25);
+  }
+  /* Thème clair, choisi automatiquement pendant le jour civil (de l'aube au crépuscule civils) */
+  :root[data-theme="clair"] {
+    --bg: #e9eef6; --panel: #ffffff; --panel2: #f0f3f9; --line: #d3dbe8;
+    --ink: #0b1630; --ink2: #2c3a5a; --muted: #5d6987; --accent: #3550c8; --yellow: #d18f00;
+    --ok: #17914f; --okbg: rgba(23,145,79,.12); --warn: #b97800; --warnbg: rgba(209,143,0,.14); --bad: #d33434; --badbg: rgba(211,52,52,.11);
+    --civ1: #8fa6d8; --civ2: #b9cdf0; --passe: rgba(11,22,48,.12);
   }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); transition: background .6s, color .6s; }
   body { font-family: Manrope, system-ui, sans-serif; font-variant-numeric: tabular-nums; overflow: hidden; }
 </style>

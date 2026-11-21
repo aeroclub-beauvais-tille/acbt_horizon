@@ -11,43 +11,25 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   <div id="scene" data-modeles={JSON.stringify(modeles)}>
     <header class="top">
       <div class="brand"><div class="lg">ACBT</div><div><b>Aéroclub Beauvais-Tillé</b><small>LFOB</small></div></div>
-      <nav class="tabs" id="tabs">
-        <button data-e="0">Accueil<i></i></button>
-        <button data-e="1">Réservations<i></i></button>
-        <button data-e="2">Météo<i></i></button>
-        <button data-e="3">Radar et satellite<i></i></button>
-      </nav>
-      <div class="clock" id="horloge-haut"><span class="h" data-h="local"></span><span class="u"><span data-h="utc"></span> UTC</span></div>
+      <div class="clock"><span class="h" data-h="local"></span><span class="cu"><span class="u"><span data-h="utc"></span> UTC</span><span class="d" data-h="date"></span></span></div>
     </header>
 
     <!-- 1. Accueil -->
     <section class="ecran e1" data-e="0">
-      <div class="r1">
-        <div class="panel heure">
-          <div class="hl" data-h="local"></div>
-          <div class="hu"><span data-h="utc"></span><small>UTC</small></div>
-          <div class="hd" data-h="date"></div>
-        </div>
-        <div class="panel" id="soleil"></div>
-      </div>
+      <div class="panel" id="soleil"></div>
       <div class="panel flotte">
-        <h2>Flotte <span class="r">potentiel avant visite · vert &gt; 5 h · orange 2 à 5 h · rouge &lt; 2 h · avions indisponibles en dernier</span></h2>
+        <h2>Flotte <span class="r">potentiel avant visite · vert &gt; 5 h · orange 2 à 5 h · rouge &lt; 2 h</span></h2>
         <div class="cartes" id="cartes"></div>
       </div>
       <div class="r3">
+        <div class="panel"><h2>Activité des avions <span class="r">heures locales</span></h2><div id="activite"></div></div>
         <div class="panel"><h2>NOTAM LFOB <span class="r" id="notam-info"></span></h2><div id="notam" class="nl"></div></div>
-        <div class="panel"><h2>SUP AIP <span class="r">autour de LFOB</span></h2><div id="sup" class="nl"></div></div>
       </div>
     </section>
 
     <!-- 2. Réservations -->
     <section class="ecran e2" data-e="1">
       <div class="panel"><h2>Planning du jour <span class="r" id="tl-info"></span></h2><div id="timeline"></div></div>
-      <div class="col">
-        <div class="panel"><h2>Instructeurs <span class="r">vols du jour sur Aerogest</span></h2><div id="instr" class="chips"></div></div>
-        <div class="panel liste"><h2>Réservations du jour <span class="r" id="jour-info"></span></h2><div id="jour"></div></div>
-        <div class="panel"><h2>Demain <span class="r" id="demain-info"></span></h2><div id="demain"></div></div>
-      </div>
     </section>
 
     <!-- 3. Météo -->
@@ -78,26 +60,33 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
       </div>
     </section>
 
+    <nav class="points" id="points" aria-label="Écrans">
+      <button data-e="0" aria-label="Accueil"><i></i></button>
+      <button data-e="1" aria-label="Réservations"><i></i></button>
+      <button data-e="2" aria-label="Météo"><i></i></button>
+      <button data-e="3" aria-label="Radar et satellite"><i></i></button>
+    </nav>
     <footer class="foot"><span class="dot" id="etat"></span><span id="maj">Chargement…</span></footer>
   </div>
 </Dashboard>
 
 <style is:global>
-  #scene { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; padding: 22px 28px 30px; display: grid; grid-template-rows: auto 1fr; gap: 18px; }
+  #scene { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; padding: 22px 28px 44px; display: grid; grid-template-rows: auto 1fr; gap: 18px; }
   .top { display: flex; align-items: center; gap: 44px; height: 62px; }
   .brand { display: flex; align-items: center; gap: 16px; }
-  .brand .lg { width: 58px; height: 58px; border-radius: 12px; background: var(--navy); display: grid; place-items: center; font-weight: 800; font-size: 15px; }
+  .brand .lg { width: 58px; height: 58px; border-radius: 12px; background: var(--navy); display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #fff; }
   .brand b { font-size: 30px; font-weight: 800; display: block; line-height: 1.1; }
   .brand small { color: var(--muted); font-size: 17px; font-weight: 600; }
-  .tabs { display: flex; gap: 6px; }
-  .tabs button { position: relative; font: inherit; font-size: 18px; font-weight: 700; color: var(--muted); background: none; border: 1px solid transparent; border-radius: 10px; padding: 8px 16px 10px; cursor: pointer; overflow: hidden; }
-  .tabs button.on { color: var(--ink); background: var(--panel); border-color: var(--line); }
-  .tabs button i { position: absolute; left: 16px; bottom: 3px; height: 3px; width: 0; background: var(--yellow); border-radius: 2px; }
-  .tabs button.on i { width: calc((100% - 32px) * var(--p, 1)); }
-  .clock { margin-left: auto; display: flex; align-items: baseline; gap: 16px; }
-  .clock .h { font-size: 50px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
-  .clock .u { font-family: var(--mono); font-size: 22px; color: var(--muted); }
-  #scene.s0 .clock { visibility: hidden; }
+  .clock { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+  .clock .h { font-size: 56px; font-weight: 800; letter-spacing: -1px; line-height: 1; }
+  .clock .cu { display: flex; flex-direction: column; gap: 2px; }
+  .clock .u { font-family: var(--mono); font-size: 22px; color: var(--ink2); line-height: 1.1; }
+  .clock .d { font-size: 15px; color: var(--muted); font-weight: 700; }
+  .points { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; gap: 12px; }
+  .points button { position: relative; width: 14px; height: 14px; padding: 0; border: 0; border-radius: 99px; background: var(--line); cursor: pointer; overflow: hidden; transition: width .3s; }
+  .points button.on { width: 54px; }
+  .points button i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--yellow); }
+  .points button.on i { width: calc(100% * var(--p, 1)); }
   .ecran { display: none; min-height: 0; gap: 18px; }
   .ecran.on { display: grid; }
   .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px 22px; min-height: 0; min-width: 0; overflow: hidden; }
@@ -114,61 +103,57 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .p-ok { background: var(--okbg); color: var(--ok); } .p-bad { background: var(--badbg); color: var(--bad); } .p-busy { background: rgba(143,166,255,.16); color: var(--accent); }
 
   /* 1. Accueil */
-  .e1 { grid-template-rows: 262px auto 1fr; }
-  .e1 .r1 { display: grid; grid-template-columns: 560px 1fr; gap: 18px; min-height: 0; }
-  .e1 .r3 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; min-height: 0; }
-  .heure { display: flex; flex-direction: column; justify-content: center; padding: 18px 30px; }
-  .heure .hl { font-size: 128px; font-weight: 800; line-height: .95; letter-spacing: -3px; }
-  .heure .hu { font-size: 50px; font-weight: 800; color: var(--ink2); margin-top: 10px; display: flex; align-items: baseline; gap: 14px; }
-  .heure .hu small { font-size: 18px; color: var(--muted); font-weight: 700; }
-  .heure .hd { font-size: 28px; font-weight: 700; color: var(--ink2); margin-top: 14px; }
-  .sf { position: relative; height: 34px; border-radius: 9px; overflow: hidden; background: #0b1430; }
+  .e1 { grid-template-rows: auto auto 1fr; }
+  .e1 .r3 { display: grid; grid-template-columns: 1.45fr 1fr; gap: 18px; min-height: 0; }
+  .sf { position: relative; height: 40px; border-radius: 9px; overflow: hidden; background: var(--panel2); }
   .sf .seg { position: absolute; top: 0; bottom: 0; }
-  .sf .civ { background: linear-gradient(90deg, #1b2c5c, #3b5aa0); } .sf .civ2 { background: linear-gradient(90deg, #3b5aa0, #1b2c5c); }
+  .sf .civ { background: linear-gradient(90deg, var(--civ1), var(--civ2)); } .sf .civ2 { background: linear-gradient(90deg, var(--civ2), var(--civ1)); }
   .sf .day { background: linear-gradient(180deg, #5d8fe0, #3d6fc4); }
   .sf .ae { position: absolute; top: 3px; bottom: 3px; border: 2px solid var(--yellow); border-radius: 7px; }
-  .sf .past { position: absolute; top: 0; bottom: 0; left: 0; background: rgba(0,0,0,.25); }
-  .sf .now { position: absolute; top: 0; bottom: 0; width: 3px; background: #fff; border-radius: 2px; box-shadow: 0 0 0 2px rgba(0,0,0,.35); }
+  .sf .past { position: absolute; top: 0; bottom: 0; left: 0; background: var(--passe); }
+  .sf .now { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: var(--bad); border-radius: 2px; box-shadow: 0 0 0 2px rgba(0,0,0,.35); }
   .sf .nn { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, rgba(143,166,255,.18) 0 6px, transparent 6px 12px); }
+  .sfw { position: relative; padding-top: 24px; margin-top: -8px; }
+  .sfw .nowl { position: absolute; top: 0; transform: translateX(-50%); background: var(--bad); color: #fff; font-family: var(--mono); font-size: 14px; font-weight: 700; padding: 1px 8px; border-radius: 6px; }
   .sx { position: relative; height: 18px; font-size: 13px; color: var(--muted); font-weight: 600; margin-top: 4px; }
   .sx i { position: absolute; transform: translateX(-50%); font-style: normal; }
-  .sv { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 10px; }
-  .sv div { background: var(--panel2); border-radius: 10px; padding: 8px 10px; }
+  .sv { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 8px; }
+  .sv div { background: var(--panel2); border-radius: 10px; padding: 6px 12px; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
   .sv small { display: block; font-size: 12px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .5px; white-space: nowrap; }
   .sv b { font-size: 24px; font-weight: 800; }
-  .sv .ae b { color: var(--yellow); } .sv .cv b { color: var(--accent); }
+  .sv .ae b { color: var(--yellow); } .sv .ac b { color: var(--accent); }
   .cdn { font-size: 16px; color: var(--muted); font-weight: 700; display: flex; align-items: baseline; gap: 10px; }
   .cdn b { font-size: 28px; color: var(--warn); font-weight: 800; }
-  .lg2 { display: flex; gap: 18px; font-size: 13px; color: var(--muted); font-weight: 600; margin-top: 10px; }
+  .lg2 { display: flex; gap: 18px; font-size: 13px; color: var(--muted); font-weight: 600; }
   .lg2 span { display: flex; gap: 6px; align-items: center; }
   .lg2 i { width: 16px; height: 10px; border-radius: 3px; display: inline-block; }
   .cartes { display: grid; gap: 14px; }
-  .av { background: var(--panel2); border-radius: 14px; padding: 14px 16px; min-width: 0; display: flex; flex-direction: column; }
+  .av { background: var(--panel2); border-radius: 14px; padding: 10px 14px 8px; min-width: 0; display: grid; grid-template-rows: auto auto auto auto; justify-items: center; gap: 6px; }
   .av.hs { background: var(--panel2) repeating-linear-gradient(135deg, transparent 0 12px, rgba(255,100,100,.16) 12px 14px); }
-  .av-t { display: flex; align-items: center; gap: 10px; }
+  .av-t { display: flex; align-items: baseline; gap: 8px; max-width: 100%; }
   .av-t b { font-family: var(--mono); font-size: 24px; white-space: nowrap; }
-  .av-t small { color: var(--muted); font-weight: 600; font-size: 15px; }
-  .av-t .pill { margin-left: auto; }
-  .ban { display: flex; justify-content: space-between; gap: 10px; border: 1px solid rgba(255,100,100,.5); border-left: 4px solid var(--bad); background: var(--panel); border-radius: 10px; padding: 7px 12px; margin-top: 10px; font-size: 16px; font-weight: 700; min-width: 0; }
-  .ban b { color: var(--bad); flex: none; }
-  .av-h { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: center; margin-top: 12px; }
+  .av-t small { color: var(--muted); font-weight: 600; font-size: 15px; white-space: nowrap; }
+  .av .pill { font-size: 15px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+  .av-n { height: 20px; font-size: 15px; font-weight: 700; color: var(--ink2); max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ring { position: relative; flex: none; width: 104px; height: 104px; }
   .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
   .ring circle { fill: none; stroke-width: 4; stroke: var(--line); }
   .ring .arc { stroke: var(--ok); stroke-linecap: round; }
   .ring.warn .arc { stroke: var(--warn); } .ring.bad .arc { stroke: var(--bad); } .ring.off .arc { stroke: var(--muted); } .ring.off { opacity: .6; }
   .ring div { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
-  .ring b { font-weight: 800; line-height: 1; font-size: 21px; } .ring small { color: var(--muted); font-weight: 700; margin-top: 4px; font-size: 11px; }
+  .ring b { font-weight: 800; line-height: 1; font-size: 22px; } .ring small { color: var(--muted); font-weight: 700; margin-top: 4px; font-size: 12px; }
   .ring.warn b { color: var(--warn); } .ring.bad b { color: var(--bad); }
-  .lb { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
-  .lb.gr { color: var(--ok); } .lb.r { color: var(--bad); } .lb.a { color: var(--accent); }
-  .dy { font-size: 15px; font-weight: 700; color: var(--muted); }
-  .nm { font-size: 16px; font-weight: 600; color: var(--ink2); }
-  .bg1 { font-size: 30px; font-weight: 800; line-height: 1.15; }
-  .av-l { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; row-gap: 8px; align-items: center; }
-  .av-h + .av-l { margin-top: 12px; }
-  .av-l .tm { text-align: right; font-size: 18px; font-weight: 800; white-space: nowrap; }
-  .av-l .tm small { display: block; font-size: 13px; color: var(--muted); font-weight: 700; }
+  .e1 .r3 > .panel:first-child { display: flex; flex-direction: column; }
+  #activite { flex: 1; min-height: 0; }
+  .act { height: 100%; display: grid; grid-template-columns: 112px repeat(3, minmax(0, 1fr)); column-gap: 18px; }
+  .act > span { display: flex; align-items: center; gap: 8px; min-width: 0; border-bottom: 1px solid var(--line); padding: 0 2px; white-space: nowrap; overflow: hidden; font-size: 17px; font-weight: 600; color: var(--ink2); }
+  .act > .th { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding-bottom: 6px; }
+  .act .im { font-family: var(--mono); font-weight: 700; font-size: 19px; color: var(--ink); }
+  .act b { font-weight: 800; color: var(--ink); flex: none; }
+  .act em { font-style: normal; font-size: 14px; font-weight: 700; color: var(--muted); flex: none; }
+  .act .nm2 { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .act .gr b { color: var(--ok); } .act .a b { color: var(--accent); } .act .r b { color: var(--bad); }
+  .act > span:nth-last-child(-n+4) { border-bottom: 0; }
   .nl .n { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line); align-items: start; }
   .nl .n:last-child { border-bottom: 0; }
   .nl .tag { font-size: 13px; font-weight: 800; padding: 4px 8px; border-radius: 7px; text-align: center; background: rgba(143,166,255,.16); color: var(--accent); }
@@ -177,10 +162,9 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .nl small { display: block; color: var(--muted); font-size: 14px; font-weight: 600; margin-top: 3px; }
 
   /* 2. Réservations */
-  .e2 { grid-template-columns: 1fr 620px; }
-  .e2 .col, .e3 .col { display: flex; flex-direction: column; gap: 18px; min-height: 0; }
-  .e2 .liste { flex: 1; }
-  .tl { display: grid; grid-template-columns: 150px 1fr; row-gap: 10px; align-items: center; }
+  .e2 { grid-template-columns: 1fr; }
+  .e3 .col { display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+  .tl { display: grid; grid-template-columns: 170px 1fr; row-gap: 10px; align-items: center; }
   .hrs { grid-column: 2; position: relative; height: 22px; font-size: 16px; color: var(--muted); font-weight: 600; }
   .hrs i { position: absolute; transform: translateX(-50%); font-style: normal; }
   .lab b { font-family: var(--mono); font-size: 24px; font-weight: 700; display: block; }
