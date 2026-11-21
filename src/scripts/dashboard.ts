@@ -224,7 +224,23 @@ function notams() {
   };
   const l = n.notam ?? [];
   $('notam-info').textContent = `${l.length} en vigueur · hors obstacles`;
-  $('notam').innerHTML = l.length ? l.map((x) => ligne(x, false)).join('') : vide('Aucun NOTAM en vigueur (hors obstacles).');
+  // Liste complète ; si elle dépasse le cadre, elle défile en boucle (copie à la suite, environ 25 px par seconde)
+  const html = l.map((x) => ligne(x, false)).join('');
+  const boite = $('notam');
+  if (!l.length) { boite.innerHTML = vide('Aucun NOTAM en vigueur (hors obstacles).'); return; }
+  if (boite.dataset.html === html && boite.dataset.ok) return;
+  boite.dataset.html = html;
+  defileNotam();
+}
+// À faire quand l'écran est visible (sinon la hauteur mesurée est nulle)
+function defileNotam() {
+  const boite = $('notam');
+  const html = boite.dataset.html;
+  if (!html || !boite.offsetParent) { delete boite.dataset.ok; return; }
+  boite.innerHTML = `<div>${html}</div>`;
+  const h = (boite.firstElementChild as HTMLElement).offsetHeight;
+  if (h > boite.clientHeight) boite.innerHTML = `<div class="def" style="--duree:${Math.round(h / 25)}s"><div style="padding-bottom:24px">${html}</div><div style="padding-bottom:24px">${html}</div></div>`;
+  boite.dataset.ok = '1';
 }
 
 function accueil() {
@@ -617,7 +633,7 @@ function majPied() {
   $('maj').textContent = (s > 180 ? `Hors ligne · dernières données de ${t}` : `Actualisé il y a ${s < 60 ? `${s} s` : `${Math.floor(s / 60)} min`} · Aerogest, AVWX, Météo-France (MAA), FAA (NOTAM)`) + alerte;
 }
 
-const DUREES = [20, 20, 25, 20]; // secondes par écran
+const DUREES = [30, 20, 25, 20]; // secondes par écran
 let ecran = 0, debutEcran = Date.now(), pauseJusqua = 0;
 const fige = (() => { const e = Number(new URLSearchParams(location.search).get('ecran')); return e >= 1 && e <= 4 ? e - 1 : null; })();
 
@@ -628,6 +644,7 @@ function montrer(i: number) {
   document.querySelectorAll<HTMLElement>('#points button').forEach((b) => b.classList.toggle('on', Number(b.dataset.e) === i));
   const s = $('scene');
   s.className = `s${i}`;
+  if (i === 0 && !$('notam').dataset.ok) defileNotam();
 }
 
 function tic() {
