@@ -736,6 +736,13 @@ export function demarrer() {
   theme();
   echelle();
   addEventListener('resize', echelle);
+  // Bouton discret plein écran / sortie (en bas à gauche)
+  const pe = document.getElementById('plein-ecran');
+  pe?.addEventListener('click', () => {
+    if (document.fullscreenElement) document.exitFullscreen?.();
+    else document.documentElement.requestFullscreen?.().catch(() => { /* refusé par le navigateur */ });
+  });
+  document.addEventListener('fullscreenchange', () => { pe?.setAttribute('aria-label', document.fullscreenElement ? 'Quitter le plein écran' : 'Plein écran'); pe?.setAttribute('title', document.fullscreenElement ? 'Quitter le plein écran' : 'Plein écran'); });
   document.querySelectorAll<HTMLElement>('#points button').forEach((b) => b.addEventListener('click', () => { pauseJusqua = Date.now() + 120000; montrer(Number(b.dataset.e)); }));
   montrer(fige ?? 0);
   horloge();
