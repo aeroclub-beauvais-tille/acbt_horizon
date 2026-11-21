@@ -44,7 +44,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
     <section class="ecran e2" data-e="1">
       <div class="panel"><h2>Planning du jour <span class="r" id="tl-info"></span></h2><div id="timeline"></div></div>
       <div class="col">
-        <div class="panel"><h2>Instructeurs <span class="r">disponibles maintenant en vert</span></h2><div id="instr" class="chips"></div></div>
+        <div class="panel"><h2>Instructeurs <span class="r">vols du jour sur Aerogest</span></h2><div id="instr" class="chips"></div></div>
         <div class="panel liste"><h2>Réservations du jour <span class="r" id="jour-info"></span></h2><div id="jour"></div></div>
         <div class="panel"><h2>Demain <span class="r" id="demain-info"></span></h2><div id="demain"></div></div>
       </div>
@@ -202,6 +202,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .chip { background: var(--panel2); border-radius: 10px; padding: 7px 14px; font-size: 16px; font-weight: 800; color: var(--ink2); }
   .chip small { font-weight: 600; color: var(--muted); margin-left: 8px; font-size: 14px; }
   .chip.on { background: var(--okbg); color: var(--ok); } .chip.on small { color: var(--ok); }
+  .chip.vol { background: rgba(143,166,255,.16); color: var(--accent); } .chip.vol small { color: var(--accent); }
   .res { display: grid; grid-template-columns: 150px 96px minmax(0, 1fr) 120px; gap: 12px; align-items: center; padding: 9px 8px; border-bottom: 1px solid var(--line); font-size: 17px; font-weight: 600; color: var(--ink2); }
   .res:last-child { border-bottom: 0; }
   .res .h { font-weight: 800; color: var(--ink); white-space: nowrap; }
