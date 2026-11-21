@@ -162,12 +162,11 @@ function carte(a: Avion) {
   if (hs) {
     const motif = hs.motif.trim().replace(/^./, (c) => c.toUpperCase());
     etat = ['p-bad', motif && motif.length <= 18 ? motif : 'Maintenance'];
-    sous = `retour ${jourTxt(hs.fin.slice(0, 8)).toLowerCase()}`;
   } else if (a.enCours) {
     etat = ['p-busy', 'En vol'];
     sous = `jusqu’à ${agH(a.enCours.fin)}`;
   } else etat = ['p-ok', 'Disponible'];
-  return `<article class="av${hs ? ' hs' : ''}"><div class="av-t"><b>${esc(a.immat)}</b><small>${esc(modeles[a.immat] || '')}</small></div>${ring}`
+  return `<article class="av${hs ? ' hs' : ''}"><div class="av-t"><b>${esc(a.immat)}</b><small>${esc(modeles[a.immat] || '\u00a0')}</small></div>${ring}`
     + `<span class="pill ${etat[0]}">${esc(etat[1])}</span><span class="av-n">${esc(sous)}</span></article>`;
 }
 
