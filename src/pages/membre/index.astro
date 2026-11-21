@@ -69,7 +69,8 @@ const adminDonnees = {
 };
 const host = (l: string) => new URL(l).hostname.replace(/^www\./, '');
 const connexion = url('/membre/connexion/');
-const modeles = Object.fromEntries(flotte.map((a) => [a.im, a.modele.replace(/^Robin |^Jodel /, '')]));
+// Modèle affiché dans l'onglet Flotte. Les avions qui sont dans Aerogest mais pas encore dans le contenu du site sont listés ici.
+const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(flotte.map((a) => [a.im, a.modele.replace(/^Robin |^Jodel /, '')])) };
 
 const onglets = [
   { id: 'accueil', nom: 'Météo', svg: 'M17.5 19a4.5 4.5 0 1 0-.9-8.9A6 6 0 1 0 6 19h11.5z' },
