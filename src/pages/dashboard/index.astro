@@ -72,6 +72,10 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
         <div class="carte" id="rad"></div>
         <div class="anim"><span>-2 h</span><div class="barre"><i id="rad-b"></i></div><span>maintenant</span></div>
       </div>
+      <div class="panel arome" id="arome-p" hidden>
+        <h2>Prévision AROME-PI · réflectivité radar simulée <span class="r" id="arome-info">Météo-France</span></h2>
+        <div class="ar-l" id="arome"></div>
+      </div>
     </section>
 
     <footer class="foot"><span class="dot" id="etat"></span><span id="maj">Chargement…</span></footer>
@@ -264,7 +268,15 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   #evol svg { flex: 1; min-height: 0; width: 100%; }
 
   /* 4. Radar et satellite */
-  .e4 { grid-template-columns: 1fr 1fr; }
+  .e4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr auto; }
+  .arome { grid-column: 1 / -1; padding: 14px 20px; }
+  .arome h2 { margin-bottom: 10px; }
+  .ar-l { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+  .ar { position: relative; height: 150px; border-radius: 10px; overflow: hidden; background: #0b1430; }
+  .ar img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .ar img.fond { filter: brightness(.55) contrast(1.1); }
+  .ar b { position: absolute; left: 8px; top: 6px; z-index: 3; font-size: 14px; font-weight: 800; text-shadow: 0 1px 3px #000; }
+  .ar i { position: absolute; left: 50%; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; border: 3px solid var(--yellow); z-index: 3; }
   .img-p { display: flex; flex-direction: column; padding: 16px 20px; }
   .img-t { display: flex; align-items: baseline; gap: 14px; margin-bottom: 12px; }
   .img-t b { font-size: 26px; font-weight: 800; } .img-t span { color: var(--ink2); font-size: 16px; font-weight: 600; }
