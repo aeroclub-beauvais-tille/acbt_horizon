@@ -69,7 +69,8 @@ const adminDonnees = {
 };
 const host = (l: string) => new URL(l).hostname.replace(/^www\./, '');
 const connexion = url('/membre/connexion/');
-const modeles = Object.fromEntries(flotte.map((a) => [a.im, a.modele.replace(/^Robin |^Jodel /, '')]));
+// Modèle affiché dans l'onglet Flotte. Les avions qui sont dans Aerogest mais pas encore dans le contenu du site sont listés ici.
+const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(flotte.map((a) => [a.im, a.modele.replace(/^Robin |^Jodel /, '')])) };
 
 const onglets = [
   { id: 'accueil', nom: 'Météo', svg: 'M17.5 19a4.5 4.5 0 1 0-.9-8.9A6 6 0 1 0 6 19h11.5z' },
@@ -413,10 +414,13 @@ const onglets = [
   .soleil b { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .soleil b i { font-style: normal; font-size: .58rem; font-weight: 700; color: var(--muted); margin-left: 3px; letter-spacing: .03em; }
   .soleil > div:first-child b span, .soleil .nuit b span { color: var(--accent-text, var(--accent)); }
-  .sj { display: block; height: 5px; margin: 6px 10px 0; border-radius: 9px; background: var(--surface-2); overflow: hidden; }
-  .sj i { display: block; height: 100%; width: 0; border-radius: 9px; background: var(--accent); transition: width .4s; }
-  .sj i[data-etat='proche'] { background: var(--warn); }
-  .sj i[data-etat='nuit'] { background: var(--muted); }
+  /* Case « Nuit aéro. » : elle se remplit (de gauche à droite) du début du jour aéro jusqu'à la nuit aéro */
+  .soleil .nuit { position: relative; overflow: hidden; border-radius: 0 13px 13px 0; }
+  .soleil .nuit > small, .soleil .nuit > b { position: relative; z-index: 1; }
+  .sj { position: absolute; inset: 0; z-index: 0; }
+  .sj i { display: block; height: 100%; width: 0; background: var(--accent-soft); box-shadow: inset -2px 0 0 var(--accent); transition: width .4s; }
+  .sj i[data-etat='proche'] { background: var(--warn-bg); box-shadow: inset -2px 0 0 var(--warn); }
+  .sj i[data-etat='nuit'] { background: var(--surface-2); box-shadow: none; }
   #maa-zone:not([hidden]), .maa-rien:not([hidden]) { margin-bottom: 12px; }
 
   /* Flotte */
@@ -441,8 +445,8 @@ const onglets = [
   :global(.fl-jauge.fl-warn i) { background: var(--warn); }
   :global(.fl-jauge.fl-bad i) { background: var(--bad); width: 100% !important; }
   :global(.fl-carte dl) { margin: 0; display: grid; gap: 0; }
-  :global(.fl-carte dl div) { display: grid; grid-template-columns: 1fr auto; column-gap: 12px; row-gap: 1px; padding: 8px 0; border-top: 1px solid var(--line); font-size: .84rem; }
-  :global(.fl-carte dd.fl-nom) { grid-column: 1 / -1; text-align: left; font-weight: 600; color: var(--ink-2, var(--ink)); }
+  :global(.fl-carte dl div) { display: grid; row-gap: 1px; padding: 8px 0; border-top: 1px solid var(--line); font-size: .9rem; }
+  :global(.fl-carte dd.fl-nom) { font-weight: 600; color: var(--ink-2, var(--ink)); }
   /* Avion indisponible (maintenance) : carte hachurée en diagonale + bandeau */
   :global(.fl-carte.fl-hs) { background: var(--surface) repeating-linear-gradient(135deg, transparent 0 11px, var(--bad-line) 11px 12.5px); border-color: var(--bad-line); }
   :global(.fl-hs dl) { background: var(--surface); border-radius: 8px; padding: 0 10px; margin: 0 -10px; }
@@ -450,8 +454,8 @@ const onglets = [
   :global(.fl-indispo b) { color: var(--bad); font-weight: 800; }
   :global(.fl-indispo span) { font-weight: 700; }
   :global(.fl-hs .fl-pot), :global(.fl-hs .fl-jauge) { opacity: .55; }
-  :global(.fl-carte dt) { color: var(--muted); flex: none; }
-  :global(.fl-carte dd) { margin: 0; font-weight: 700; text-align: right; }
+  :global(.fl-carte dt) { color: var(--muted); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
+  :global(.fl-carte dd) { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
   .fl-info { margin: 12px 2px 0; font-size: .74rem; color: var(--muted); text-align: center; }
   :global(.fl-vide) { color: var(--muted); text-align: center; padding: 24px 8px; background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; margin: 0; }
 

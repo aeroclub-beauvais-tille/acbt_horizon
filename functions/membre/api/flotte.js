@@ -3,13 +3,15 @@
 // On lit, comme le fait la page publique d'Aerogest :
 //   - le potentiel restant de chaque avion et son dernier vol (AircraftsTBOAPI) ;
 //   - les réservations du jour et des 6 jours suivants (bookingapi/getplanning), pour trouver la prochaine.
-// Le résultat est gardé 5 minutes en cache (la page Aerogest se rafraîchit elle-même toutes les 5 minutes).
+// Le résultat est gardé 1 minute en cache : l'onglet Flotte se rafraîchit toutes les minutes.
 // Les heures d'Aerogest sont en heure locale (Paris), au format AAAAMMJJHHmm.
 
 const AEROGEST = 'https://online.aerogest.fr';
 const CACHE_CLE = 'https://cache.acbt60.local/membre/api/flotte';
-const DUREE_CACHE = 300; // secondes
+const DUREE_CACHE = 60; // secondes
 const JOURS = 7;
+// Ordre d'affichage (choix du club). Les avions masqués dans Aerogest n'apparaissent simplement pas.
+const ORDRE = ['F-GCAL', 'F-BXEK', 'F-BTBS', 'F-BTXS', 'F-BTKG', 'F-BTBJ', 'F-BIXA'];
 
 export async function onRequestGet({ env, waitUntil }) {
   if (!env.AEROGEST_PLANNING_URL) {
@@ -56,6 +58,13 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch) {
     f(`${AEROGEST}/api/schedule/bookingapi/getplanning/${j}/0?token=${jeton}`, { method: 'POST', body: '', headers: { ...entetes(cookie), 'Content-Length': '0' } })
       .then((r) => (r.ok ? r.json() : null)).catch(() => null)));
 
+  // 4. Vols réellement effectués (même source que l'option « départs/retours » du planning public) :
+  //    pour la durée du dernier vol. Facultatif : si Aerogest ne répond pas, on garde la seule heure du dernier vol.
+  const datesVols = [...new Set(tbo.map((x) => (x.lastFlight || '').match(/^(\d\d)\/(\d\d)\/(\d{4})/)).filter(Boolean).map((m) => m[3] + m[2] + m[1]))].slice(0, 7);
+  const vols = (await Promise.all(datesVols.map((j) =>
+    f(`${AEROGEST}/api/FlightManagement/FlightAPI/GetSimple/${j}0000/`, { headers: entetes(cookie) })
+      .then((r) => (r.ok ? r.json() : [])).catch(() => [])))).flat().filter((v) => v && v.idAircraft && v.from && v.to);
+
   const avions = new Map(); // id → { immat, resas: [], indispos: [] }
   const avion = (id, immat) => {
     if (!avions.has(id)) avions.set(id, { id, immat: immat || immats.get(id) || '', resas: [], indispos: [] });
@@ -78,8 +87,13 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch) {
     const enCours = resas.find((r) => r.debut <= auj && r.fin > auj) || null;
     const prochaine = resas.find((r) => r.debut > auj) || null;
     const indispo = dedoublonner(a.indispos).find((r) => r.debut <= auj && r.fin > auj) || null;
+    const indispos = dedoublonner(a.indispos).filter((r) => r.fin > auj);
+    const dernier = vols.filter((v) => v.idAircraft === a.id && String(v.to) <= auj).sort((x, y) => String(y.to).localeCompare(String(x.to)))[0];
     return {
       immat: a.immat,
+      // Créneaux occupés à venir (réservations + indisponibilités), pour calculer la prochaine disponibilité
+      occupe: [...resas.filter((r) => r.fin > auj), ...indispos].map((r) => ({ debut: r.debut, fin: r.fin })),
+      dernier: dernier ? { debut: String(dernier.from), fin: String(dernier.to), temps: dernier.tps || null, pilote: texte(dernier.pilotname) || null, instructeur: texte(dernier.instructorName) || null } : null, // Aerogest donne déjà « NOM Prénom »
       potentiel: typeof t?.pot === 'number' ? t.pot : null, // minutes avant la prochaine visite
       tolerance: t?.tol || 0,
       dernierVol: t?.lastFlight && t.lastFlight !== 'N/A' ? t.lastFlight : null, // « JJ/MM/AAAA HH:mm »
@@ -88,8 +102,8 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch) {
       indispo,
     };
   });
-  // Ordre de la page Aerogest
-  const ordre = [...immats.values()];
+  // Ordre voulu par le club, puis les autres avions dans l'ordre de la page Aerogest
+  const ordre = [...ORDRE, ...immats.values()];
   liste.sort((x, y) => rang(ordre, x.immat) - rang(ordre, y.immat));
   return { ok: true, maj: maintenant.toISOString(), planning: plannings.some(Boolean), avions: liste };
 }
@@ -104,7 +118,14 @@ function resa(r) {
     pilote: nomPrenom(info.Pilote) || texte(r.content).split('\n')[0] || null,
     instructeur: info.Instructeur ? nomPrenom(info.Instructeur) : null,
     type: info.Type || null,
+    duree: duree(info['Durée de vol prévue']), // minutes de vol prévues à la réservation
   };
+}
+
+// « 01h30 » → 90
+function duree(s) {
+  const m = String(s || '').match(/(\d+)\s*h\s*(\d+)?/i);
+  return m ? Number(m[1]) * 60 + Number(m[2] || 0) : null;
 }
 
 function infobulle(t) {
