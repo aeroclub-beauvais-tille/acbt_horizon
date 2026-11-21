@@ -5,6 +5,13 @@ import PageHead from '../components/PageHead.astro';
 import club from '../data/club.json';
 import CartePlan from '../components/CartePlan.astro';
 import pages from '../data/pages.json';
+import t from '../data/tarifs.json';
+// Formules des vols découverte / initiation, reprises des tarifs (section Baptême de l'air du back-office).
+const nf = (x: number) => x.toLocaleString('fr-FR');
+const formules = t.formules.flatMap((f) => f.prix.map((p) => ({
+  type: /d[ée]couverte/i.test(f.titre) ? 'Vol découverte' : "Vol d'initiation",
+  texte: `${f.titre} · ${p.libelle} · ${nf(p.prix)} €`,
+})));
 ---
 <Base title="Contact" description="Contacter l'aéroclub de Beauvais-Tillé.">
   <PageHead eyebrow="Contact" image={pages.contact.image || undefined} title={pages.contact.titre} lead={pages.contact.texte} />
@@ -16,10 +23,16 @@ import pages from '../data/pages.json';
         <label>Téléphone<input type="tel" name="tel" /></label>
         <label>Objet
           <select name="objet">
-            <option>Baptême</option><option>Inscription</option><option>Bon cadeau</option><option>Autre question</option>
+            <option>Vol découverte</option><option>Vol d'initiation</option><option>Bon cadeau</option><option>Inscription</option><option>Autre question</option>
           </select>
         </label>
-        <label>Message<textarea name="message" rows="5" required></textarea></label>
+        <label class="si-vol">Formule
+          <select name="formule">
+            {formules.map((f) => <option data-type={f.type} value={f.texte}>{f.texte}</option>)}
+          </select>
+        </label>
+        <label class="si-vol">Créneau souhaité<input name="creneau" placeholder="Ex. : samedi après-midi" /></label>
+        <label><span>Message <span class="facultatif">(facultatif)</span></span><textarea name="message" rows="5" required></textarea></label>
         <input type="checkbox" name="botcheck" class="piege" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <button class="btn btn-primary" type="submit">Envoyer</button>
         <p class="meta envoi" role="status" aria-live="polite" style="margin-top:10px">{cleFormulaire(club.formulaire_cle) ? 'Votre message part directement au club, qui vous répond par e-mail.' : "Le message s'ouvre dans votre logiciel de messagerie."}</p>
@@ -41,13 +54,34 @@ import pages from '../data/pages.json';
   const form = document.getElementById('contact');
   const etat = form.querySelector('.envoi');
   const bouton = form.querySelector('button[type=submit]');
-  const objet = new URLSearchParams(location.search).get('objet');
+  // Les anciens liens « Baptême » ouvrent le vol découverte.
+  const brut = new URLSearchParams(location.search).get('objet');
+  const objet = brut === 'Baptême' ? 'Vol découverte' : brut;
   if (objet) form.objet.value = objet;
+  // Vol découverte / initiation : on propose les formules de ce vol et le créneau souhaité.
+  // Bon cadeau : toutes les formules, sans créneau.
+  const options = [...form.formule.options];
+  const majObjet = () => {
+    const o = form.objet.value;
+    const vol = o === 'Vol découverte' || o === "Vol d'initiation";
+    const cadeau = o === 'Bon cadeau';
+    form.querySelectorAll('.si-vol').forEach((el) => { el.hidden = !(vol || (cadeau && el.contains(form.formule))); });
+    // Liste refaite à chaque choix (iPhone ignore les options masquées)
+    const avant = form.formule.value;
+    form.formule.replaceChildren(...options.filter((op) => !vol || op.dataset.type === o));
+    if ([...form.formule.options].some((op) => op.value === avant)) form.formule.value = avant;
+    form.message.required = !(vol || cadeau);
+    form.querySelector('.facultatif').hidden = form.message.required;
+  };
+  form.objet.addEventListener('change', majObjet);
+  majObjet();
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const f = new FormData(form);
+    const visible = (n) => !form[n].closest('label').hidden;
+    const detail = () => [visible('formule') && `Formule : ${f.get('formule')}`, visible('creneau') && f.get('creneau') && `Créneau souhaité : ${f.get('creneau')}`].filter(Boolean).map((x) => x + '\n').join('') + (visible('formule') ? '\n' : '');
     if (!cle) {
-      const body = `${f.get('message')}\n\n${f.get('nom')}\n${f.get('email')}\n${f.get('tel') || ''}`;
+      const body = `${detail()}${f.get('message')}\n\n${f.get('nom')}\n${f.get('email')}\n${f.get('tel') || ''}`;
       location.href = `mailto:${email}?subject=${encodeURIComponent('[Site] ' + f.get('objet'))}&body=${encodeURIComponent(body)}`;
       return;
     }
@@ -65,13 +99,16 @@ import pages from '../data/pages.json';
           from_name: 'Site de l’ACBT',
           replyto: f.get('email'),
           'Nom': f.get('nom'), 'E-mail': f.get('email'), 'Téléphone': f.get('tel') || '—', 'Objet': f.get('objet'),
-          'Message': f.get('message'),
+          ...(visible('formule') ? { 'Formule': f.get('formule') } : {}),
+          ...(visible('creneau') ? { 'Créneau souhaité': f.get('creneau') || '—' } : {}),
+          'Message': f.get('message') || '—',
         }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok || j.success === false) throw new Error(j.message || 'Erreur');
       form.reset();
       if (objet) form.objet.value = objet;
+      majObjet();
       etat.dataset.etat = 'ok';
       etat.textContent = 'Merci, votre message est bien parti. Le club vous répond par e-mail.';
     } catch {
@@ -83,6 +120,7 @@ import pages from '../data/pages.json';
   });
 </script>
 <style>
+  .formulaire label[hidden], .facultatif[hidden] { display: none; }
   .piege { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
   .envoi[data-etat='ok'] { color: #1d8a4e; font-weight: 600; }
   .envoi[data-etat='ko'] { color: #b3261e; font-weight: 600; }
