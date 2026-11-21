@@ -50,12 +50,12 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
         <div class="anim"><span>-2 h</span><div class="barre"><i id="sat-b"></i></div><span>maintenant</span></div>
       </div>
       <div class="panel img-p">
-        <div class="img-t"><b>Radar</b><span>précipitations · RainViewer</span><em id="rad-h"></em></div>
+        <div class="img-t"><b>Pluie observée</b><span>radar des 2 dernières heures · RainViewer</span><em id="rad-h"></em></div>
         <div class="carte" id="rad"></div>
         <div class="anim"><span>-2 h</span><div class="barre"><i id="rad-b"></i></div><span>maintenant</span></div>
       </div>
       <div class="panel img-p" id="aro-p" hidden>
-        <div class="img-t"><b>Prévision</b><span>pluie simulée · Météo-France AROME-PI</span><em id="aro-h"></em></div>
+        <div class="img-t"><b>Prévision de pluie</b><span>jusqu’à +6 h · modèle AROME-PI de Météo-France</span><em id="aro-h"></em></div>
         <div class="carte" id="aro"></div>
         <div class="anim"><span>maintenant</span><div class="barre"><i id="aro-b"></i></div><span>+6 h</span></div>
       </div>
@@ -263,7 +263,9 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   /* 4. Radar et satellite */
   .e4 { grid-template-columns: repeat(var(--n4, 2), minmax(0, 1fr)); }
   .e4.trois { --n4: 3; }
-  .e4.trois .img-t span { display: none; }
+  .e4.trois .img-t { flex-wrap: wrap; row-gap: 2px; }
+  .e4.trois .img-t span { order: 3; flex-basis: 100%; font-size: 14px; color: var(--muted); }
+  .e4.trois .img-t b { font-size: 24px; }
   .img-p { display: flex; flex-direction: column; padding: 16px 20px; }
   .img-t { display: flex; align-items: baseline; gap: 14px; margin-bottom: 12px; }
   .img-t b { font-size: 26px; font-weight: 800; } .img-t span { color: var(--ink2); font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -570,7 +570,7 @@ function animer(id: string, cadres: { t: number; src: string }[]) {
       n.i = (n.i + 1) % ok.length;
       n.cadres.forEach((c) => c.img.classList.toggle('on', c === ok[n.i]));
       const d = new Date(ok[n.i].t);
-      $(`${id}-h`).textContent = id === 'aro' ? `${(() => { const m = Math.max(0, Math.round((ok[n.i].t - Date.now()) / 60000)); return m < 60 ? `+${m} min` : `+${Math.floor(m / 60)} h${m % 60 >= 15 ? ` ${p2(m % 60)}` : ''}`; })()} · ${heureLocale(d)}` : `${hUtc(d)} UTC`;
+      $(`${id}-h`).textContent = id === 'aro' ? `${(() => { const m = Math.max(0, Math.round((ok[n.i].t - Date.now()) / 600000) * 10); return m < 60 ? `+${m} min` : `+${Math.floor(m / 60)} h${m % 60 >= 15 ? ` ${p2(m % 60)}` : ''}`; })()} · ${heureLocale(d)}` : `${hUtc(d)} UTC`;
       ($(`${id}-b`) as HTMLElement).style.width = `${ok.length > 1 ? (n.i / (ok.length - 1)) * 100 : 100}%`;
     }
     n.minuteur = window.setTimeout(pas, ok.length && n.i === ok.length - 1 ? 2500 : 450);
