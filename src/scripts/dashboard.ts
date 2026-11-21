@@ -198,10 +198,18 @@ function activite(l: Avion[]) {
   return h + '</div>';
 }
 
-const SUJETS: Record<string, [string, string]> = {
-  M: ['Piste', 'pis'], L: ['Balisage', 'pis'], F: ['Installation', ''], N: ['Radionav', ''], I: ['Radionav', ''], G: ['GNSS', ''],
-  C: ['Comm', ''], S: ['Service', ''], P: ['Procédure', ''], A: ['Espace', ''], R: ['Espace', ''], W: ['Activité', ''], O: ['Divers', ''],
-};
+// Badge carré par catégorie (2 premières lettres du code Q) : lettre + nom, façon ForeFlight
+const CATS: [RegExp, string, string, string][] = [
+  [/^M[XY]/, 'T', 'Taxiway', 'jaune'], [/^M[KNP]/, 'A', 'Aire de trafic', 'jaune'], [/^M/, 'R', 'Piste', 'rouge'],
+  [/^L/, 'L', 'Balisage', 'jaune'], [/^[NI]/, 'N', 'Radionav', 'bleu'], [/^G/, 'G', 'GNSS', 'bleu'],
+  [/^C/, 'C', 'Comm', 'bleu'], [/^[AR]/, 'E', 'Espace', 'violet'], [/^P/, 'P', 'Procédure', 'violet'],
+  [/^W/, 'W', 'Activité', 'violet'], [/^S/, 'S', 'Service', 'gris'], [/^F/, 'AD', 'Aérodrome', 'gris'],
+];
+const cat = (q: string | null) => CATS.find(([re]) => re.test(q || '')) ?? [null, 'i', 'Divers', 'gris'] as const;
+// Mots d'indisponibilité en rouge (abréviations développées comme ForeFlight)
+const ROUGES = /\b(CLSD|CLOSED|U\/S|UNSERVICEABLE|OUT OF ORDER|OUT OF SERVICE|NOT AVBL|NOT AVAILABLE|SUSPENDED|PROHIBITED|WITHDRAWN)\b/g;
+const texteNotam = (t: string) => esc(t).replace(ROUGES, (m) => `<em>${m === 'CLSD' ? 'CLOSED' : m === 'U/S' ? 'UNSERVICEABLE' : m === 'NOT AVBL' ? 'NOT AVAILABLE' : m}</em>`);
+const actif = (debut: string | null) => { const d = utc(debut); return !!d && d.getTime() <= Date.now(); };
 function validite(debut: string | null, fin: string | null) {
   const d = utc(debut), f = fin && /^\d{4}-/.test(fin) ? new Date(fin) : null;
   const t = (x: Date) => `${jmUtc(x)} ${hUtc(x)}`;
@@ -218,8 +226,8 @@ function notams() {
     return;
   }
   const ligne = (x: Notam, sup: boolean) => {
-    const s = SUJETS[(x.sujet || 'O')[0]] ?? SUJETS.O;
-    return `<div class="n"><span class="tag ${sup ? 'su' : s[1]}">${sup ? 'SUP AIP' : s[0]}</span><div><b>${esc(x.texte)}</b><small>${esc([validite(x.debut, x.fin), x.numero].filter(Boolean).join(' · '))}</small></div></div>`;
+    const [, l, nom, coul] = sup ? [null, 'S', 'SUP AIP', 'gris'] : cat(x.sujet);
+    return `<div class="n"><span class="ic ${coul}" title="${nom}">${l}</span><div><b>${texteNotam(x.texte)} <span class="no">${esc(x.numero || '')}</span></b><small>${actif(x.debut) ? '<span class="actif">ACTIF</span>' : ''}${esc([nom, validite(x.debut, x.fin)].filter(Boolean).join(' · '))}</small></div></div>`;
   };
   const l = n.notam ?? [];
   $('notam-info').textContent = `${l.length} en vigueur · hors obstacles`;
