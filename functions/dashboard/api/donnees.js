@@ -25,12 +25,22 @@ export async function onRequestGet({ env, request, waitUntil }) {
     lireNotam(env, cache, waitUntil).catch((e) => ({ ok: false, raison: String(e.message || e) })),
     lireHistorique().catch(() => null),
   ]);
-  const corps = { ok: true, maj: new Date().toISOString(), flotte, maa, metar, taf, notam, historique, meteofrance: Boolean(env.METEOFRANCE_BASIC || env.METEOFRANCE_APIKEY) };
+  const corps = { ok: true, maj: new Date().toISOString(), flotte, maa, metar, taf, notam, historique, meteofrance: Boolean(env.METEOFRANCE_BASIC || env.METEOFRANCE_APIKEY), meteofranceExpire: expiration(env.METEOFRANCE_APIKEY) };
   const rep = (portee) => new Response(JSON.stringify(corps), {
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': `${portee}, max-age=50` },
   });
   if (cache && !debug) waitUntil?.(cache.put(new Request(CACHE), rep('public')));
   return rep('private');
+}
+
+// Date d'expiration d'une clé d'API Météo-France (jeton JWT : champ « exp » de la partie centrale)
+function expiration(cle) {
+  try {
+    const p = String(cle || '').trim().split('.')[1];
+    if (!p) return null;
+    const { exp } = JSON.parse(atob(p.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(p.length / 4) * 4, '=')));
+    return exp ? new Date(exp * 1000).toISOString() : null;
+  } catch { return null; }
 }
 
 async function lireMaa(env) {

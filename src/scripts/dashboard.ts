@@ -29,6 +29,7 @@ interface Donnees {
   maa: Maa[] | null; metar: Metar | null; taf: Taf | null;
   notam: { ok: boolean; raison?: string; notam?: Notam[]; sup?: Notam[] } | null;
   historique: Histo[] | null;
+  meteofranceExpire?: string | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -653,7 +654,11 @@ function majPied() {
   if (!derniere) { $('maj').textContent = 'Connexion aux données…'; return; }
   const s = Math.round((Date.now() - derniere) / 1000);
   const t = new Date(derniere).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' });
-  $('maj').textContent = s > 180 ? `Hors ligne · dernières données de ${t}` : `Actualisé il y a ${s < 60 ? `${s} s` : `${Math.floor(s / 60)} min`} · Aerogest, AVWX, Météo-France (MAA), FAA (NOTAM)`;
+  const exp = D?.meteofranceExpire ? Date.parse(D.meteofranceExpire) : NaN;
+  const jours = Math.floor((exp - Date.now()) / 86400000);
+  const alerte = Number.isFinite(jours) && jours <= 30 ? (jours < 0 ? ' · CLÉ MÉTÉO-FRANCE EXPIRÉE : à renouveler' : ` · Clé Météo-France à renouveler dans ${jours} j`) : '';
+  $('maj').classList.toggle('alerte', !!alerte);
+  $('maj').textContent = (s > 180 ? `Hors ligne · dernières données de ${t}` : `Actualisé il y a ${s < 60 ? `${s} s` : `${Math.floor(s / 60)} min`} · Aerogest, AVWX, Météo-France (MAA), FAA (NOTAM)`) + alerte;
 }
 
 const DUREES = [20, 20, 25, 20]; // secondes par écran
