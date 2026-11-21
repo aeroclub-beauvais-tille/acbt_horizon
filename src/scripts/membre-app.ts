@@ -565,13 +565,15 @@ export function soleil() {
     const el = zone.querySelector<HTMLElement>(`[data-soleil="${k}"]`);
     if (el) el.textContent = heureLocale(e[k]);
   });
-  // Ce qui est en cours maintenant
-  const t = Date.now();
-  const etat = document.querySelector<HTMLElement>('[data-soleil-etat]');
-  if (etat) {
-    const nuit = t < e.jourAero.getTime() || t >= e.nuitAero.getTime();
-    etat.textContent = nuit ? 'Nuit aéronautique en cours' : `Jour aéronautique jusqu'à ${heureLocale(e.nuitAero)}`;
-    etat.dataset.nuit = nuit ? 'oui' : 'non';
+  // Jauge du jour aéronautique (dans « Nuit aéro. ») : se remplit du début du jour aéro jusqu'à la nuit aéro
+  const j = zone.querySelector<HTMLElement>('[data-soleil-jauge]');
+  if (j) {
+    const t = Date.now(), d = e.jourAero.getTime(), f = e.nuitAero.getTime();
+    const p = Math.max(0, Math.min(1, (t - d) / (f - d)));
+    j.style.width = `${(p * 100).toFixed(1)}%`;
+    j.dataset.etat = t >= f || t < d ? 'nuit' : f - t <= 3600_000 ? 'proche' : 'jour';
+    const reste = Math.round((f - t) / 60000);
+    j.parentElement!.title = t >= f || t < d ? 'Nuit aéronautique en cours' : `Nuit aéronautique dans ${Math.floor(reste / 60)} h ${String(reste % 60).padStart(2, '0')}`;
   }
 }
 
@@ -615,16 +617,20 @@ export function flotte() {
       const pot = a.potentiel;
       const niv = pot == null ? '' : pot <= 0 ? 'bad' : pot <= 300 ? 'warn' : 'ok';
       const largeur = pot == null ? 0 : Math.max(0, Math.min(100, (pot / (50 * 60)) * 100));
-      const lignes: [string, string][] = [];
-      if (a.indispo) lignes.push(['Indisponible', `jusqu'au ${quand(a.indispo.fin)} (${a.indispo.motif})`]);
-      if (a.enCours) lignes.push(['Réservation en cours', `jusqu'à ${lireAg(a.enCours.fin).h} (${qui(a.enCours)})`]);
-      lignes.push(['Prochaine réservation', a.prochaine ? `${quand(a.prochaine.debut)} (${qui(a.prochaine)})` : 'Aucune dans les 7 jours']);
+      // [libellé, heure, nom] : l'heure à droite du libellé, le nom du pilote en entier sur sa propre ligne
+      const lignes: [string, string, string?][] = [];
+      if (a.enCours) lignes.push(['Réservation en cours', `jusqu'à ${lireAg(a.enCours.fin).h}`, qui(a.enCours)]);
+      if (a.prochaine) lignes.push(['Prochaine réservation', quand(a.prochaine.debut), qui(a.prochaine)]);
+      else lignes.push(['Prochaine réservation', 'Aucune dans les 7 jours']);
       lignes.push(['Dernier vol', a.dernierVol ? a.dernierVol.replace(/\/\d{4}/, '') : '—']);
-      return `<article class="fl-carte" data-q="${esc(a.immat.toLowerCase())}">
+      const bandeau = a.indispo
+        ? `<div class="fl-indispo"><b>${esc(a.indispo.motif)}</b><span>jusqu'au ${esc(/23:59|00:00/.test(lireAg(a.indispo.fin).h) ? quand(a.indispo.fin).replace(/ \d\d:\d\d$/, '') : quand(a.indispo.fin))}</span></div>` : '';
+      return `<article class="fl-carte${a.indispo ? ' fl-hs' : ''}" data-q="${esc(a.immat.toLowerCase())}">
         <div class="fl-tete"><span><b class="fl-im">${esc(a.immat)}</b>${modeles[a.immat] ? `<small>${esc(modeles[a.immat])}</small>` : ''}</span><span class="fl-etat fl-${etat[0]}"><i></i>${etat[1]}</span></div>
         <div class="fl-pot fl-${niv}"><span class="fl-val">${pot == null ? '—' : hhmm(pot)}</span><span class="fl-u">${pot != null && pot <= 0 ? 'visite dépassée' : 'de potentiel avant la visite'}${a.tolerance > 0 ? `, dont ${hhmm(a.tolerance)} de tolérance` : ''}</span></div>
         <div class="fl-jauge fl-${niv}"><i style="width:${largeur}%"></i></div>
-        <dl>${lignes.map(([k, v]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd></div>`).join('')}</dl>
+        ${bandeau}
+        <dl>${lignes.map(([k, v, n]) => `<div><dt>${k}</dt><dd>${esc(v)}</dd>${n ? `<dd class="fl-nom">${esc(n)}</dd>` : ''}</div>`).join('')}</dl>
       </article>`;
     }).join('');
     if (info && d.maj) info.textContent = `Source Aerogest · mis à jour à ${new Date(d.maj).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}`;
