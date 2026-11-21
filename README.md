@@ -35,7 +35,7 @@ Décocher « Avion affiché sur le site » pour le masquer en gardant sa fiche, 
   et `src/data/` (JSON). Le schéma est dans `src/content.config.ts`, le back-office dans `.pages.yml`.
 - Cloudflare Pages (site principal) : projet relié au dépôt, commande `npm run build`, dossier `dist`.
   Le site est servi à la racine (détecté par `CF_PAGES`) ; `SITE_URL=https://acbt60.fr` une fois le domaine branché.
-  Réglages du projet : secrets `MOT_DE_PASSE_MEMBRES` (espace membres), `ARCHIVE_PASSWORD` (archives des fiches Perfs),
+  Réglages du projet : secrets `MOT_DE_PASSE_MEMBRES` (espace membres), `ARCHIVE_PASSWORD` (archives des fiches Perfs), `MOT_DE_PASSE_ADMIN` (facultatif : alertes des responsables et statut des signalements ; à défaut, celui des archives),
   `OPENAIP_KEY` (pistes des aérodromes dans Perfs), et la base D1 liée sous le nom `DB` (archives des fiches).
   `cloudflare-republier.yml` republie chaque nuit via le secret GitHub `CLOUDFLARE_DEPLOY_HOOK`.
 - MAA par mail : `scripts/maa-gmail.gs` (Google Apps Script sur la boîte Gmail qui reçoit les MAA) envoie chaque PDF
@@ -61,3 +61,12 @@ Décocher « Avion affiché sur le site » pour le masquer en gardant sa fiche, 
 - Récupérer et classer les actualités 2006-2020 de l'ancien site.
 - Télécharger les photos hébergées sur Wix dans `public/uploads/` (elles sont liées en direct pour l'instant).
 - Vérifier les tarifs saisis à partir de la grille 2025.
+
+## Signalements techniques et alertes
+
+- Les signalements envoyés depuis l'appli (bouton « Signaler un problème technique ») sont rangés dans la base D1
+  (tables `signalements` et `signalement_photos`) et visibles sur `/membre/signalements/`.
+- À chaque signalement : un mail part vers l'adresse du club (formulaire Web3Forms, clé `formulaire_cle` de club.json)
+  et une notification push part vers les téléphones des responsables abonnés.
+- Abonnement : sur `/membre/signalements/`, « Recevoir les alertes sur ce téléphone » avec le mot de passe admin.
+  Les clés VAPID sont créées toutes seules dans la base (table `reglages`) : rien à régler.

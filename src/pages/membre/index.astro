@@ -9,6 +9,7 @@ import { RUBRIQUES_AVION, TYPES_AVION } from '../../content.config';
 import AdminDocs from '../../components/AdminDocs.astro';
 import { titreDoc, marquerHistorique, estOfficiel, type Doc } from '../../lib/documents';
 import outils from '../../data/outils.json';
+import club from '../../data/club.json';
 import { asset, url } from '../../lib/utils';
 
 const brut = await getCollection('documents');
@@ -191,6 +192,7 @@ const onglets = [
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" /><path d="M12 9v4M12 17h.01" /></svg>
               Signaler un problème technique
             </button>
+            <a class="sig-liste" href={url('/membre/signalements/') + '?avion=' + encodeURIComponent(x.im)}>Signalements en cours sur {x.im}</a>
             <button type="button" class="adm-depot" data-depot={x.im} hidden>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4M7 9l5-5 5 5" /><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" /></svg>
               <span><b>Ajouter un document</b><small>Glissez un fichier ici ou touchez pour choisir</small></span>
@@ -249,7 +251,7 @@ const onglets = [
     ))}
   </nav>
 
-  <dialog class="modale" id="signalement" aria-label="Signaler un problème technique">
+  <dialog class="modale" id="signalement" aria-label="Signaler un problème technique" data-api={url('/membre/api/signalements')} data-cle-mail={club.formulaire_cle} data-page={url('/membre/signalements/')}>
     <form method="dialog">
       <div class="m-head">
         <h3>Signaler un problème</h3>
@@ -258,6 +260,8 @@ const onglets = [
 
       <div class="m-corps" data-etape="saisie">
         <div class="m-avion"><span class="m-av-lbl">Avion</span><span class="m-av-im" id="sig-avion">—</span></div>
+        <label for="sig-nom">Votre nom</label>
+        <input id="sig-nom" type="text" autocomplete="name" maxlength="60" placeholder="Prénom Nom" />
         <label for="sig-desc">Problème constaté</label>
         <textarea id="sig-desc" rows="4" placeholder="Ex. pneu principal droit usé, radio qui grésille…"></textarea>
         <label>Photos <span class="m-opt">facultatif</span></label>
@@ -267,12 +271,14 @@ const onglets = [
           Ajouter des photos
         </button>
         <input type="file" id="sig-fichiers" accept="image/*" multiple hidden />
+        <p class="m-erreur" id="sig-erreur" role="alert" hidden></p>
       </div>
 
       <div class="m-corps m-reussi" data-etape="ok" hidden>
         <span class="m-ok-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5" /></svg></span>
-        <strong>Signalement enregistré</strong>
-        <span>Les responsables techniques seront prévenus.</span>
+        <strong>Signalement envoyé</strong>
+        <span id="sig-retour">Les responsables techniques sont prévenus.</span>
+        <a class="m-lien" href={url('/membre/signalements/')}>Voir tous les signalements</a>
         <button type="button" class="m-pri" data-fermer>Fermer</button>
       </div>
 
@@ -433,6 +439,7 @@ const onglets = [
   .av-id small { color: var(--muted); font-size: .82rem; }
 
   .signaler { width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 9px; margin-bottom: 16px; padding: 11px 14px; border: 1px solid var(--bad-line); background: var(--bad-bg); color: var(--bad); border-radius: 12px; font: inherit; font-weight: 650; font-size: .92rem; cursor: pointer; }
+  .sig-liste { display: block; margin: -8px 0 16px; text-align: center; font-size: .86rem; font-weight: 650; color: var(--accent-text); }
   .signaler svg { width: 18px; height: 18px; flex: none; }
   .signaler:active { transform: scale(.99); }
 
@@ -510,6 +517,10 @@ const onglets = [
   .m-avion { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--accent-soft); border-radius: 12px; padding: 11px 14px; margin-bottom: 4px; }
   .m-av-lbl { font-size: .82rem; color: var(--accent); font-weight: 600; }
   .m-av-im { font-weight: 800; font-size: 1.08rem; letter-spacing: .02em; }
+  .modale input[type=text] { width: 100%; height: 46px; border: 1px solid var(--line); border-radius: 12px; padding: 0 13px; font: inherit; font-size: 1rem; background: var(--surface); color: var(--ink); }
+  .modale input[type=text]:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+  .m-erreur { margin: 8px 0 0; color: var(--bad); background: var(--bad-bg); border: 1px solid var(--bad-line); border-radius: 10px; padding: 9px 12px; font-size: .9rem; }
+  .m-lien { color: var(--accent-text); font-weight: 700; font-size: .92rem; }
   .modale textarea { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; font: inherit; font-size: 1rem; resize: vertical; background: var(--surface); }
   .modale textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; }
   .modale textarea.vide { border-color: var(--bad); outline-color: var(--bad); }
