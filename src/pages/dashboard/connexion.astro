@@ -1,0 +1,37 @@
+---
+import Dashboard from '../../layouts/Dashboard.astro';
+---
+<Dashboard title="Tableau de bord">
+  <main class="cx">
+    <form id="f" class="carte">
+      <div class="lg">ACBT</div>
+      <h1>Tableau de bord du club</h1>
+      <label for="mdp">Mot de passe</label>
+      <input id="mdp" type="password" autocomplete="current-password" autofocus />
+      <p id="err" hidden>Mot de passe incorrect.</p>
+      <button type="submit">Ouvrir</button>
+    </form>
+  </main>
+</Dashboard>
+<style>
+  .cx { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  .carte { width: min(420px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 32px; display: grid; gap: 12px; }
+  .lg { width: 56px; height: 56px; border-radius: 12px; background: var(--navy); display: grid; place-items: center; font-weight: 800; }
+  h1 { margin: 4px 0 8px; font-size: 24px; }
+  label { color: var(--muted); font-weight: 700; font-size: 14px; }
+  input { font: inherit; font-size: 20px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); color: var(--ink); }
+  button { font: inherit; font-weight: 800; font-size: 18px; padding: 12px; border: 0; border-radius: 10px; background: var(--yellow); color: #1a1200; cursor: pointer; }
+  #err { color: var(--bad); margin: 0; font-weight: 700; }
+</style>
+<script>
+  const f = document.getElementById('f') as HTMLFormElement;
+  f.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const motDePasse = (document.getElementById('mdp') as HTMLInputElement).value;
+    const r = await fetch('/api/dashboard-connexion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ motDePasse }) }).catch(() => null);
+    if (r?.ok) {
+      const retour = new URLSearchParams(location.search).get('retour') || '';
+      location.href = retour.startsWith('/dashboard') ? retour : '/dashboard/';
+    } else (document.getElementById('err') as HTMLElement).hidden = false;
+  });
+</script>

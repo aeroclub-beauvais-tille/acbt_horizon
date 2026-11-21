@@ -35,7 +35,9 @@ export async function onRequestGet({ env, waitUntil }) {
   return json(corps, 200, DUREE_CACHE);
 }
 
-export async function lireFlotte(lien, maintenant = new Date(), f = fetch) {
+// options.jour : ajoute à chaque avion ses réservations d'aujourd'hui et de demain (tableau de bord TV) ;
+// options.instructeurs : lit aussi le planning des instructeurs (getplanning2) pour aujourd'hui et demain.
+export async function lireFlotte(lien, maintenant = new Date(), f = fetch, options = {}) {
   // 1. Page publique : jeton des API, cookie de session et correspondance id → immatriculation
   const page = await f(lien, { headers: { 'User-Agent': 'ACBT espace membres' }, redirect: 'follow' });
   if (!page.ok) throw new Error('page ' + page.status);
@@ -57,6 +59,9 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch) {
   const plannings = await Promise.all(jours.map((j) =>
     f(`${AEROGEST}/api/schedule/bookingapi/getplanning/${j}/0?token=${jeton}`, { method: 'POST', body: '', headers: { ...entetes(cookie), 'Content-Length': '0' } })
       .then((r) => (r.ok ? r.json() : null)).catch(() => null)));
+  const plannings2 = options.instructeurs ? await Promise.all(jours.slice(0, 2).map((j) =>
+    f(`${AEROGEST}/api/schedule/bookingapi/getplanning2/${j}/0?token=${jeton}`, { method: 'POST', body: '', headers: { ...entetes(cookie), 'Content-Length': '0' } })
+      .then((r) => (r.ok ? r.json() : null)).catch(() => null))) : [];
 
   // 4. Vols réellement effectués (même source que l'option « départs/retours » du planning public) :
   //    pour la durée du dernier vol. Facultatif : si Aerogest ne répond pas, on garde la seule heure du dernier vol.
@@ -100,12 +105,50 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch) {
       enCours,
       prochaine,
       indispo,
+      ...(options.jour ? {
+        jour: resas.filter((r) => r.debut.slice(0, 8) === jours[0] || r.debut.slice(0, 8) === jours[1]),
+        indispos: indispos.map((r) => ({ debut: r.debut, fin: r.fin, motif: r.motif })),
+      } : {}),
     };
   });
   // Ordre voulu par le club, puis les autres avions dans l'ordre de la page Aerogest
   const ordre = [...ORDRE, ...immats.values()];
   liste.sort((x, y) => rang(ordre, x.immat) - rang(ordre, y.immat));
-  return { ok: true, maj: maintenant.toISOString(), planning: plannings.some(Boolean), avions: liste };
+  const corps = { ok: true, maj: maintenant.toISOString(), planning: plannings.some(Boolean), avions: liste };
+  if (options.instructeurs) {
+    corps.instructeurs = lireInstructeurs(plannings2);
+    if (options.brut) corps.brut = plannings2.map((p) => apercu(p));
+  }
+  return corps;
+}
+
+// Planning des instructeurs (même format que celui des avions) : une ligne par instructeur,
+// avec ses créneaux (réservations où il vole, et créneaux posés à part : présences ou absences).
+function lireInstructeurs(plannings) {
+  const parNom = new Map();
+  for (const p of plannings) {
+    for (const l of p?.lignes || []) {
+      const nom = nomPrenom(texte(l.content).split('\n')[0]);
+      if (!nom) continue;
+      if (!parNom.has(nom)) parNom.set(nom, { nom, creneaux: [] });
+      const i = parNom.get(nom);
+      const ajouter = (r, flottant) => {
+        const info = infobulle(r.tooltip);
+        i.creneaux.push({ id: r.id ?? null, debut: r.debut, fin: r.fin, texte: texte(r.content) || null, type: info.Type || null, pilote: info.Pilote ? nomPrenom(info.Pilote) : null, avion: info['Appareil'] || info['Avion'] || null, flottant });
+      };
+      for (const s of l.sublignes || []) for (const r of s.reservations || []) ajouter(r, false);
+      for (const r of l.reservationsFlottantes || []) ajouter(r, true);
+    }
+  }
+  return [...parNom.values()].map((i) => ({ ...i, creneaux: dedoublonner(i.creneaux).sort((a, b) => String(a.debut).localeCompare(String(b.debut))) }));
+}
+
+// Aperçu de la structure brute (pour régler la lecture du planning instructeurs) : clés et premières valeurs seulement.
+function apercu(v, n = 0) {
+  if (n > 5) return '…';
+  if (Array.isArray(v)) return v.slice(0, 3).map((x) => apercu(x, n + 1));
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, apercu(x, n + 1)]));
+  return typeof v === 'string' ? v.slice(0, 300) : v;
 }
 
 // Une réservation : horaires + pilote « NOM Prénom » (lu dans l'info-bulle, sinon le libellé court « NOM P. »)
