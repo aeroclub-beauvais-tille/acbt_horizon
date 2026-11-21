@@ -338,7 +338,7 @@ const onglets = [
   .sep:first-of-type, .fiche .sep:first-of-type { margin-top: 0; }
 
   /* Barre du haut */
-  .topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 12px; height: 54px; padding: 0 14px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: var(--bar-ink); }
+  .topbar { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: calc(54px + env(safe-area-inset-top, 0px)); padding: 0 14px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: var(--bar-ink); }
   .marque { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--bar-ink); --logo-rouge: var(--bar-rouge); --logo-h: 40px; }
   .marque .logo { --logo-h: 30px; --logo-rouge: var(--bar-rouge); color: var(--bar-ink); }
   .marque span { font-weight: 800; font-size: 1.05rem; letter-spacing: -.01em; white-space: nowrap; }
@@ -349,7 +349,7 @@ const onglets = [
   .ic:active { background: rgba(255,255,255,.12); }
 
   /* Recherche */
-  .searchwrap { position: sticky; top: 54px; z-index: 29; display: flex; gap: 8px; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--line); }
+  .searchwrap { position: sticky; top: calc(54px + env(safe-area-inset-top, 0px)); z-index: 29; display: flex; gap: 8px; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--line); }
   .searchwrap input { flex: 1; min-width: 0; padding: 11px 14px; border: 1px solid var(--line); border-radius: 12px; font: inherit; background: var(--surface-2); }
   .searchwrap input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
   .searchwrap button { border: 0; background: var(--surface-2); border-radius: 12px; width: 44px; font-size: 1rem; color: var(--muted); cursor: pointer; }
