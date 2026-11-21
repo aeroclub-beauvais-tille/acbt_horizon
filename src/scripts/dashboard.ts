@@ -288,24 +288,24 @@ function reservations() {
     }
   }
   html += '</div><div class="leg"><span><i style="background:var(--r1)"></i>Vol</span><span><i style="background:var(--r2)"></i>Instruction</span><span><i style="background:var(--r3)"></i>Club / baptême</span><span><i style="background:#6d7c92"></i>Indisponible</span>'
-    + (nbI ? '<span><i style="background:rgba(64,201,127,.4)"></i>Instructeur disponible</span>' : '') + '<span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.5) 0 3px,transparent 3px 6px)"></i>Nuit aéronautique</span></div>';
+    + (instr.some((i) => i.creneaux.some((c) => c.flottant)) ? '<span><i style="background:rgba(64,201,127,.4)"></i>Instructeur présent</span>' : '') + '<span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.5) 0 3px,transparent 3px 6px)"></i>Nuit aéronautique</span></div>';
   $('timeline').innerHTML = avions.length ? html : '<p class="vide">Données Aerogest indisponibles pour le moment.</p>';
   $('tl-info').textContent = `Aerogest · heures locales · jour aéro. ${heureLocale(e.jourAero)} → ${heureLocale(e.nuitAero)}`;
 
-  // Instructeurs : disponibles maintenant (créneau de présence en cours), puis les autres du jour
+  // Instructeurs : Aerogest ne publie pas leurs présences, seulement leurs vols. On indique qui vole maintenant,
+  // le prochain vol du jour, ou « pas de vol prévu ».
   if (!D?.flotte?.instructeurs) $('instr').innerHTML = '<p class="vide">Planning des instructeurs indisponible.</p>';
   else {
     const chips = instr.map((i) => {
-      const pres = i.creneaux.filter((c) => c.flottant);
-      const enCours = pres.find((c) => mins(c.debut, auj) <= now && mins(c.fin, auj) > now);
-      const vole = i.creneaux.find((c) => !c.flottant && mins(c.debut, auj) <= now && mins(c.fin, auj) > now);
-      const suiv = pres.find((c) => mins(c.debut, auj) > now);
-      if (enCours) return { on: !vole, t: `<span class="chip${vole ? '' : ' on'}">${esc(court(i.nom))}<small>${vole ? 'en vol · ' : ''}jusqu’à ${agH(enCours.fin)}</small></span>` };
-      if (suiv) return { on: false, t: `<span class="chip">${esc(court(i.nom))}<small>${agH(suiv.debut)} → ${agH(suiv.fin)}</small></span>` };
-      return null;
-    }).filter(Boolean) as { on: boolean; t: string }[];
-    chips.sort((x, y) => Number(y.on) - Number(x.on));
-    $('instr').innerHTML = chips.length ? chips.map((c) => c.t).join('') : '<p class="vide">Aucun instructeur annoncé pour la suite de la journée.</p>';
+      const vols = i.creneaux.filter((c) => !c.flottant);
+      const enCours = vols.find((c) => mins(c.debut, auj) <= now && mins(c.fin, auj) > now);
+      const suiv = vols.find((c) => mins(c.debut, auj) > now);
+      const pres = i.creneaux.find((c) => c.flottant && mins(c.debut, auj) <= now && mins(c.fin, auj) > now);
+      const t = enCours ? `en vol jusqu’à ${agH(enCours.fin)}` : suiv ? `prochain vol à ${agH(suiv.debut)}` : pres ? `présent jusqu’à ${agH(pres.fin)}` : 'pas de vol prévu';
+      return { rang: enCours ? 0 : suiv ? 1 : 2, t: `<span class="chip${enCours ? ' vol' : pres ? ' on' : ''}">${esc(court(i.nom))}<small>${t}</small></span>` };
+    });
+    chips.sort((x, y) => x.rang - y.rang);
+    $('instr').innerHTML = chips.length ? chips.map((c) => c.t).join('') : '<p class="vide">Aucun instructeur au planning.</p>';
   }
 
   // Listes du jour et du lendemain
