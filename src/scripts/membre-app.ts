@@ -581,7 +581,7 @@ export function soleil() {
 /* Onglet Flotte : potentiels et réservations lus sur Aerogest (via /membre/api/flotte) */
 /* ------------------------------------------------------------------ */
 interface Resa { debut: string; fin: string; pilote: string | null; instructeur: string | null; type: string | null; duree?: number | null }
-interface AvionFlotte { occupe?: { debut: string; fin: string }[]; dernier?: { debut: string; fin: string; temps: string | null } | null; immat: string; potentiel: number | null; tolerance: number; dernierVol: string | null; enCours: Resa | null; prochaine: Resa | null; indispo: { debut: string; fin: string; motif: string } | null }
+interface AvionFlotte { occupe?: { debut: string; fin: string }[]; dernier?: { debut: string; fin: string; temps: string | null; pilote?: string | null; instructeur?: string | null } | null; immat: string; potentiel: number | null; tolerance: number; dernierVol: string | null; enCours: Resa | null; prochaine: Resa | null; indispo: { debut: string; fin: string; motif: string } | null }
 
 const hhmm = (min: number) => { const n = min < 0; const a = Math.abs(min); return `${n ? '-' : ''}${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`; };
 // « AAAAMMJJHHmm » (heure de Paris) → objet simple
@@ -673,7 +673,7 @@ export function flotte() {
       if (a.prochaine) lignes.push(['Prochaine réservation', quand(a.prochaine.debut) + vol(a.prochaine), qui(a.prochaine)]);
       else lignes.push(['Prochaine réservation', 'Aucune dans les 7 jours']);
       lignes.push(['Prochaine disponibilité', texteDispo(dispo(a.occupe ?? []))]);
-      lignes.push(['Dernier vol', texteDernier(a)]);
+      lignes.push(['Dernier vol', texteDernier(a), a.dernier ? [a.dernier.pilote, a.dernier.instructeur && `avec ${a.dernier.instructeur}`].filter(Boolean).join(' ') || undefined : undefined]);
       const bandeau = a.indispo
         ? `<div class="fl-indispo"><b>${esc(a.indispo.motif)}</b><span>jusqu'au ${esc(/23:59|00:00/.test(lireAg(a.indispo.fin).h) ? quand(a.indispo.fin).replace(/ · \d\d:\d\d$/, '') : quand(a.indispo.fin))}</span></div>` : '';
       return `<article class="fl-carte${a.indispo ? ' fl-hs' : ''}" data-q="${esc(a.immat.toLowerCase())}">

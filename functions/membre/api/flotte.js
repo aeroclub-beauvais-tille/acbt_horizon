@@ -93,7 +93,7 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch) {
       immat: a.immat,
       // Créneaux occupés à venir (réservations + indisponibilités), pour calculer la prochaine disponibilité
       occupe: [...resas.filter((r) => r.fin > auj), ...indispos].map((r) => ({ debut: r.debut, fin: r.fin })),
-      dernier: dernier ? { debut: String(dernier.from), fin: String(dernier.to), temps: dernier.tps || null } : null,
+      dernier: dernier ? { debut: String(dernier.from), fin: String(dernier.to), temps: dernier.tps || null, pilote: texte(dernier.pilotname) || null, instructeur: texte(dernier.instructorName) || null } : null, // Aerogest donne déjà « NOM Prénom »
       potentiel: typeof t?.pot === 'number' ? t.pot : null, // minutes avant la prochaine visite
       tolerance: t?.tol || 0,
       dernierVol: t?.lastFlight && t.lastFlight !== 'N/A' ? t.lastFlight : null, // « JJ/MM/AAAA HH:mm »
