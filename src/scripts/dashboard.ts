@@ -398,10 +398,10 @@ function metarBloc() {
 }
 
 // Vent et pistes de LFOB : couronne façon station météo, les deux pistes à leur orientation réelle
-// (12/30 au 124°, 04/22 au 42°, la petite piste au nord de la grande), cône bleu d'où vient le vent.
+// (QFU 122°/302° et 040°/220°, la petite piste au nord de la grande), cône bleu d'où vient le vent.
 const PISTES = [
-  { a: ['12', 120], b: ['30', 300], cap: 124, cx: -2.5, cy: 3, l: 58 },
-  { a: ['04', 40], b: ['22', 220], cap: 42, cx: 10, cy: -22, l: 24 },
+  { a: ['12', 122], b: ['30', 302], cap: 122, cx: -2.5, cy: 3, l: 58 },
+  { a: ['04', 40], b: ['22', 220], cap: 40, cx: 10, cy: -22, l: 24 },
 ] as const;
 // Vent mesuré par la station Météo-France de Beauvais-Tillé (60639001), une mesure toutes les 6 min (API Observation v2).
 // Repli sur le METAR (toutes les 30 min) si la station ne répond pas ou si rien de neuf depuis 18 min.
