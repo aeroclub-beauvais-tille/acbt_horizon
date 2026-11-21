@@ -199,15 +199,16 @@ function activite(l: Avion[]) {
 }
 
 // Badge carré par catégorie (2 premières lettres du code Q) : lettre + nom, façon ForeFlight
+const ANTENNE = '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 11v10"/><circle cx="12" cy="9" r="1.6" fill="currentColor"/><path d="M8.5 5.5a5 5 0 0 0 0 7M15.5 5.5a5 5 0 0 1 0 7M5.5 3a9 9 0 0 0 0 12.5M18.5 3a9 9 0 0 1 0 12.5"/></svg>';
 const CATS: [RegExp, string, string, string][] = [
-  [/^M[XY]/, 'T', 'Taxiway', 'jaune'], [/^M[KNP]/, 'A', 'Aire de trafic', 'jaune'], [/^M/, 'R', 'Piste', 'rouge'],
-  [/^L/, 'L', 'Balisage', 'jaune'], [/^[NI]/, 'N', 'Radionav', 'bleu'], [/^G/, 'G', 'GNSS', 'bleu'],
-  [/^C/, 'C', 'Comm', 'bleu'], [/^[AR]/, 'E', 'Espace', 'violet'], [/^P/, 'P', 'Procédure', 'violet'],
-  [/^W/, 'W', 'Activité', 'violet'], [/^S/, 'S', 'Service', 'gris'], [/^F/, 'AD', 'Aérodrome', 'gris'],
+  [/^M[XY]/, 'TWY', 'Taxiway', 'jaune'], [/^M[KNP]/, 'APN', 'Aire de trafic', 'jaune'], [/^M/, 'RWY', 'Piste', 'rouge'],
+  [/^L/, 'LGT', 'Balisage', 'jaune'], [/^[NI]/, ANTENNE, 'Radionav', 'gris'], [/^G/, 'GNSS', 'GNSS', 'bleu'],
+  [/^C/, 'COM', 'Comm', 'bleu'], [/^[AR]/, 'AIR', 'Espace', 'violet'], [/^P/, 'PROC', 'Procédure', 'violet'],
+  [/^W/, 'ACT', 'Activité', 'violet'], [/^S/, 'SVC', 'Service', 'gris'], [/^F/, 'AD', 'Aérodrome', 'gris'],
 ];
-const cat = (q: string | null) => CATS.find(([re]) => re.test(q || '')) ?? [null, 'i', 'Divers', 'gris'] as const;
+const cat = (q: string | null) => CATS.find(([re]) => re.test(q || '')) ?? [null, 'INFO', 'Divers', 'gris'] as const;
 // Mots d'indisponibilité en rouge (abréviations développées comme ForeFlight)
-const ROUGES = /\b(CLSD|CLOSED|U\/S|UNSERVICEABLE|OUT OF ORDER|OUT OF SERVICE|NOT AVBL|NOT AVAILABLE|SUSPENDED|PROHIBITED|WITHDRAWN)\b/g;
+const ROUGES = /\b(CLSD|CLOSED|U\/S|UNSERVICEABLE|OUT OF ORDER|OUT OF SERVICE|NOT AVBL|NOT AVAILABLE|SUSPENDED|PROHIBITED|FORBIDDEN|UNUSABLE|INUTILISABLE|HORS SERVICE|FERME|FERMEE|INTERDIT|INTERDITE|WITHDRAWN)\b/g;
 const texteNotam = (t: string) => esc(t).replace(ROUGES, (m) => `<em>${m === 'CLSD' ? 'CLOSED' : m === 'U/S' ? 'UNSERVICEABLE' : m === 'NOT AVBL' ? 'NOT AVAILABLE' : m}</em>`);
 const actif = (debut: string | null) => { const d = utc(debut); return !!d && d.getTime() <= Date.now(); };
 function validite(debut: string | null, fin: string | null) {
@@ -226,8 +227,8 @@ function notams() {
     return;
   }
   const ligne = (x: Notam, sup: boolean) => {
-    const [, l, nom, coul] = sup ? [null, 'S', 'SUP AIP', 'gris'] : cat(x.sujet);
-    return `<div class="n"><span class="ic ${coul}" title="${nom}">${l}</span><div><b>${texteNotam(x.texte)} <span class="no">${esc(x.numero || '')}</span></b><small>${actif(x.debut) ? '<span class="actif">ACTIF</span>' : ''}${esc([nom, validite(x.debut, x.fin)].filter(Boolean).join(' · '))}</small></div></div>`;
+    const [, l, nom, coul] = sup ? [null, 'SUP', 'SUP AIP', 'gris'] : cat(x.sujet);
+    return `<div class="n"><span class="ic ${coul}${l.length > 2 && !l.startsWith('<') ? ' l' + l.length : ''}" title="${nom}">${l}</span><div><b>${texteNotam(x.texte)} <span class="no">${esc(x.numero || '')}</span></b><small>${actif(x.debut) ? '<span class="actif">ACTIF</span>' : ''}${esc([nom, validite(x.debut, x.fin)].filter(Boolean).join(' · '))}</small></div></div>`;
   };
   const l = n.notam ?? [];
   $('notam-info').textContent = `${l.length} en vigueur · hors obstacles`;
