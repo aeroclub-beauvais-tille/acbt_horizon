@@ -119,6 +119,34 @@ self.addEventListener('fetch', (e) => {
     e.respondWith(fetch(req).catch(async () => (await caches.match(u.pathname)) || Response.error()));
   }
 });
+// Alertes des responsables : la notification arrive vide, on va lire la dernière alerte (cookie membre compris)
+self.addEventListener('push', (e) => {
+  e.waitUntil((async () => {
+    let a = null;
+    try {
+      const r = await fetch(C.membre + 'api/alertes/derniere', { credentials: 'same-origin', cache: 'no-store' });
+      if (r.ok) a = (await r.json()).alerte;
+    } catch { /* hors ligne */ }
+    const titre = (a && a.titre) || 'Alerte ACBT';
+    await self.registration.showNotification(titre, {
+      body: (a && a.texte) || "Ouvrez l'appli pour voir le détail.",
+      icon: C.racine + 'icones/membre-192.png',
+      badge: C.racine + 'icones/membre-192.png',
+      tag: 'acbt-alerte-' + ((a && a.date) || Date.now()),
+      data: { lien: (a && a.lien) || C.membre },
+    });
+  })());
+});
+
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const lien = new URL((e.notification.data && e.notification.data.lien) || C.membre, self.location.origin).href;
+  e.waitUntil((async () => {
+    const fen = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const f of fen) if (f.url.startsWith(self.location.origin) && 'navigate' in f) { await f.focus(); return f.navigate(lien); }
+    return self.clients.openWindow(lien);
+  })());
+});
 `;
   return new Response(code, { headers: { 'Content-Type': 'text/javascript; charset=utf-8' } });
 };

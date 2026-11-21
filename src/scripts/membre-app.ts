@@ -347,20 +347,65 @@ export function avions() {
   choisir(init);
 }
 
+/** Réduit une photo (1600 px au plus, JPEG) pour qu'elle parte vite et tienne dans la base du club. */
+async function reduirePhoto(f: File): Promise<Blob> {
+  try {
+    const img = await createImageBitmap(f);
+    const k = Math.min(1, 1600 / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+    c.getContext('2d')!.drawImage(img, 0, 0, c.width, c.height);
+    const b = await new Promise<Blob | null>((ok) => c.toBlob(ok, 'image/jpeg', 0.78));
+    return b || f;
+  } catch { return f; }
+}
+
+type SigEnAttente = { avion: string; probleme: string; nom: string; date: string };
+const ATTENTE = 'acbt-signalements-attente';
+
+/** Mail aux responsables (formulaire Web3Forms du club, même clé que la page Contact). Sans clé, rien n'est envoyé. */
+async function mailSignalement(cle: string, page: string, s: SigEnAttente, nbPhotos: number) {
+  if (!cle) return false;
+  try {
+    const r = await fetch('https://api.web3forms.com/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({
+        access_key: cle,
+        subject: `Signalement technique ${s.avion}`,
+        from_name: 'Espace membres ACBT',
+        Avion: s.avion,
+        'Signalé par': s.nom || 'non précisé',
+        'Problème': s.probleme,
+        Photos: nbPhotos ? `${nbPhotos} photo(s), à voir dans l'appli` : 'aucune',
+        Date: new Date(s.date).toLocaleString('fr-FR'),
+        'Voir dans l\'appli': new URL(page, location.href).href,
+      }),
+    });
+    return r.ok;
+  } catch { return false; }
+}
+
 /**
  * Signalement d'un problème technique sur un avion, avec photos possibles.
- * La saisie se fait dans une fenêtre ; à l'envoi, le signalement est gardé sur l'appareil.
- * La transmission automatique par mail et notification aux responsables sera branchée côté serveur (Cloudflare).
+ * Il part sur le serveur du club (base Cloudflare), qui prévient les admins par notification ; un mail part aussi.
+ * Sans réseau, il est gardé sur l'appareil et renvoyé à la prochaine ouverture de l'appli.
  */
 export function signalement() {
   const dlg = document.getElementById('signalement') as HTMLDialogElement | null;
   if (!dlg) return;
+  const api = dlg.dataset.api || '';
+  const cleMail = dlg.dataset.cleMail || '';
+  const page = dlg.dataset.page || '';
   const avionOut = dlg.querySelector<HTMLElement>('#sig-avion');
+  const nomIn = dlg.querySelector<HTMLInputElement>('#sig-nom');
   const desc = dlg.querySelector<HTMLTextAreaElement>('#sig-desc');
   const photos = dlg.querySelector<HTMLElement>('#sig-photos');
   const input = dlg.querySelector<HTMLInputElement>('#sig-fichiers');
   const envoyer = dlg.querySelector<HTMLButtonElement>('#sig-envoyer');
   const pied = dlg.querySelector<HTMLElement>('#sig-pied');
+  const erreur = dlg.querySelector<HTMLElement>('#sig-erreur');
+  const retour = dlg.querySelector<HTMLElement>('#sig-retour');
   const etapes = dlg.querySelectorAll<HTMLElement>('[data-etape]');
   let avion = '';
   let fichiers: File[] = [];
@@ -391,13 +436,38 @@ export function signalement() {
     avion = im;
     if (avionOut) avionOut.textContent = im || '—';
     if (desc) { desc.value = ''; desc.classList.remove('vide'); }
+    try { if (nomIn && !nomIn.value) nomIn.value = localStorage.getItem('acbt-nom') || ''; } catch { /* rien */ }
+    if (erreur) erreur.hidden = true;
     fichiers = [];
     dessiner();
     etape('saisie');
     if (pied) pied.hidden = false;
-    if (envoyer) envoyer.disabled = false;
+    if (envoyer) { envoyer.disabled = false; envoyer.textContent = 'Envoyer'; }
     if (typeof dlg.showModal === 'function') dlg.showModal(); else dlg.setAttribute('open', '');
   };
+
+  /** Envoi au serveur ; renvoie true si le club l'a bien reçu. */
+  const transmettre = async (s: SigEnAttente, imgs: Blob[]) => {
+    const f = new FormData();
+    f.set('avion', s.avion); f.set('probleme', s.probleme); f.set('nom', s.nom);
+    imgs.forEach((b, i) => f.append('photos', b, `photo-${i + 1}.jpg`));
+    const r = await fetch(api, { method: 'POST', body: f, credentials: 'same-origin' });
+    if (!r.ok) throw new Error(String(r.status));
+    await mailSignalement(cleMail, page, s, imgs.length);
+    return true;
+  };
+
+  // Signalements restés sur l'appareil faute de réseau : on les renvoie (sans photos) dès que possible
+  const renvoyer = async () => {
+    let liste: SigEnAttente[] = [];
+    try { liste = JSON.parse(localStorage.getItem(ATTENTE) || '[]'); } catch { return; }
+    if (!liste.length || !navigator.onLine) return;
+    const reste: SigEnAttente[] = [];
+    for (const s of liste) { try { await transmettre({ ...s, probleme: s.probleme + '\n(envoyé en différé)' }, []); } catch { reste.push(s); } }
+    try { localStorage.setItem(ATTENTE, JSON.stringify(reste)); } catch { /* rien */ }
+  };
+  renvoyer();
+  addEventListener('online', renvoyer);
 
   document.querySelectorAll<HTMLButtonElement>('[data-signaler]').forEach((b) =>
     b.addEventListener('click', () => ouvrir(b.dataset.avion || '')));
@@ -405,14 +475,32 @@ export function signalement() {
   dlg.addEventListener('cancel', (e) => { e.preventDefault(); fermer(); });
   dlg.addEventListener('click', (e) => { if (e.target === dlg) fermer(); }); // clic sur le fond
 
-  envoyer?.addEventListener('click', () => {
+  envoyer?.addEventListener('click', async () => {
     if (!desc?.value.trim()) { desc?.classList.add('vide'); desc?.focus(); return; }
+    const s: SigEnAttente = { avion, probleme: desc.value.trim(), nom: nomIn?.value.trim() || '', date: new Date().toISOString() };
+    try { localStorage.setItem('acbt-nom', s.nom); } catch { /* rien */ }
     envoyer.disabled = true;
+    envoyer.textContent = 'Envoi…';
+    if (erreur) erreur.hidden = true;
     try {
-      const liste = JSON.parse(localStorage.getItem('acbt-signalements') || '[]');
-      liste.push({ avion, probleme: desc.value.trim(), photos: fichiers.length, date: new Date().toISOString() });
-      localStorage.setItem('acbt-signalements', JSON.stringify(liste));
-    } catch { /* navigation privée */ }
+      const imgs = await Promise.all(fichiers.map(reduirePhoto));
+      await transmettre(s, imgs);
+      if (retour) retour.textContent = 'Les responsables techniques sont prévenus.';
+    } catch {
+      if (!navigator.onLine) {
+        try {
+          const liste = JSON.parse(localStorage.getItem(ATTENTE) || '[]');
+          liste.push(s);
+          localStorage.setItem(ATTENTE, JSON.stringify(liste));
+        } catch { /* rien */ }
+        if (retour) retour.textContent = "Pas de réseau : il est gardé sur ce téléphone et partira tout seul dès le retour du réseau (sans les photos).";
+      } else {
+        if (erreur) { erreur.textContent = "L'envoi n'a pas abouti. Réessayez dans un instant."; erreur.hidden = false; }
+        envoyer.disabled = false;
+        envoyer.textContent = 'Envoyer';
+        return;
+      }
+    }
     etape('ok');
     if (pied) pied.hidden = true;
   });

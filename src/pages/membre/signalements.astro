@@ -1,0 +1,221 @@
+---
+// Signalements techniques des avions, envoyés depuis l'appli. Les admins y activent aussi les alertes
+// (notification sur leur téléphone à chaque nouveau signalement) et marquent un signalement comme traité.
+import MembreApp from '../../layouts/MembreApp.astro';
+import Logo from '../../components/Logo.astro';
+import { url } from '../../lib/utils';
+---
+<MembreApp title="Signalements">
+  <div class="ecran" id="ecran" data-api={url('/membre/api/signalements')} data-alertes={url('/membre/api/alertes')} data-sw={url('/sw-membre.js')} data-racine={url('/')}>
+    <header class="haut">
+      <a href={url('/membre/#avions')} class="retour" aria-label="Retour à l'espace membres">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
+      </a>
+      <Logo class="logo" />
+      <span>Signalements</span>
+    </header>
+
+    <main class="corps">
+      <div class="filtres" role="group" aria-label="Filtrer">
+        <select id="f-avion" aria-label="Avion"><option value="">Tous les avions</option></select>
+        <label class="coche"><input type="checkbox" id="f-traites" /> Voir aussi les traités</label>
+      </div>
+      <p class="etat" id="etat">Chargement…</p>
+      <ol class="liste" id="liste"></ol>
+
+      <section class="carte alertes" id="alertes">
+        <h2>Alertes pour les responsables</h2>
+        <p class="sous" id="al-etat">Recevez une notification sur ce téléphone à chaque nouveau signalement.</p>
+        <div id="al-form">
+          <label for="al-mdp">Mot de passe admin</label>
+          <input id="al-mdp" type="password" autocomplete="current-password" />
+          <label for="al-nom">Votre nom</label>
+          <input id="al-nom" type="text" autocomplete="name" maxlength="60" />
+        </div>
+        <p class="erreur" id="al-erreur" role="alert" hidden></p>
+        <button class="pri" type="button" id="al-bouton">Recevoir les alertes sur ce téléphone</button>
+        <p class="note-ios" id="al-ios" hidden>Sur iPhone, ajoutez d'abord l'appli à l'écran d'accueil (Partager, puis « Sur l'écran d'accueil ») et ouvrez-la depuis son icône.</p>
+      </section>
+    </main>
+  </div>
+</MembreApp>
+
+<script>
+  const ecran = document.getElementById('ecran')!;
+  const API = ecran.dataset.api!;
+  const ALERTES = ecran.dataset.alertes!;
+  const liste = document.getElementById('liste')!;
+  const etat = document.getElementById('etat')!;
+  const fAvion = document.getElementById('f-avion') as HTMLSelectElement;
+  const fTraites = document.getElementById('f-traites') as HTMLInputElement;
+  type Sig = { id: number; avion: string; probleme: string; nom: string; date: string; statut: string; photos: number[] };
+  let tous: Sig[] = [];
+
+  const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const quand = (d: string) => new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+  function dessiner() {
+    const av = fAvion.value;
+    const vus = tous.filter((s) => (!av || s.avion === av) && (fTraites.checked || s.statut !== 'traite'));
+    etat.textContent = vus.length ? '' : (av ? `Aucun signalement en cours sur ${av}.` : 'Aucun signalement en cours.');
+    etat.hidden = vus.length > 0;
+    liste.innerHTML = vus.map((s) => `
+      <li class="sig" id="s${s.id}" data-statut="${s.statut}">
+        <div class="sig-tete"><b>${esc(s.avion)}</b><span class="sig-badge">${s.statut === 'traite' ? 'Traité' : 'En cours'}</span></div>
+        <p class="sig-texte">${esc(s.probleme).replace(/\n/g, '<br>')}</p>
+        ${s.photos.length ? `<div class="sig-photos">${s.photos.map((p) => `<a href="${API}/photo/${p}" target="_blank" rel="noopener"><img src="${API}/photo/${p}" alt="Photo jointe" loading="lazy"></a>`).join('')}</div>` : ''}
+        <div class="sig-pied"><span>${s.nom ? esc(s.nom) + ' · ' : ''}${quand(s.date)}</span>
+          <button type="button" class="sig-statut" data-id="${s.id}" data-vers="${s.statut === 'traite' ? 'ouvert' : 'traite'}">${s.statut === 'traite' ? 'Rouvrir' : 'Marquer traité'}</button></div>
+      </li>`).join('');
+    if (location.hash) document.querySelector(location.hash)?.scrollIntoView({ block: 'center' });
+  }
+
+  async function charger() {
+    try {
+      const r = await fetch(API, { credentials: 'same-origin', cache: 'no-store' });
+      const d = await r.json();
+      tous = d.signalements || [];
+      const avions = [...new Set(tous.map((s) => s.avion))].sort();
+      const voulu = new URLSearchParams(location.search).get('avion') || fAvion.value;
+      for (const a of new Set([...avions, voulu].filter(Boolean))) {
+        if (![...fAvion.options].some((o) => o.value === a)) fAvion.add(new Option(a, a));
+      }
+      fAvion.value = voulu || '';
+      dessiner();
+    } catch { etat.textContent = 'Impossible de charger les signalements (pas de réseau ?).'; }
+  }
+  fAvion.addEventListener('change', dessiner);
+  fTraites.addEventListener('change', dessiner);
+
+  // Marquer traité / rouvrir : réservé aux admins (mot de passe admin, gardé sur l'appareil après la première fois)
+  liste.addEventListener('click', async (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('.sig-statut');
+    if (!b) return;
+    let mdp = '';
+    try { mdp = localStorage.getItem('acbt-admin-alertes') || ''; } catch { /* rien */ }
+    mdp = mdp || (document.getElementById('al-mdp') as HTMLInputElement).value.trim();
+    if (!mdp) {
+      const zone = document.getElementById('alertes')!;
+      zone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      (document.getElementById('al-mdp') as HTMLInputElement).focus();
+      montrerErreur('Saisissez le mot de passe admin ici, puis touchez à nouveau « Marquer traité ».');
+      return;
+    }
+    b.disabled = true;
+    const r = await fetch(API, { method: 'PATCH', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: Number(b.dataset.id), statut: b.dataset.vers, motDePasse: mdp }) }).catch(() => null);
+    if (r && r.ok) { try { localStorage.setItem('acbt-admin-alertes', mdp); } catch { /* rien */ } await charger(); }
+    else { b.disabled = false; montrerErreur(r && r.status === 401 ? 'Mot de passe admin incorrect.' : "Le changement n'a pas abouti."); }
+  });
+
+  // ---- Alertes sur ce téléphone ----
+  const bouton = document.getElementById('al-bouton') as HTMLButtonElement;
+  const alEtat = document.getElementById('al-etat')!;
+  const alForm = document.getElementById('al-form')!;
+  const alErr = document.getElementById('al-erreur')!;
+  function montrerErreur(t: string) { alErr.textContent = t; alErr.hidden = false; }
+  const b64 = (s: string) => { const p = '='.repeat((4 - (s.length % 4)) % 4); const r = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, (c) => c.charCodeAt(0)); };
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const installee = matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone === true;
+
+  async function enregistrement() {
+    if (!('serviceWorker' in navigator)) return null;
+    return (await navigator.serviceWorker.getRegistration(ecran.dataset.racine)) ||
+      navigator.serviceWorker.register(ecran.dataset.sw!, { scope: ecran.dataset.racine, updateViaCache: 'none' });
+  }
+  async function majEtat() {
+    try { (document.getElementById('al-nom') as HTMLInputElement).value = localStorage.getItem('acbt-nom') || ''; } catch { /* rien */ }
+    if (!('PushManager' in window) || !('serviceWorker' in navigator)) {
+      bouton.hidden = true; alForm.hidden = true;
+      alEtat.textContent = "Ce navigateur ne peut pas recevoir de notifications.";
+      document.getElementById('al-ios')!.hidden = !(ios && !installee);
+      return;
+    }
+    const reg = await enregistrement();
+    const sub = reg && await reg.pushManager.getSubscription();
+    if (sub) {
+      alEtat.textContent = 'Ce téléphone reçoit les alertes à chaque nouveau signalement.';
+      alForm.hidden = true; bouton.textContent = 'Ne plus recevoir les alertes'; bouton.dataset.mode = 'stop';
+    } else {
+      alEtat.textContent = 'Recevez une notification sur ce téléphone à chaque nouveau signalement.';
+      alForm.hidden = false; bouton.textContent = 'Recevoir les alertes sur ce téléphone'; bouton.dataset.mode = 'go';
+    }
+  }
+  bouton.addEventListener('click', async () => {
+    alErr.hidden = true;
+    bouton.disabled = true;
+    try {
+      const reg = await enregistrement();
+      if (!reg) throw new Error('sw');
+      await navigator.serviceWorker.ready;
+      if (bouton.dataset.mode === 'stop') {
+        const sub = await reg.pushManager.getSubscription();
+        if (sub) {
+          await fetch(ALERTES, { method: 'DELETE', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: sub.endpoint }) }).catch(() => {});
+          await sub.unsubscribe();
+        }
+      } else {
+        const mdp = (document.getElementById('al-mdp') as HTMLInputElement).value.trim();
+        const nom = (document.getElementById('al-nom') as HTMLInputElement).value.trim();
+        if (!mdp) { montrerErreur('Saisissez le mot de passe admin.'); return; }
+        if ((await Notification.requestPermission()) !== 'granted') { montrerErreur('Les notifications sont refusées pour ce site. Autorisez-les dans les réglages du téléphone, puis réessayez.'); return; }
+        const { cle } = await (await fetch(ALERTES, { credentials: 'same-origin', cache: 'no-store' })).json();
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64(cle) });
+        const r = await fetch(ALERTES, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ abonnement: sub.toJSON(), motDePasse: mdp, nom }) });
+        if (!r.ok) {
+          await sub.unsubscribe();
+          montrerErreur(r.status === 401 ? 'Mot de passe admin incorrect.' : "L'inscription n'a pas abouti.");
+          return;
+        }
+        try { localStorage.setItem('acbt-admin-alertes', mdp); if (nom) localStorage.setItem('acbt-nom', nom); } catch { /* rien */ }
+      }
+    } catch {
+      montrerErreur(ios && !installee ? "Sur iPhone, ouvrez l'appli depuis son icône sur l'écran d'accueil pour activer les alertes." : "L'activation n'a pas abouti.");
+    } finally {
+      bouton.disabled = false;
+      await majEtat();
+    }
+  });
+  document.getElementById('al-ios')!.hidden = !(ios && !installee);
+
+  charger();
+  majEtat();
+</script>
+
+<style>
+  .ecran { min-height: 100svh; display: flex; flex-direction: column; background: var(--bg); }
+  .haut { display: flex; align-items: center; gap: 10px; min-height: 54px; padding: 0 16px 0 8px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: var(--bar-ink); }
+  .retour { display: grid; place-items: center; width: 34px; height: 34px; color: var(--bar-ic); }
+  .retour svg { width: 22px; height: 22px; }
+  .haut :global(.logo) { --logo-h: 40px; --logo-rouge: var(--bar-rouge); color: var(--bar-ink); }
+  .haut span { font-weight: 800; font-size: 1.05rem; }
+  .corps { flex: 1; width: 100%; max-width: 640px; margin: 0 auto; padding: 18px 16px 40px; display: grid; gap: 14px; align-content: start; }
+  .filtres { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+  .filtres select { height: 44px; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; font: inherit; font-weight: 650; background: var(--surface); color: var(--ink); }
+  .coche { text-transform: none; letter-spacing: 0; font-weight: 600; margin: 0; display: inline-flex; gap: 8px; align-items: center; font-size: .9rem; color: var(--muted); }
+  .etat { margin: 8px 0; color: var(--muted); }
+  .liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .liste :global(.sig) { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--bad); border-radius: 12px; padding: 14px 14px 12px; }
+  .liste :global(.sig[data-statut="traite"]) { border-left-color: var(--ok); opacity: .8; }
+  .liste :global(.sig:target) { outline: 2px solid var(--accent); }
+  .liste :global(.sig-tete) { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  .liste :global(.sig-tete b) { font-family: var(--mono); font-size: 1.02rem; }
+  .liste :global(.sig-badge) { font-size: .74rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; padding: 3px 8px; border-radius: 99px; background: var(--bad-bg); color: var(--bad); }
+  .liste :global(.sig[data-statut="traite"] .sig-badge) { background: var(--ok-bg); color: var(--ok); }
+  .liste :global(.sig-texte) { margin: 8px 0; color: var(--ink); line-height: 1.45; overflow-wrap: anywhere; }
+  .liste :global(.sig-photos) { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  .liste :global(.sig-photos img) { width: 84px; height: 84px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); display: block; }
+  .liste :global(.sig-pied) { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-size: .84rem; color: var(--muted); }
+  .liste :global(.sig-statut) { border: 1px solid var(--line); background: transparent; color: var(--ink); border-radius: 8px; padding: 6px 10px; font: inherit; font-weight: 700; font-size: .8rem; cursor: pointer; }
+  .carte { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px 18px; margin-top: 18px; }
+  h2 { font-size: 1.1rem; margin: 0 0 4px; }
+  .sous { color: var(--muted); font-size: .9rem; margin: 0 0 14px; }
+  label { display: block; font-weight: 700; font-size: .76rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 10px 0 6px; }
+  input[type=password], input[type=text] { width: 100%; height: 46px; border: 1px solid var(--line); border-radius: 10px; padding: 0 13px; font: inherit; background: var(--surface-2, var(--surface)); color: var(--ink); }
+  input:focus, select:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .erreur { color: var(--bad); background: var(--bad-bg); border: 1px solid var(--bad-line); border-radius: 10px; padding: 9px 12px; margin: 12px 0 0; font-size: .9rem; }
+  .pri { width: 100%; min-height: 48px; margin-top: 14px; border: 0; border-radius: 10px; background: var(--navy); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+  .pri:disabled { opacity: .7; cursor: wait; }
+  .note-ios { font-size: .84rem; color: var(--muted); margin: 10px 0 0; }
+  [hidden] { display: none !important; }
+</style>
