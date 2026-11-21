@@ -69,6 +69,10 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
       <button data-e="2" aria-label="Météo"><i></i></button>
       <button data-e="3" aria-label="Radar et satellite"><i></i></button>
     </nav>
+    <button type="button" class="pe-ecran" id="plein-ecran" aria-label="Plein écran" title="Plein écran">
+      <svg class="ouvrir" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+      <svg class="fermer" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
     <footer class="foot"><span class="dot" id="etat"></span><span id="maj">Chargement…</span></footer>
   </div>
 </Dashboard>
@@ -107,6 +111,10 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .vide { color: var(--muted); font-size: 17px; font-weight: 600; padding: 8px 0; }
   .l { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .mono { font-family: var(--mono); }
+  .pe-ecran { position: absolute; left: 22px; bottom: 4px; width: 30px; height: 30px; padding: 5px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); opacity: .3; cursor: pointer; transition: opacity .2s, background .2s; }
+  .pe-ecran:hover, .pe-ecran:focus-visible { opacity: 1; background: var(--panel); }
+  .pe-ecran svg { width: 100%; height: 100%; display: block; } .pe-ecran .fermer { display: none; }
+  :fullscreen .pe-ecran .ouvrir { display: none; } :fullscreen .pe-ecran .fermer { display: block; }
   .foot { position: absolute; right: 30px; bottom: 6px; font-size: 13px; color: var(--muted); font-weight: 600; display: flex; align-items: center; gap: 8px; }
   .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); display: inline-block; }
   .dot.ko { background: var(--bad); }
