@@ -22,7 +22,7 @@ export async function onRequestGet({ env, request, waitUntil }) {
     lireMaa(env).catch(() => null),
     avwx(env, 'metar').catch(() => null),
     avwx(env, 'taf').catch(() => null),
-    lireNotam(env, cache, waitUntil).catch((e) => ({ ok: false, raison: String(e.message || e) })),
+    lireNotam(env, cache, waitUntil, debug === 'notam').catch((e) => ({ ok: false, raison: String(e.message || e) })),
     lireHistorique().catch(() => null),
   ]);
   const corps = { ok: true, maj: new Date().toISOString(), flotte, maa, metar, taf, notam, historique, meteofrance: Boolean(env.METEOFRANCE_BASIC || env.METEOFRANCE_APIKEY), meteofranceExpire: expiration(env.METEOFRANCE_APIKEY) };
@@ -100,31 +100,55 @@ async function lireHistorique() {
   }).sort((a, b) => a.t.localeCompare(b.t));
 }
 
-// NOTAM de LFOB par l'API NOTAM de la FAA (relais officiel de l'échange international OACI).
-// Secrets Cloudflare : FAA_CLIENT_ID et FAA_CLIENT_SECRET. Gardé 10 min en cache (quotas de la FAA).
-// Les NOTAM d'obstacles (codes Q OB / OL, grues) ne sont pas affichés, à la demande du club.
-async function lireNotam(env, cache, waitUntil) {
-  if (!env.FAA_CLIENT_ID || !env.FAA_CLIENT_SECRET) return { ok: false, raison: 'cle' };
+// NOTAM de LFOB par l'API NMS de la FAA (NOTAM Management System, relais de l'échange international OACI).
+// Secrets Cloudflare : FAA_CLIENT_ID (« key ») et FAA_CLIENT_SECRET (« secret »), FAA_NMS_HOST facultatif
+// (environnement de test par défaut, tant que la FAA n'a pas ouvert la production). Jeton OAuth valable 30 min.
+// Gardé 10 min en cache. Les NOTAM d'obstacles (codes Q OB / OL, grues) ne sont pas affichés, à la demande du club.
+const NMS_HOTE = 'https://api-staging.cgifederal-aim.com';
+const CACHE_NMS_JETON = 'https://cache.acbt60.local/dashboard/api/nms-jeton';
+async function jetonNms(env, cache, waitUntil, hote) {
   if (cache) {
+    const deja = await cache.match(new Request(CACHE_NMS_JETON));
+    if (deja) return deja.text();
+  }
+  const r = await fetch(`${hote}/v1/auth/token`, {
+    method: 'POST',
+    headers: { Authorization: `Basic ${btoa(`${String(env.FAA_CLIENT_ID).trim()}:${String(env.FAA_CLIENT_SECRET).trim()}`)}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'grant_type=client_credentials',
+  });
+  const brut = await r.text();
+  let j = null;
+  try { j = JSON.parse(brut); } catch { /* pas du JSON */ }
+  if (!r.ok || !j?.access_token) throw new Error(`jeton FAA ${r.status} ${brut.replace(/\s+/g, ' ').slice(0, 160)}`);
+  const duree = Math.max(60, Number(j.expires_in || 1799) - 300);
+  if (cache) waitUntil?.(cache.put(new Request(CACHE_NMS_JETON), new Response(j.access_token, { headers: { 'Cache-Control': `public, max-age=${duree}` } })));
+  return j.access_token;
+}
+
+async function lireNotam(env, cache, waitUntil, debug) {
+  if (!env.FAA_CLIENT_ID || !env.FAA_CLIENT_SECRET) return { ok: false, raison: 'cle' };
+  if (cache && !debug) {
     const deja = await cache.match(new Request(CACHE_NOTAM));
     if (deja) return deja.json();
   }
-  const u = new URL(env.FAA_NOTAM_URL || 'https://external-api.faa.gov/notamapi/v1/notams');
-  u.searchParams.set('icaoLocation', 'LFOB');
-  u.searchParams.set('pageSize', '200');
-  const r = await fetch(u, { headers: { client_id: env.FAA_CLIENT_ID, client_secret: env.FAA_CLIENT_SECRET, Accept: 'application/json' } });
-  if (!r.ok) return { ok: false, raison: `FAA ${r.status}` };
+  const hote = String(env.FAA_NMS_HOST || NMS_HOTE).replace(/\/+$/, '');
+  const u = `${hote}/nmsapi/v1/notams?location=LFOB`;
+  const appel = async (t) => fetch(u, { headers: { Authorization: `Bearer ${t}`, nmsResponseFormat: 'GEOJSON', Accept: 'application/json' } });
+  let r = await appel(await jetonNms(env, cache, waitUntil, hote));
+  if (r.status === 401 && cache) { await cache.delete(new Request(CACHE_NMS_JETON)); r = await appel(await jetonNms(env, cache, waitUntil, hote)); }
+  if (!r.ok) return { ok: false, raison: `FAA ${r.status}`, detail: (await r.text()).replace(/\s+/g, ' ').slice(0, 200) };
   const j = await r.json();
+  const items = j.data?.geojson || j.items || [];
   const maintenant = Date.now();
-  const liste = (j.items || []).map((it) => {
+  const liste = items.map((it) => {
     const core = it.properties?.coreNOTAMData || {};
     const n = core.notam || {};
     const icao = (core.notamTranslation || []).find((t) => t.type === 'ICAO')?.formattedText || '';
-    const q = (icao.match(/Q\)\s*[A-Z]{4}\/Q([A-Z]{2})([A-Z]{2})/) || []);
+    const q = (icao.match(/Q\)\s*[A-Z]{4}\/Q([A-Z]{2})([A-Z]{2})/) || String(n.selectionCode || '').match(/^Q([A-Z]{2})([A-Z]{2})/) || []);
     const e = (icao.match(/E\)\s*([\s\S]*?)(?:\n[FG]\)|$)/) || [])[1] || n.text || '';
     const texteNet = e.replace(/\s+/g, ' ').trim();
     return {
-      numero: n.number || n.id || '',
+      numero: n.number ? `${n.series || ''}${n.number}` : n.id || '',
       sujet: q[1] || null,
       etat: q[2] || null,
       debut: n.effectiveStart || null,
@@ -134,7 +158,7 @@ async function lireNotam(env, cache, waitUntil) {
       obstacle: q[1] === 'OB' || q[1] === 'OL' || /\b(OBST|CRANE|GRUE)/i.test(texteNet),
     };
   }).filter((n) => !n.obstacle && !(n.fin && /^\d{4}-/.test(n.fin) && Date.parse(n.fin) < maintenant));
-  const corps = { ok: true, notam: liste.filter((n) => !n.sup), sup: liste.filter((n) => n.sup) };
+  const corps = { ok: true, source: hote.includes('staging') ? 'test' : 'prod', total: items.length, notam: liste.filter((n) => !n.sup), sup: liste.filter((n) => n.sup) };
   if (cache) waitUntil?.(cache.put(new Request(CACHE_NOTAM), new Response(JSON.stringify(corps), { headers: { 'Cache-Control': 'public, max-age=600' } })));
   return corps;
 }
