@@ -69,9 +69,11 @@ const adminDonnees = {
 };
 const host = (l: string) => new URL(l).hostname.replace(/^www\./, '');
 const connexion = url('/membre/connexion/');
+const modeles = Object.fromEntries(flotte.map((a) => [a.im, a.modele.replace(/^Robin |^Jodel /, '')]));
 
 const onglets = [
   { id: 'accueil', nom: 'Météo', svg: 'M17.5 19a4.5 4.5 0 1 0-.9-8.9A6 6 0 1 0 6 19h11.5z' },
+  { id: 'flotte', nom: 'Flotte', svg: 'M12 14l4.5-4.5M3.5 18a9.5 9.5 0 1 1 17 0M12 14h.01' },
   { id: 'avions', nom: 'Avions', svg: 'M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z' },
   { id: 'preparer', nom: 'Préparer', svg: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 4v12m10-6H2' },
 ];
@@ -144,7 +146,23 @@ const onglets = [
       <h2 class="bt">Météo du terrain</h2>
       <div class="carte-metar"><Metar /></div>
       <div class="carte-metar carte-taf"><Taf /></div>
+
+      <h2 class="bt bt-soleil">Soleil à LFOB <span class="soleil-etat" data-soleil-etat></span></h2>
+      <div class="soleil" id="soleil">
+        <div><small>Jour aéro.</small><b data-soleil="jourAero">--:--</b></div>
+        <div><small>Lever</small><b data-soleil="lever">--:--</b></div>
+        <div><small>Coucher</small><b data-soleil="coucher">--:--</b></div>
+        <div><small>Nuit aéro.</small><b data-soleil="nuitAero">--:--</b></div>
+      </div>
+      <p class="soleil-note">Heures locales. Le jour aéronautique commence 30 min avant le lever du soleil, la nuit aéronautique 30 min après son coucher.</p>
       <p class="aide-ios" id="aide-ios" hidden>Sur iPhone : touchez <b>Partager</b> en bas de Safari, puis <b>Sur l'écran d'accueil</b>.</p>
+    </section>
+
+    <!-- FLOTTE -->
+    <section class="panneau" id="flotte" hidden>
+      <h1 class="titre">Flotte</h1>
+      <div class="fl-liste" id="flotte-liste" data-api={url('/membre/api/flotte')} data-modeles={JSON.stringify(modeles)}></div>
+      <p class="fl-info" id="flotte-info"></p>
     </section>
 
     <!-- AVIONS -->
@@ -294,7 +312,7 @@ const onglets = [
 </MembreApp>
 
 <script>
-  import { enregistrer, boutonInstaller, seDeconnecter, badges, maa, maaEnLigne, onglets, signalement, theme, avions } from '../../scripts/membre-app';
+  import { enregistrer, boutonInstaller, seDeconnecter, badges, maa, maaEnLigne, onglets, signalement, theme, avions, soleil, flotte } from '../../scripts/membre-app';
   enregistrer();
   theme(document.getElementById('btn-theme'));
   const montrer = onglets();
@@ -302,6 +320,9 @@ const onglets = [
   avions();
   maa();
   maaEnLigne();
+  soleil();
+  setInterval(soleil, 60_000);
+  flotte();
   setInterval(maaEnLigne, 5 * 60_000); // nouveaux MAA reçus par mail
   setInterval(maa, 60_000); // le MAA peut commencer ou se terminer pendant la consultation
   signalement();
@@ -384,6 +405,46 @@ const onglets = [
 
   .carte-metar { padding: 15px 16px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; }
   .carte-taf { margin-top: 10px; }
+
+  /* Soleil */
+  .bt-soleil { margin-top: 22px; justify-content: space-between; }
+  .soleil-etat { text-transform: none; letter-spacing: 0; font-weight: 600; font-size: .8rem; color: var(--ok); }
+  .soleil-etat[data-nuit='oui'] { color: var(--accent-text, var(--accent)); }
+  .soleil { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+  .soleil div { padding: 12px 6px; text-align: center; border-left: 1px solid var(--line); }
+  .soleil div:first-child { border-left: 0; }
+  .soleil small { display: block; color: var(--muted); font-size: .72rem; font-weight: 600; margin-bottom: 2px; white-space: nowrap; }
+  .soleil b { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .soleil div:first-child b, .soleil div:last-child b { color: var(--accent-text, var(--accent)); }
+  .soleil-note { margin: 8px 2px 0; font-size: .74rem; color: var(--muted); line-height: 1.4; }
+
+  /* Flotte */
+  .fl-liste { display: grid; gap: 12px; }
+  @media (min-width: 640px) { .fl-liste { grid-template-columns: 1fr 1fr; } }
+  :global(.fl-carte) { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  :global(.fl-tete) { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+  :global(.fl-im) { font-family: var(--mono); font-size: 1.05rem; font-weight: 700; letter-spacing: .02em; }
+  :global(.fl-tete small) { color: var(--muted); font-size: .78rem; font-weight: 600; margin-left: 8px; }
+  :global(.fl-etat) { display: inline-flex; align-items: center; gap: 6px; font-size: .74rem; font-weight: 700; padding: 3px 10px; border-radius: 99px; border: 1px solid; white-space: nowrap; }
+  :global(.fl-etat i) { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  :global(.fl-etat.fl-ok) { color: var(--ok); background: var(--ok-bg); border-color: var(--ok-line); }
+  :global(.fl-etat.fl-bad) { color: var(--bad); background: var(--bad-bg); border-color: var(--bad-line); }
+  :global(.fl-etat.fl-info) { color: var(--accent-text, var(--accent)); background: var(--accent-soft); border-color: var(--accent-line, var(--line)); }
+  :global(.fl-pot) { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; }
+  :global(.fl-val) { font-size: 1.75rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+  :global(.fl-u) { font-size: .78rem; color: var(--muted); font-weight: 600; }
+  :global(.fl-pot.fl-warn .fl-val) { color: var(--warn); }
+  :global(.fl-pot.fl-bad .fl-val) { color: var(--bad); }
+  :global(.fl-jauge) { height: 6px; border-radius: 9px; background: var(--surface-2); overflow: hidden; margin: 6px 0 10px; }
+  :global(.fl-jauge i) { display: block; height: 100%; background: var(--ok); border-radius: 9px; }
+  :global(.fl-jauge.fl-warn i) { background: var(--warn); }
+  :global(.fl-jauge.fl-bad i) { background: var(--bad); width: 100% !important; }
+  :global(.fl-carte dl) { margin: 0; display: grid; gap: 0; }
+  :global(.fl-carte dl div) { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--line); font-size: .84rem; }
+  :global(.fl-carte dt) { color: var(--muted); flex: none; }
+  :global(.fl-carte dd) { margin: 0; font-weight: 700; text-align: right; }
+  .fl-info { margin: 12px 2px 0; font-size: .74rem; color: var(--muted); text-align: center; }
+  :global(.fl-vide) { color: var(--muted); text-align: center; padding: 24px 8px; background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; margin: 0; }
 
   /* Alerte documents */
   .alerte-docs { margin: 0; }
