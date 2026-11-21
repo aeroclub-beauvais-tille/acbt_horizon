@@ -690,7 +690,15 @@ export function flotte() {
       const L = (cls: string, t: string) => `<span class="fl-l ${cls}">${esc(t)}</span>`;
       // Réservation en cours, sinon prochaine réservation, à côté du cadran
       const r = a.enCours ?? a.prochaine;
-      const haut = r
+      const hs = a.indispo;
+      const jours = hs ? Math.round((lireAg(hs.fin).date.getTime() - lireAg(jourParis(new Date()) + '0000').date.getTime()) / 86400000) : 0;
+      const heureFin = hs && !/23:59|00:00/.test(lireAg(hs.fin).h) ? ` · à ${lireAg(hs.fin).h}` : '';
+      const haut = hs
+        ? L('fl-lbl fl-rouge', 'Retour prévu')
+          + L('fl-jour', (jours <= 0 ? 'aujourd’hui' : jours === 1 ? 'demain' : `dans ${jours} jours`) + heureFin)
+          + L('fl-gros', jourTxt(hs.fin.slice(0, 8)))
+          + L('fl-nom', `depuis le ${hs.debut.slice(6, 8)}/${hs.debut.slice(4, 6)}`)
+        : r
         ? L('fl-lbl', a.enCours ? 'Réservation en cours' : 'Prochaine réservation')
           + L('fl-jour', jourTxt(r.debut.slice(0, 8)) + (r.duree ? ` · ${duree(r.duree)} de vol` : ''))
           + L('fl-gros', `${lireAg(r.debut).h} → ${lireAg(r.fin).h}`)
@@ -699,12 +707,12 @@ export function flotte() {
       const ligne = (lbl: string, sous: string, heure: string, petit: string, cls = '') =>
         `<div class="fl-r"><span class="fl-g">${L('fl-lbl ' + cls, lbl)}${sous ? L(cls ? 'fl-jour' : 'fl-nom', sous) : ''}</span><span class="fl-h">${esc(heure)}<small>${esc(petit)}</small></span></div>`;
       const lignes: string[] = [];
-      if (a.enCours && a.prochaine) {
+      if ((a.enCours || hs) && a.prochaine) {
         const p = a.prochaine;
         lignes.push(ligne('Réservation suivante', qui(p) || jourTxt(p.debut.slice(0, 8)), `${lireAg(p.debut).h} → ${lireAg(p.fin).h}`, jourTxt(p.debut.slice(0, 8))));
       }
       const x = dispo(a.occupe ?? []);
-      lignes.push(x ? ligne('Prochaine dispo. > 30 min', jourTxt(x[0]), `${hm(x[1])} → ${hm(x[2])}`, duree(x[2] - x[1]), 'fl-vert') : ligne('Prochaine dispo. > 30 min', 'dans les 7 jours', 'Aucune', '', 'fl-vert'));
+      if (!hs) lignes.push(x ? ligne('Prochaine dispo. > 30 min', jourTxt(x[0]), `${hm(x[1])} → ${hm(x[2])}`, duree(x[2] - x[1]), 'fl-vert') : ligne('Prochaine dispo. > 30 min', 'dans les 7 jours', 'Aucune', '', 'fl-vert'));
       if (a.dernier) {
         const dd = lireAg(a.dernier.debut), ff = lireAg(a.dernier.fin);
         const [dj, dm] = jm(a.dernier.debut); const [fj, fm] = jm(a.dernier.fin);
@@ -715,8 +723,9 @@ export function flotte() {
         const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/);
         lignes.push(ligne('Dernier vol', '', m ? m[2] : a.dernierVol, m ? m[1] : ''));
       } else lignes.push(ligne('Dernier vol', '', '—', ''));
-      const bandeau = a.indispo
-        ? `<div class="fl-indispo"><b>${esc(a.indispo.motif)}</b><span>jusqu'au ${esc(/23:59|00:00/.test(lireAg(a.indispo.fin).h) ? quand(a.indispo.fin).replace(/ · \d\d:\d\d$/, '') : quand(a.indispo.fin))}</span></div>` : '';
+      const motif = hs ? hs.motif.trim().replace(/^./, (c) => c.toUpperCase()) : '';
+      const bandeau = hs
+        ? `<div class="fl-indispo"><b>Maintenance</b>${motif && motif.toLowerCase() !== 'maintenance' ? `<span class="fl-l">${esc(motif)}</span>` : ''}</div>` : '';
       return `<article class="fl-carte${a.indispo ? ' fl-hs' : ''}" data-q="${esc(a.immat.toLowerCase())}">
         <div class="fl-tete"><span class="fl-l"><b class="fl-im">${esc(a.immat)}</b>${modeles[a.immat] ? `<small>${esc(modeles[a.immat])}</small>` : ''}</span><span class="fl-etat fl-${etat[0]}"><i></i>${etat[1]}</span></div>
         ${bandeau}
