@@ -15,7 +15,7 @@ export async function onRequestPost({ request, env }) {
       .bind(endpoint, String(d.nom || '').slice(0, 60), new Date().toISOString()).run();
   }
   const { details } = await alerter(env, new URL(request.url).origin, {
-    titre: 'Test des alertes ACBT',
+    titre: 'Test 2 : alerte du serveur',
     texte: 'Si vous lisez ceci, les alertes fonctionnent sur ce téléphone.',
     lien: '/membre/signalements/',
   });
