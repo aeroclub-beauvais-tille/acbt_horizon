@@ -232,8 +232,8 @@ function notams() {
   defileNotam();
 }
 // À faire quand l'écran est visible (sinon la hauteur mesurée est nulle)
-function defileNotam() {
-  const boite = $('notam');
+function defileNotam() { defiler($('notam')); }
+function defiler(boite: HTMLElement) {
   const html = boite.dataset.html;
   if (!html || !boite.offsetParent) { delete boite.dataset.ok; return; }
   boite.innerHTML = `<div>${html}</div>`;
@@ -466,11 +466,23 @@ function maaBloc() {
   const n = Date.now();
   $('maa-info').textContent = D?.maa == null ? '' : l.length ? `${l.length} en vigueur ou à venir · UTC` : '';
   const t = (iso: string | null) => { const d = utc(iso); return d ? `${jmUtc(d)} ${hUtc(d)}` : '…'; };
-  $('maa').innerHTML = D?.maa == null ? '<p class="vide">MAA indisponibles pour le moment.</p>'
-    : l.length ? l.map((m) => {
-      const on = m.debut && Date.parse(m.debut) <= n;
-      return `<div class="m${on ? ' on' : ''}"><span class="no">${esc((m.numero || '').split('/')[0])}</span><b>${esc(m.motif || 'Avertissement d’aérodrome')}</b><span class="v"><small>${on ? 'EN COURS' : 'À VENIR'}</small>${t(m.debut)}<br>→ ${t(m.fin)}</span></div>`;
-    }).join('') : '<p class="vide">Aucun MAA en vigueur pour LFOB.</p>';
+  const boite = $('maa');
+  boite.classList.toggle('liste', l.length > 0);
+  if (D?.maa == null || !l.length) {
+    delete boite.dataset.html; delete boite.dataset.ok;
+    boite.innerHTML = D?.maa == null ? '<p class="vide">MAA indisponibles pour le moment.</p>' : '<p class="vide">Aucun MAA en vigueur pour LFOB.</p>';
+    return;
+  }
+  // Une ligne par MAA (fin à l'heure seule si même jour) ; la liste défile si elle dépasse le cadre
+  const html = l.map((m) => {
+    const on = m.debut && Date.parse(m.debut) <= n;
+    const d = utc(m.debut), f = utc(m.fin);
+    const fin = f && d && jmUtc(f) === jmUtc(d) ? hUtc(f) : t(m.fin);
+    return `<div class="m${on ? ' on' : ''}"><span class="no">${esc((m.numero || '').split('/')[0])}</span><b>${esc(m.motif || 'Avertissement d’aérodrome')}</b><span class="v"><small>${on ? 'EN COURS' : 'À VENIR'}</small>${t(m.debut)} → ${fin}</span></div>`;
+  }).join('');
+  if (boite.dataset.html === html && boite.dataset.ok) return;
+  boite.dataset.html = html;
+  defiler(boite);
 }
 
 function meteo() { metarBloc(); ventBloc(); tafBloc(); maaBloc(); }
@@ -639,6 +651,7 @@ function montrer(i: number) {
   const s = $('scene');
   s.className = `s${i}`;
   if (i === 0 && !$('notam').dataset.ok) defileNotam();
+  if (i === 2 && !$('maa').dataset.ok) defiler($('maa'));
 }
 
 function tic() {
