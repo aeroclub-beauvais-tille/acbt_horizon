@@ -401,7 +401,7 @@ const PISTES = [
   { a: ['04', 40], b: ['22', 220], cap: 42, cx: 10, cy: -22, l: 24 },
 ] as const;
 // Vent mesuré par la station Météo-France de Beauvais-Tillé (60639001), une mesure toutes les 6 min (API Observation v2).
-// Repli sur le METAR (toutes les 30 min) si la station ne répond pas ou si sa mesure a plus de 30 min.
+// Repli sur le METAR (toutes les 30 min) si la station ne répond pas ou si rien de neuf depuis 18 min.
 interface Obs { dir: number | null; f: number; g: number | null; t: number }
 let OBS: Obs | null = null;
 let obsLu = 0;
@@ -424,15 +424,16 @@ async function lireObs() {
 
 function ventBloc() {
   const metar = D?.metar;
-  const st = OBS && Date.now() - OBS.t < 30 * 60000 ? OBS : null;
+  // Secours METAR si la station n'a rien envoyé de neuf depuis 18 min (3 mesures manquées) ou si sa mesure a plus de 40 min
+  const st = OBS && Date.now() - obsRecu <= 18 * 60000 && Date.now() - OBS.t < 40 * 60000 ? OBS : null;
   const m = st ? { ventDir: st.dir ?? (st.f ? 'VRB' : null), ventForce: st.f, rafales: st.g, ventVar: null as [number, number] | null } : metar;
   const dir = typeof m?.ventDir === 'number' ? m.ventDir : null;
   const f = m?.ventForce ?? null;
   const g = m?.rafales ?? null;
   // Point vert : la station envoie bien ses mesures ; rouge : rien de neuf depuis 18 min (3 mesures de 6 min manquées) ou repli sur le METAR
-  const capte = !!st && Date.now() - obsRecu <= 18 * 60000;
+  const capte = !!st;
   $('vent-info').innerHTML = st ? `<span class="dot${capte ? '' : ' ko'}"></span>&nbsp;Station LFOB (seuil 30) · ${hUtc(new Date(st.t))} UTC · toutes les 6 min`
-    : metar ? `<span class="dot ko"></span>&nbsp;Station muette · METAR ${metar.heure ? hUtc(new Date(metar.heure)) + ' UTC' : ''}` : '';
+    : metar ? `<span class="dot ko"></span>&nbsp;Secours METAR (station muette) ${metar.heure ? hUtc(new Date(metar.heure)) + ' UTC' : ''}` : '';
   const R = 54;
   const pt = (deg: number, r: number, x0 = 0, y0 = 0) => [x0 + r * Math.sin((deg * Math.PI) / 180), y0 - r * Math.cos((deg * Math.PI) / 180)];
   let s = '<svg viewBox="-70 -70 140 140" aria-hidden="true">';
