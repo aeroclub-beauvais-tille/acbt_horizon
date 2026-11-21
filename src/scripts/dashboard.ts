@@ -21,7 +21,7 @@ interface Metar extends Cond { raw: string; heure: string | null; temperature: n
 interface Periode extends Cond { type: string; probabilite: number | null; debut: string | null; fin: string | null; raw: string }
 interface Taf { raw: string; heure: string | null; periodes: Periode[] }
 interface Maa { id: string; numero: string | null; motif: string | null; debut: string | null; fin: string | null }
-interface Notam { numero: string; sujet: string | null; debut: string | null; fin: string | null; texte: string }
+interface Notam { numero: string; snow?: boolean; sujet: string | null; debut: string | null; fin: string | null; texte: string }
 interface Histo { t: string; vent: number | null; rafales: number | null; dir: number | null; plafond: number | null }
 interface Donnees {
   ok: boolean; maj: string;
@@ -227,7 +227,7 @@ function notams() {
     return;
   }
   const ligne = (x: Notam, sup: boolean) => {
-    const [, l, nom, coul] = sup ? [null, 'SUP', 'SUP AIP', 'gris'] : cat(x.sujet);
+    const [, l, nom, coul] = sup ? [null, 'SUP', 'SUP AIP', 'gris'] : x.snow ? [null, 'SNOW', 'SNOWTAM · état des pistes', 'neige'] : cat(x.sujet);
     return `<div class="n"><span class="ic ${coul}${l.length > 2 && !l.startsWith('<') ? ' l' + l.length : ''}" title="${nom}">${l}</span><div><b>${texteNotam(x.texte)} <span class="no">${esc(x.numero || '')}</span></b><small>${actif(x.debut) ? '<span class="actif">ACTIF</span>' : ''}${esc([nom, validite(x.debut, x.fin)].filter(Boolean).join(' · '))}</small></div></div>`;
   };
   const l = n.notam ?? [];

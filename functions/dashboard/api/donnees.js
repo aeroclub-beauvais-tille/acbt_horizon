@@ -22,7 +22,7 @@ export async function onRequestGet({ env, request, waitUntil }) {
     lireMaa(env).catch(() => null),
     avwx(env, 'metar').catch(() => null),
     avwx(env, 'taf').catch(() => null),
-    lireNotam(env, cache, waitUntil, debug === 'notam').catch((e) => ({ ok: false, raison: String(e.message || e) })),
+    lireNotam(env, cache, waitUntil, debug === 'notam', (new URL(request.url).searchParams.get('lieu') || 'LFOB').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4)).catch((e) => ({ ok: false, raison: String(e.message || e) })),
     lireHistorique().catch(() => null),
   ]);
   const corps = { ok: true, maj: new Date().toISOString(), flotte, maa, metar, taf, notam, historique, meteofrance: Boolean(env.METEOFRANCE_BASIC || env.METEOFRANCE_APIKEY), meteofranceExpire: expiration(env.METEOFRANCE_APIKEY) };
@@ -125,14 +125,15 @@ async function jetonNms(env, cache, waitUntil, hote) {
   return j.access_token;
 }
 
-async function lireNotam(env, cache, waitUntil, debug) {
+async function lireNotam(env, cache, waitUntil, debug, lieu = 'LFOB') {
+  if (!debug) lieu = 'LFOB';
   if (!env.FAA_CLIENT_ID || !env.FAA_CLIENT_SECRET) return { ok: false, raison: 'cle' };
   if (cache && !debug) {
     const deja = await cache.match(new Request(CACHE_NOTAM));
     if (deja) return deja.json();
   }
   const hote = String(env.FAA_NMS_HOST || NMS_HOTE).replace(/\/+$/, '');
-  const u = `${hote}/nmsapi/v1/notams?location=LFOB`;
+  const u = `${hote}/nmsapi/v1/notams?location=${lieu}`;
   const appel = async (t) => fetch(u, { headers: { Authorization: `Bearer ${t}`, nmsResponseFormat: 'GEOJSON', Accept: 'application/json', 'User-Agent': 'ACBT-tableau-de-bord/1.0' } });
   let r = await appel(await jetonNms(env, cache, waitUntil, hote));
   if (r.status === 401 && cache) { await cache.delete(new Request(CACHE_NMS_JETON)); r = await appel(await jetonNms(env, cache, waitUntil, hote)); }
@@ -147,6 +148,8 @@ async function lireNotam(env, cache, waitUntil, debug) {
     const q = (icao.match(/Q\)\s*[A-Z]{4}\/Q([A-Z]{2})([A-Z]{2})/) || String(n.selectionCode || '').match(/^Q([A-Z]{2})([A-Z]{2})/) || []);
     const e = (icao.match(/E\)\s*([\s\S]*?)(?:\n[FG]\)|$)/) || [])[1] || n.text || '';
     const texteNet = e.replace(/\s+/g, ' ').trim();
+    // SNOWTAM (état de surface des pistes, format OACI propre) : affiché en tête, avec un badge dédié
+    const snow = /^SW/i.test(n.series || '') || /SNOWTAM/i.test(`${n.text || ''} ${icao} ${n.type || ''} ${n.number || ''}`);
     return {
       numero: n.number ? `${n.series || ''}${n.number}` : n.id || '',
       sujet: q[1] || null,
@@ -154,11 +157,13 @@ async function lireNotam(env, cache, waitUntil, debug) {
       debut: n.effectiveStart || null,
       fin: n.effectiveEnd || null,
       texte: texteNet,
+      snow,
       sup: /\bSUP\s*(?:AIP\s*)?\d+\/\d+/i.test(texteNet),
-      obstacle: q[1] === 'OB' || q[1] === 'OL' || /\b(OBST|CRANE|GRUE)/i.test(texteNet),
+      obstacle: !snow && q[1] === 'OB' || q[1] === 'OL' || /\b(OBST|CRANE|GRUE)/i.test(texteNet),
     };
   }).filter((n, i, l) => !n.obstacle && !(n.fin && /^\d{4}-/.test(n.fin) && Date.parse(n.fin) < maintenant) && l.findIndex((x) => x.numero === n.numero) === i)
-    .sort((a, b) => String(b.debut).localeCompare(String(a.debut)));
+    .sort((a, b) => Number(b.snow) - Number(a.snow) || String(b.debut).localeCompare(String(a.debut)));
+  if (debug && lieu !== 'LFOB') return { ok: true, lieu, total: items.length, snowtam: liste.filter((n) => n.snow), exemples: items.filter((it) => /SNOW/i.test(JSON.stringify(it))).slice(0, 2) };
   const corps = { ok: true, source: hote.includes('staging') ? 'test' : 'prod', total: items.length, notam: liste.filter((n) => !n.sup), sup: liste.filter((n) => n.sup) };
   if (cache) waitUntil?.(cache.put(new Request(CACHE_NOTAM), new Response(JSON.stringify(corps), { headers: { 'Cache-Control': 'public, max-age=600' } })));
   return corps;
