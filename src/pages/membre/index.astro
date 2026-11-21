@@ -449,27 +449,43 @@ const onglets = [
   :global(.fl-etat.fl-ok) { color: var(--ok); background: var(--ok-bg); border-color: var(--ok-line); }
   :global(.fl-etat.fl-bad) { color: var(--bad); background: var(--bad-bg); border-color: var(--bad-line); }
   :global(.fl-etat.fl-info) { color: var(--accent-text, var(--accent)); background: var(--accent-soft); border-color: var(--accent-line, var(--line)); }
-  :global(.fl-pot) { display: flex; align-items: baseline; gap: 8px; margin-top: 10px; }
-  :global(.fl-val) { font-size: 1.75rem; font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
-  :global(.fl-u) { font-size: .78rem; color: var(--muted); font-weight: 600; }
-  :global(.fl-pot.fl-warn .fl-val) { color: var(--warn); }
-  :global(.fl-pot.fl-bad .fl-val) { color: var(--bad); }
-  :global(.fl-jauge) { height: 6px; border-radius: 9px; background: var(--surface-2); overflow: hidden; margin: 6px 0 10px; }
-  :global(.fl-jauge i) { display: block; height: 100%; background: var(--ok); border-radius: 9px; }
-  :global(.fl-jauge.fl-warn i) { background: var(--warn); }
-  :global(.fl-jauge.fl-bad i) { background: var(--bad); width: 100% !important; }
-  :global(.fl-carte dl) { margin: 0; display: grid; gap: 0; }
-  :global(.fl-carte dl div) { display: grid; row-gap: 1px; padding: 8px 0; border-top: 1px solid var(--line); font-size: .9rem; }
-  :global(.fl-carte dd.fl-nom) { font-weight: 600; color: var(--ink-2, var(--ink)); }
+  /* Carte B1 : cadran du potentiel + lignes ; chaque texte sur une seule ligne */
+  :global(.fl-l) { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  :global(.fl-tete > .fl-l) { flex: 1; }
+  :global(.fl-etat) { flex: none; }
+  :global(.fl-lbl) { font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  :global(.fl-lbl.fl-vert) { color: var(--ok); }
+  :global(.fl-jour) { font-size: .75rem; font-weight: 700; color: var(--muted); }
+  :global(.fl-nom) { font-size: .82rem; font-weight: 600; color: var(--ink-2, var(--ink)); }
+  :global(.fl-gros) { font-size: 1.5rem; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; }
+  :global(.fl-g) { min-width: 0; }
+  :global(.fl-haut) { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 14px; align-items: center; margin-top: 12px; }
+  :global(.fl-cadran) { width: 96px; height: 96px; position: relative; }
+  :global(.fl-cadran svg) { width: 100%; height: 100%; transform: rotate(-90deg); }
+  :global(.fl-cadran circle) { fill: none; stroke: var(--surface-2); stroke-width: 4; }
+  :global(.fl-cadran .fl-arc) { stroke: var(--muted); stroke-linecap: round; }
+  :global(.fl-cadran.fl-ok .fl-arc) { stroke: var(--ok); }
+  :global(.fl-cadran.fl-warn .fl-arc) { stroke: var(--warn); }
+  :global(.fl-cadran.fl-bad .fl-arc) { stroke: var(--bad); }
+  :global(.fl-cadran div) { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+  :global(.fl-cadran b) { font-size: 1.25rem; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  :global(.fl-cadran small) { font-size: .6rem; color: var(--muted); font-weight: 700; margin-top: 3px; }
+  :global(.fl-cadran.fl-warn b) { color: var(--warn); }
+  :global(.fl-cadran.fl-bad b) { color: var(--bad); }
+  :global(.fl-lignes) { margin-top: 12px; border-top: 1px solid var(--line); }
+  :global(.fl-r) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  :global(.fl-r:last-child) { border-bottom: 0; padding-bottom: 0; }
+  :global(.fl-h) { text-align: right; font-size: 1rem; font-weight: 800; white-space: nowrap; align-self: center; font-variant-numeric: tabular-nums; }
+  :global(.fl-h small) { display: block; font-size: .7rem; color: var(--muted); font-weight: 700; }
+  :global(.fl-tol) { margin: 8px 0 0; font-size: .72rem; color: var(--muted); font-weight: 600; }
   /* Avion indisponible (maintenance) : carte hachurée en diagonale + bandeau */
   :global(.fl-carte.fl-hs) { background: var(--surface) repeating-linear-gradient(135deg, transparent 0 11px, var(--bad-line) 11px 12.5px); border-color: var(--bad-line); }
-  :global(.fl-hs dl) { background: var(--surface); border-radius: 8px; padding: 0 10px; margin: 0 -10px; }
+  :global(.fl-hs .fl-lignes) { background: var(--surface); border-radius: 8px; padding: 0 10px 8px; margin: 12px -10px 0; }
+  :global(.fl-hs .fl-haut > .fl-g) { background: var(--surface); border-radius: 8px; padding: 6px 8px; }
   :global(.fl-indispo) { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--bad-line); border-left: 4px solid var(--bad); border-radius: 10px; padding: 8px 12px; margin: 2px 0 8px; font-size: .86rem; }
   :global(.fl-indispo b) { color: var(--bad); font-weight: 800; }
   :global(.fl-indispo span) { font-weight: 700; }
-  :global(.fl-hs .fl-pot), :global(.fl-hs .fl-jauge) { opacity: .55; }
-  :global(.fl-carte dt) { color: var(--muted); font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; }
-  :global(.fl-carte dd) { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+  :global(.fl-hs .fl-cadran) { opacity: .55; }
   .fl-info { margin: 12px 2px 0; font-size: .74rem; color: var(--muted); text-align: center; }
   :global(.fl-vide) { color: var(--muted); text-align: center; padding: 24px 8px; background: var(--surface); border: 1px dashed var(--line); border-radius: 14px; margin: 0; }
 
