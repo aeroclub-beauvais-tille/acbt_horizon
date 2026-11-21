@@ -480,12 +480,7 @@ const onglets = [
   :global(.fl-h small) { display: block; font-size: .7rem; color: var(--muted); font-weight: 700; }
   :global(.fl-tol) { margin: 8px 0 0; font-size: .72rem; color: var(--muted); font-weight: 600; }
   /* Avion indisponible (maintenance) : carte hachurée en diagonale + bandeau */
-  :global(.fl-carte.fl-hs) { background: var(--surface) repeating-linear-gradient(135deg, transparent 0 11px, var(--bad-line) 11px 12.5px); border-color: var(--bad-line); }
-  :global(.fl-hs .fl-lignes) { background: var(--surface); border-radius: 8px; padding: 0 10px 8px; margin: 12px -10px 0; }
-  :global(.fl-hs .fl-haut > .fl-g) { background: var(--surface); border-radius: 8px; padding: 6px 8px; }
-  :global(.fl-indispo) { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; background: var(--surface); border: 1px solid var(--bad-line); border-left: 4px solid var(--bad); border-radius: 10px; padding: 8px 12px; margin: 2px 0 8px; font-size: .86rem; }
-  :global(.fl-indispo b) { color: var(--bad); font-weight: 800; }
-  :global(.fl-indispo span) { font-weight: 700; }
+  :global(.fl-carte.fl-hs) { background: var(--surface) repeating-linear-gradient(135deg, transparent 0 12px, color-mix(in srgb, var(--bad) 8%, transparent) 12px 14px); border-color: var(--bad-line); }
   :global(.fl-hs .fl-cadran) { opacity: .55; }
   :global(.fl-hs .fl-cadran .fl-arc) { stroke: var(--muted); }
   :global(.fl-hs .fl-cadran b) { color: var(--muted); }

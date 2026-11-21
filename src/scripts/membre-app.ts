@@ -682,7 +682,7 @@ export function flotte() {
     // Ordre du club, mais les avions indisponibles en bas, par fin de maintenance (la plus lointaine en dernier)
     const avions = [...d.avions].sort((x, y) => (x.indispo ? 1 : 0) - (y.indispo ? 1 : 0) || (x.indispo && y.indispo ? x.indispo.fin.localeCompare(y.indispo.fin) : 0));
     liste.innerHTML = avions.map((a) => {
-      const etat = a.indispo ? ['bad', 'Indisponible'] : a.enCours ? ['info', 'Réservé'] : ['ok', 'Disponible'];
+      const etat = a.indispo ? ['bad', 'Maintenance'] : a.enCours ? ['info', 'Réservé'] : ['ok', 'Disponible'];
       const pot = a.potentiel;
       const niv = pot == null ? '' : pot < 120 ? 'bad' : pot <= 300 ? 'warn' : 'ok';
       const part = pot == null ? 0 : pot <= 0 ? 1 : Math.min(1, pot / (50 * 60));
@@ -693,9 +693,10 @@ export function flotte() {
       const hs = a.indispo;
       const jours = hs ? Math.round((lireAg(hs.fin).date.getTime() - lireAg(jourParis(new Date()) + '0000').date.getTime()) / 86400000) : 0;
       const heureFin = hs && !/23:59|00:00/.test(lireAg(hs.fin).h) ? ` · à ${lireAg(hs.fin).h}` : '';
+      const motifHs = hs ? hs.motif.trim().replace(/^./, (c) => c.toUpperCase()) : '';
       const haut = hs
-        ? L('fl-lbl fl-rouge', 'Retour prévu')
-          + L('fl-jour', (jours <= 0 ? 'aujourd’hui' : jours === 1 ? 'demain' : `dans ${jours} jours`) + heureFin)
+        ? L('fl-lbl fl-rouge', motifHs && motifHs.toLowerCase() !== 'maintenance' ? motifHs : 'Retour prévu')
+          + L('fl-jour', 'Retour ' + (jours <= 0 ? 'aujourd’hui' : jours === 1 ? 'demain' : `dans ${jours} jours`) + heureFin)
           + L('fl-gros', jourTxt(hs.fin.slice(0, 8)))
           + L('fl-nom', `depuis le ${hs.debut.slice(6, 8)}/${hs.debut.slice(4, 6)}`)
         : r
@@ -728,12 +729,8 @@ export function flotte() {
         const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/);
         lignes.push(ligne('Dernier vol', '', m ? m[2] : a.dernierVol, m ? m[1] : ''));
       } else lignes.push(ligne('Dernier vol', '', '—', ''));
-      const motif = hs ? hs.motif.trim().replace(/^./, (c) => c.toUpperCase()) : '';
-      const bandeau = hs
-        ? `<div class="fl-indispo"><b>Maintenance</b>${motif && motif.toLowerCase() !== 'maintenance' ? `<span class="fl-l">${esc(motif)}</span>` : ''}</div>` : '';
       return `<article class="fl-carte${a.indispo ? ' fl-hs' : ''}" data-q="${esc(a.immat.toLowerCase())}">
         <div class="fl-tete"><span class="fl-l"><b class="fl-im">${esc(a.immat)}</b>${modeles[a.immat] ? `<small>${esc(modeles[a.immat])}</small>` : ''}</span><span class="fl-etat fl-${etat[0]}"><i></i>${etat[1]}</span></div>
-        ${bandeau}
         <div class="fl-haut">
           <div class="fl-cadran fl-${niv}"><svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17"/><circle class="fl-arc" cx="20" cy="20" r="17" stroke-dasharray="${(part * 106.8).toFixed(1)} 107"/></svg><div><b>${pot == null ? '—' : hhmm(pot)}</b><small>${pot != null && pot <= 0 ? 'visite dépassée' : 'avant visite'}</small></div></div>
           <div class="fl-g">${haut}</div>
