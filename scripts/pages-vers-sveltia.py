@@ -69,7 +69,7 @@ for c in src['content']:
         singles.append(o)
 
 conf = {
-  'backend': {'name':'github','repo':'aeroclub-beauvais-tille/acbt_horizon','branch':'main','auth_methods':['token'],
+  'backend': {'name':'github','repo':'aeroclub-beauvais-tille/acbt_horizon','branch':'main','auth_methods':['oauth','token'],'base_url':'https://acbt60.pages.dev','auth_endpoint':'api/auth',
               'commit_messages':{'create':'Ajout : {{collection}} « {{slug}} » (back-office)','update':'Modification : {{collection}} « {{slug}} » (back-office)','delete':'Suppression : {{collection}} « {{slug}} » (back-office)','uploadMedia':'Ajout du fichier {{path}} (back-office)','deleteMedia':'Suppression du fichier {{path}} (back-office)'}},
   'app_title': 'Back-office ACBT',
   'logo': {'src': '../uploads/logo/logo-acbt-admin.svg'},
