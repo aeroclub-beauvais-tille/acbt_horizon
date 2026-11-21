@@ -14,6 +14,14 @@ export async function onRequestGet({ env, request, waitUntil }) {
   if (cible.origin !== HOTE) return new Response('chemin refusé', { status: 400 });
 
   const cache = globalThis.caches?.default;
+  try {
+    return await relayer(env, cache, waitUntil, cible);
+  } catch (e) {
+    return new Response(JSON.stringify({ ok: false, erreur: String(e?.message || e) }), { status: 502, headers: { 'Content-Type': 'application/json' } });
+  }
+}
+
+async function relayer(env, cache, waitUntil, cible) {
   let r = await fetch(cible, { headers: { Authorization: `Bearer ${await jeton(env, cache, waitUntil)}` } });
   if (r.status === 401) r = await fetch(cible, { headers: { Authorization: `Bearer ${await jeton(env, cache, waitUntil, true)}` } });
   const rep = new Response(r.body, { status: r.status, headers: { 'Content-Type': r.headers.get('Content-Type') || 'application/octet-stream', 'Cache-Control': 'private, max-age=120' } });
@@ -31,7 +39,7 @@ async function jeton(env, cache, waitUntil, neuf = false) {
     headers: { Authorization: `Basic ${basic}`, 'Content-Type': 'application/x-www-form-urlencoded' },
     body: 'grant_type=client_credentials',
   });
-  if (!r.ok) throw new Error('jeton Météo-France ' + r.status);
+  if (!r.ok) throw new Error(`jeton Météo-France ${r.status} ${(await r.text()).slice(0, 200)}`);
   const { access_token: t } = await r.json();
   if (cache) waitUntil?.(cache.put(new Request(CACHE_JETON), new Response(t, { headers: { 'Cache-Control': 'public, max-age=3300' } })));
   return t;
