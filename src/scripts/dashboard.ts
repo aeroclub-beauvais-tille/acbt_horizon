@@ -29,6 +29,7 @@ interface Donnees {
   maa: Maa[] | null; metar: Metar | null; taf: Taf | null;
   notam: { ok: boolean; raison?: string; notam?: Notam[]; sup?: Notam[] } | null;
   historique: Histo[] | null;
+  vigilance?: { maj: string | null; departements: { id: string; nom: string; couleur: number; phenomenes: { phenomene: string; couleur: number; debut: string; fin: string }[] }[] } | null;
   meteofrance?: boolean; meteofranceExpire?: string | null;
 }
 
@@ -209,6 +210,8 @@ const CATS: [RegExp, string, string, string][] = [
   [/^C/, 'COM', 'Comm', 'bleu'], [/^[AR]/, 'AIR', 'Espace', 'violet'], [/^P/, 'PROC', 'Procédure', 'violet'],
   [/^W/, 'ACT', 'Activité', 'violet'], [/^S/, 'SVC', 'Service', 'gris'], [/^F/, 'AD', 'Aérodrome', 'gris'],
 ];
+// Ordre d'affichage des NOTAM par badge (après « en cours / à venir ») : pistes d'abord
+const ORDRE = ['RWY', 'TWY', 'APN', 'LGT', ANTENNE, 'GNSS', 'COM', 'AIR', 'PROC', 'ACT', 'SVC', 'AD', 'INFO'];
 const cat = (q: string | null) => CATS.find(([re]) => re.test(q || '')) ?? [null, 'INFO', 'Divers', 'gris'] as const;
 // Mots d'indisponibilité en rouge (abréviations développées comme ForeFlight)
 const ROUGES = /\b(CLSD|CLOSED|U\/S|UNSERVICEABLE|OUT OF ORDER|OUT OF SERVICE|NOT AVBL|NOT AVAILABLE|SUSPENDED|PROHIBITED|FORBIDDEN|UNUSABLE|INUTILISABLE|HORS SERVICE|FERME|FERMEE|INTERDIT|INTERDITE|WITHDRAWN)\b/g;
@@ -233,7 +236,7 @@ function notams() {
     const [, l, nom, coul] = sup ? [null, 'SUP', 'SUP AIP', 'gris'] : x.snow ? [null, 'SNOW', 'SNOWTAM · état des pistes', 'neige'] : cat(x.sujet);
     return `<div class="n"><span class="ic ${coul}${l.length > 2 && !l.startsWith('<') ? ' l' + l.length : ''}" title="${nom}">${l}</span><div><b>${texteNotam(x.texte)} <span class="no">${esc(x.numero || '')}</span></b><small>${actif(x.debut) ? '<span class="actif">ACTIF</span>' : ''}${esc(validite(x.debut, x.fin))}</small></div></div>`;
   };
-  const l = n.notam ?? [];
+  const l = [...(n.notam ?? [])].sort((a, b) => Number(b.snow) - Number(a.snow) || Number(actif(b.debut)) - Number(actif(a.debut)) || ORDRE.indexOf(cat(a.sujet)[1]) - ORDRE.indexOf(cat(b.sujet)[1]) || String(b.debut).localeCompare(String(a.debut)));
   $('notam-info').textContent = `${l.length} en vigueur · hors obstacles`;
   // Liste complète ; si elle dépasse le cadre, elle défile en boucle (copie à la suite, environ 25 px par seconde)
   const html = l.map((x) => ligne(x, false)).join('');
@@ -333,7 +336,7 @@ function reservations() {
     }
   }
   html += '</div><div class="leg"><span><i style="background:var(--r1)"></i>Vol</span><span><i style="background:var(--r2)"></i>Instruction</span><span><i style="background:var(--r3)"></i>Club / baptême</span><span><i style="background:#6d7c92"></i>Indisponible</span>'
-    + (instr.some((i) => i.creneaux.some((c) => c.flottant)) ? '<span><i style="background:rgba(64,201,127,.4)"></i>Instructeur présent</span>' : '') + '<span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.5) 0 3px,transparent 3px 6px)"></i>Nuit aéronautique</span><span><i style="width:3px;background:var(--warn)"></i>Limite jour / nuit aéro.</span><span><i style="width:2px;background:var(--muted)"></i>Traits tous les 1/4 h</span></div>';
+    + (instr.some((i) => i.creneaux.some((c) => c.flottant)) ? '<span><i style="background:rgba(64,201,127,.4)"></i>Instructeur présent</span>' : '') + '<span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.5) 0 3px,transparent 3px 6px)"></i>Nuit aéronautique</span><span><i style="width:3px;background:var(--warn)"></i>Limite jour / nuit aéro.</span></div>';
   $('timeline').innerHTML = avions.length ? html : '<p class="vide">Données Aerogest indisponibles pour le moment.</p>';
   const enCours = jour.filter((r) => mins(r.debut, auj) <= now && mins(r.fin, auj) > now).length;
   $('tl-info').textContent = `${jour.length} vol${jour.length > 1 ? 's' : ''}${enCours ? ` · ${enCours} en cours` : ''} · heures locales · jour aéro. ${heureLocale(e.jourAero)} → ${heureLocale(e.nuitAero)}`;
@@ -449,8 +452,10 @@ function ventBloc() {
     const [a, b] = m!.ventVar ?? [dir - 15, dir + 15];
     const ouv = ((b - a) % 360 + 360) % 360;
     const r2 = R - 7;
-    const [ax, ay] = pt(a, r2), [bx, by] = pt(b, r2);
-    s += `<path d="M0 0 L${ax.toFixed(2)} ${ay.toFixed(2)} A${r2} ${r2} 0 ${ouv > 180 ? 1 : 0} 1 ${bx.toFixed(2)} ${by.toFixed(2)} Z" fill="#1e9bff" opacity=".5"/>`;
+    // Cône dessiné vers le nord puis tourné : à chaque nouvelle mesure il pivote en douceur (par le plus court chemin)
+    const [ax, ay] = pt(a - dir, r2), [bx, by] = pt(b - dir, r2);
+    const vers = coneAng == null ? dir : coneAng + ((((dir - coneAng) % 360) + 540) % 360) - 180;
+    s += `<g class="cone" data-vers="${vers}" style="transform:rotate(${coneAng ?? vers}deg)"><path d="M0 0 L${ax.toFixed(2)} ${ay.toFixed(2)} A${r2} ${r2} 0 ${ouv > 180 ? 1 : 0} 1 ${bx.toFixed(2)} ${by.toFixed(2)} Z" fill="#1e9bff" opacity=".5"/></g>`;
   }
   // Pistes : bande grise, axe en pointillés, numéros aux seuils (le 12 au nord-ouest, le 04 au sud-ouest)
   for (const p of PISTES) {
@@ -480,8 +485,18 @@ function ventBloc() {
     const t2 = `${Math.abs(c.trav)} kt travers${cote(c.trav)}` + (cg ? ` · rafales ${Math.abs(cg.trav)} kt` : '');
     return `<div class="qfu${n === meilleur ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${t2}</small></div></div>`;
   }).join('');
+  const avant = $('vent').querySelector('.qfus')?.innerHTML;
   $('vent').innerHTML = `<div class="vd"><div class="t"><span>${gauche}</span>${droite}${sous}</div>${s}</div><div class="qfus">${qfus}</div>`;
+  const g2 = $('vent').querySelector<SVGGElement>('.cone');
+  if (g2) {
+    const v = Number(g2.dataset.vers);
+    if (coneAng != null && v !== coneAng) { g2.getBoundingClientRect(); requestAnimationFrame(() => { g2.style.transform = `rotate(${v}deg)`; }); }
+    coneAng = v;
+  } else coneAng = null;
+  // Valeurs et cartes des pistes : fondu léger quand elles changent
+  if (avant != null && avant !== qfus) $('vent').classList.add('maj'), setTimeout(() => $('vent').classList.remove('maj'), 900);
 }
+let coneAng: number | null = null;
 
 function tafBloc() {
   const t = D?.taf;
@@ -527,7 +542,45 @@ function maaBloc() {
   defiler(boite);
 }
 
-function meteo() { metarBloc(); ventBloc(); tafBloc(); maaBloc(); }
+// Vigilance Météo-France : l'Oise et ses départements voisins (heure de Paris)
+function vigilanceBloc() {
+  const v = D?.vigilance;
+  const boite = $('vigi');
+  const panneau = boite.closest<HTMLElement>('.panel')!;
+  panneau.hidden = !v;
+  if (!v) return;
+  const COUL = ['', 'verte', 'jaune', 'orange', 'rouge'];
+  const quand = (iso: string) => {
+    const d = new Date(iso);
+    const auj = new Date().toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' }) === d.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
+    const h = d.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' });
+    return auj ? h : `${d.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short' })} ${h}`;
+  };
+  const avec = v.departements.filter((d) => d.phenomenes.length);
+  if (!avec.length) { boite.innerHTML = '<p class="vide">Pas de vigilance dans l’Oise ni les départements voisins.</p>'; return; }
+  boite.innerHTML = v.departements.map((d) => {
+    if (!d.phenomenes.length) return `<div class="vg"><i class="c1"></i><b>${esc(d.nom)}</b><span class="pas">Pas de vigilance</span></div>`;
+    const t = d.phenomenes.map((p) => {
+      const enCours = Date.parse(p.debut) <= Date.now();
+      return `<span class="c${p.couleur}">${COUL[p.couleur][0].toUpperCase() + COUL[p.couleur].slice(1)} · ${esc(p.phenomene)}</span><small>${enCours ? `jusqu’à ${quand(p.fin)}` : `dès ${quand(p.debut)}`}</small>`;
+    }).join('<br>');
+    return `<div class="vg"><i class="c${d.couleur}"></i><b>${esc(d.nom)}</b><span>${t}</span></div>`;
+  }).join('');
+}
+
+// Nouvelle version du site publiée : la page se recharge toute seule (les fichiers /_astro/ changent de nom à chaque version)
+const versionDe = (html: string) => [...new Set(html.match(/\/_astro\/[\w.-]+\.(?:js|css)/g) || [])].sort().join(' ');
+const maVersion = versionDe(document.documentElement.outerHTML);
+async function nouvelleVersion() {
+  try {
+    const r = await fetch(location.pathname + location.search, { cache: 'no-store', credentials: 'same-origin' });
+    if (!r.ok || r.redirected) return;
+    const v = versionDe(await r.text());
+    if (v && maVersion && v !== maVersion) location.reload();
+  } catch { /* réseau coupé : on réessaiera dans une minute */ }
+}
+
+function meteo() { metarBloc(); ventBloc(); tafBloc(); maaBloc(); vigilanceBloc(); }
 
 /* ------------------------------------------------------------------ */
 /* 4. Satellite (EUMETView) et radar (RainViewer), animés sur 2 h      */
@@ -750,8 +803,9 @@ export function demarrer() {
   charger();
   imagesInit();
   setInterval(tic, 1000);
-  setInterval(charger, 60000);
-  setInterval(() => { soleil(); theme(); }, 60000);
+  // Actualisation calée sur la minute pile (hh:mm:00), même si la page a été ouverte en cours de minute
+  const aLaMinute = () => setTimeout(() => { charger(); soleil(); theme(); nouvelleVersion(); aLaMinute(); }, 60000 - (Date.now() % 60000) + 150);
+  aLaMinute();
   setInterval(() => { satellite(); radar(); }, 5 * 60000);
   setInterval(arome, 15 * 60000);
   // Rechargement complet chaque nuit (nouvelle version du site, mémoire du navigateur de la télé)
