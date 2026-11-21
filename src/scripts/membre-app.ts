@@ -679,7 +679,9 @@ export function flotte() {
       if (!liste.children.length) liste.innerHTML = `<p class="fl-vide">Les données d'Aerogest ne sont pas disponibles pour le moment.</p>`;
       return;
     }
-    liste.innerHTML = d.avions.map((a) => {
+    // Ordre du club, mais les avions indisponibles en bas, par fin de maintenance (la plus lointaine en dernier)
+    const avions = [...d.avions].sort((x, y) => (x.indispo ? 1 : 0) - (y.indispo ? 1 : 0) || (x.indispo && y.indispo ? x.indispo.fin.localeCompare(y.indispo.fin) : 0));
+    liste.innerHTML = avions.map((a) => {
       const etat = a.indispo ? ['bad', 'Indisponible'] : a.enCours ? ['info', 'Réservé'] : ['ok', 'Disponible'];
       const pot = a.potentiel;
       const niv = pot == null ? '' : pot <= 0 ? 'bad' : pot <= 300 ? 'warn' : 'ok';
