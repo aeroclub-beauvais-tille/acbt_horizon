@@ -47,33 +47,47 @@ export async function clesVapid(db) {
 async function enteteVapid(cles, endpoint, site) {
   const aud = new URL(endpoint).origin;
   const enTete = b64url(new TextEncoder().encode(JSON.stringify({ typ: 'JWT', alg: 'ES256' })));
-  const corps = b64url(new TextEncoder().encode(JSON.stringify({ aud, exp: Math.floor(Date.now() / 1000) + 3600, sub: site })));
+  const corps = b64url(new TextEncoder().encode(JSON.stringify({ aud, exp: Math.floor(Date.now() / 1000) + 3600, sub: site.replace(/\/+$/, '') })));
   const cle = await crypto.subtle.importKey('jwk', cles.privee, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
   const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, cle, new TextEncoder().encode(`${enTete}.${corps}`));
   return `vapid t=${enTete}.${corps}.${b64url(sig)}, k=${cles.publique}`;
 }
 
 /**
- * Enregistre une alerte et réveille tous les téléphones admins abonnés.
+ * Envoie une notification vide à chaque téléphone abonné et renvoie le détail par téléphone.
  * Les abonnements refusés pour de bon (404/410 : appli désinstallée, notifications coupées) sont retirés.
  */
-export async function alerter(env, site, { titre, texte = '', lien = '/membre/' }) {
-  if (!env.DB) return { envoyes: 0 };
+export async function pousser(env, site) {
   const db = env.DB;
   const cles = await clesVapid(db);
-  await db.prepare('INSERT INTO alertes (titre, texte, lien, date) VALUES (?1, ?2, ?3, ?4)')
-    .bind(titre, texte, lien, new Date().toISOString()).run();
-  const { results } = await db.prepare('SELECT endpoint FROM abonnements').all();
-  let envoyes = 0;
-  await Promise.all(results.map(async ({ endpoint }) => {
+  const { results } = await db.prepare('SELECT endpoint, nom FROM abonnements').all();
+  const details = await Promise.all(results.map(async ({ endpoint, nom }) => {
+    const service = new URL(endpoint).host;
     try {
       const rep = await fetch(endpoint, {
         method: 'POST',
-        headers: { Authorization: await enteteVapid(cles, endpoint, site), TTL: '86400', Urgency: 'high', 'Content-Length': '0' },
+        headers: { Authorization: await enteteVapid(cles, endpoint, site), TTL: '86400', Urgency: 'high' },
+        body: '',
       });
+      const message = rep.ok ? '' : (await rep.text().catch(() => '')).slice(0, 200);
       if (rep.status === 404 || rep.status === 410) await db.prepare('DELETE FROM abonnements WHERE endpoint = ?1').bind(endpoint).run();
-      else if (rep.ok) envoyes++;
-    } catch { /* réseau : on réessaiera à la prochaine alerte */ }
+      return { endpoint, nom, service, statut: rep.status, ok: rep.ok, message };
+    } catch (e) {
+      return { endpoint, nom, service, statut: 0, ok: false, message: String((e && e.message) || e).slice(0, 200) };
+    }
   }));
-  return { envoyes };
+  // Garde une trace du dernier envoi, pour comprendre une notification qui n'arrive pas.
+  const trace = { date: new Date().toISOString(), details: details.map(({ endpoint, ...d }) => d) };
+  await db.prepare("INSERT OR REPLACE INTO reglages (cle, valeur) VALUES ('dernier_envoi', ?1)").bind(JSON.stringify(trace)).run();
+  return details;
+}
+
+/** Enregistre une alerte et réveille tous les téléphones admins abonnés. */
+export async function alerter(env, site, { titre, texte = '', lien = '/membre/' }) {
+  if (!env.DB) return { envoyes: 0, details: [] };
+  await tablesAlertes(env.DB);
+  await env.DB.prepare('INSERT INTO alertes (titre, texte, lien, date) VALUES (?1, ?2, ?3, ?4)')
+    .bind(titre, texte, lien, new Date().toISOString()).run();
+  const details = await pousser(env, site);
+  return { envoyes: details.filter((d) => d.ok).length, details };
 }

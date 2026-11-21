@@ -38,6 +38,8 @@ const avions = (await getCollection('avions', (a) => a.data.actif))
         </div>
         <p class="erreur" id="al-erreur" role="alert" hidden></p>
         <button class="pri" type="button" id="al-bouton">Recevoir les alertes sur ce téléphone</button>
+        <button class="sec" type="button" id="al-test" hidden>Envoyer une notification de test</button>
+        <p class="sous" id="al-resultat" role="status" hidden></p>
         <p class="note-ios" id="al-ios" hidden>Sur iPhone, ajoutez d'abord l'appli à l'écran d'accueil (Partager, puis « Sur l'écran d'accueil ») et ouvrez-la depuis son icône.</p>
       </section>
     </main>
@@ -116,6 +118,8 @@ const avions = (await getCollection('avions', (a) => a.data.actif))
   const alEtat = document.getElementById('al-etat')!;
   const alForm = document.getElementById('al-form')!;
   const alErr = document.getElementById('al-erreur')!;
+  const testBtn = document.getElementById('al-test') as HTMLButtonElement;
+  const resultat = document.getElementById('al-resultat')!;
   function montrerErreur(t: string) { alErr.textContent = t; alErr.hidden = false; }
   const b64 = (s: string) => { const p = '='.repeat((4 - (s.length % 4)) % 4); const r = atob((s + p).replace(/-/g, '+').replace(/_/g, '/')); return Uint8Array.from(r, (c) => c.charCodeAt(0)); };
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -136,6 +140,7 @@ const avions = (await getCollection('avions', (a) => a.data.actif))
     }
     const reg = await enregistrement();
     const sub = reg && await reg.pushManager.getSubscription();
+    testBtn.hidden = !sub;
     if (sub) {
       alEtat.textContent = 'Ce téléphone reçoit les alertes à chaque nouveau signalement.';
       alForm.hidden = true; bouton.textContent = 'Ne plus recevoir les alertes'; bouton.dataset.mode = 'stop';
@@ -182,6 +187,40 @@ const avions = (await getCollection('avions', (a) => a.data.actif))
   });
   document.getElementById('al-ios')!.hidden = !(ios && !installee);
 
+  // ---- Notification de test : réenregistre ce téléphone et montre la réponse du service de notification ----
+  const SERVICES: Record<string, string> = { 'web.push.apple.com': 'Apple', 'fcm.googleapis.com': 'Google', 'updates.push.services.mozilla.com': 'Mozilla' };
+  testBtn.addEventListener('click', async () => {
+    alErr.hidden = true; resultat.hidden = true;
+    let mdp = '';
+    try { mdp = localStorage.getItem('acbt-admin-alertes') || ''; } catch { /* rien */ }
+    mdp = mdp || (document.getElementById('al-mdp') as HTMLInputElement).value.trim();
+    if (!mdp) { alForm.hidden = false; montrerErreur('Saisissez le mot de passe admin, puis touchez à nouveau « Envoyer une notification de test ».'); return; }
+    testBtn.disabled = true;
+    try {
+      if (Notification.permission !== 'granted') { montrerErreur('Les notifications sont coupées pour cette appli dans les réglages du téléphone.'); return; }
+      const reg = await enregistrement();
+      const sub = reg && await reg.pushManager.getSubscription();
+      let nom = '';
+      try { nom = localStorage.getItem('acbt-nom') || ''; } catch { /* rien */ }
+      const r = await fetch(ALERTES + '/test', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ motDePasse: mdp, nom, abonnement: sub ? sub.toJSON() : null }) });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { montrerErreur(r.status === 401 ? 'Mot de passe admin incorrect.' : (d.erreur || "Le test n'a pas abouti.")); return; }
+      try { localStorage.setItem('acbt-admin-alertes', mdp); } catch { /* rien */ }
+      const t = d.ceTelephone;
+      const service = t ? (SERVICES[t.service] || t.service) : '';
+      resultat.textContent = !t
+        ? `Ce téléphone n'est pas enregistré (${d.abonnes} téléphone(s) abonné(s)). Touchez « Ne plus recevoir les alertes » puis réactivez-les.`
+        : t.ok
+          ? `Envoyé (service ${service}). La notification doit arriver dans quelques secondes. ${d.abonnes} téléphone(s) abonné(s).`
+          : `Refusé par le service ${service} : ${t.statut} ${t.message}`.trim();
+      resultat.hidden = false;
+    } catch {
+      montrerErreur("Le test n'a pas abouti (réseau ?).");
+    } finally {
+      testBtn.disabled = false;
+    }
+  });
+
   charger();
   majEtat();
 </script>
@@ -220,6 +259,9 @@ const avions = (await getCollection('avions', (a) => a.data.actif))
   .erreur { color: var(--bad); background: var(--bad-bg); border: 1px solid var(--bad-line); border-radius: 10px; padding: 9px 12px; margin: 12px 0 0; font-size: .9rem; }
   .pri { width: 100%; min-height: 48px; margin-top: 14px; border: 0; border-radius: 10px; background: var(--navy); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
   .pri:disabled { opacity: .7; cursor: wait; }
+  .sec { width: 100%; min-height: 44px; margin-top: 10px; border: 1.5px solid var(--navy); border-radius: 10px; background: transparent; color: var(--navy); font: inherit; font-weight: 700; cursor: pointer; }
+  .sec:disabled { opacity: .6; cursor: wait; }
+  #al-resultat { margin-top: 10px; }
   .note-ios { font-size: .84rem; color: var(--muted); margin: 10px 0 0; }
   [hidden] { display: none !important; }
 </style>
