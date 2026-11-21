@@ -113,13 +113,13 @@ async function jetonNms(env, cache, waitUntil, hote) {
   }
   const r = await fetch(`${hote}/v1/auth/token`, {
     method: 'POST',
-    headers: { Authorization: `Basic ${btoa(`${String(env.FAA_CLIENT_ID).trim()}:${String(env.FAA_CLIENT_SECRET).trim()}`)}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: { Authorization: `Basic ${btoa(`${String(env.FAA_CLIENT_ID).trim()}:${String(env.FAA_CLIENT_SECRET).trim()}`)}`, 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json', 'User-Agent': 'ACBT-tableau-de-bord/1.0' },
     body: 'grant_type=client_credentials',
   });
   const brut = await r.text();
   let j = null;
   try { j = JSON.parse(brut); } catch { /* pas du JSON */ }
-  if (!r.ok || !j?.access_token) throw new Error(`jeton FAA ${r.status} ${brut.replace(/\s+/g, ' ').slice(0, 160)}`);
+  if (!r.ok || !j?.access_token) throw new Error(`jeton FAA ${r.status} (${r.headers.get('server') || ''} ${r.headers.get('via') || ''}) ${brut.replace(/\s+/g, ' ').slice(0, 160)}`);
   const duree = Math.max(60, Number(j.expires_in || 1799) - 300);
   if (cache) waitUntil?.(cache.put(new Request(CACHE_NMS_JETON), new Response(j.access_token, { headers: { 'Cache-Control': `public, max-age=${duree}` } })));
   return j.access_token;
@@ -133,7 +133,7 @@ async function lireNotam(env, cache, waitUntil, debug) {
   }
   const hote = String(env.FAA_NMS_HOST || NMS_HOTE).replace(/\/+$/, '');
   const u = `${hote}/nmsapi/v1/notams?location=LFOB`;
-  const appel = async (t) => fetch(u, { headers: { Authorization: `Bearer ${t}`, nmsResponseFormat: 'GEOJSON', Accept: 'application/json' } });
+  const appel = async (t) => fetch(u, { headers: { Authorization: `Bearer ${t}`, nmsResponseFormat: 'GEOJSON', Accept: 'application/json', 'User-Agent': 'ACBT-tableau-de-bord/1.0' } });
   let r = await appel(await jetonNms(env, cache, waitUntil, hote));
   if (r.status === 401 && cache) { await cache.delete(new Request(CACHE_NMS_JETON)); r = await appel(await jetonNms(env, cache, waitUntil, hote)); }
   if (!r.ok) return { ok: false, raison: `FAA ${r.status}`, detail: (await r.text()).replace(/\s+/g, ' ').slice(0, 200) };
