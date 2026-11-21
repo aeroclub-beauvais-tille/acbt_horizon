@@ -657,8 +657,26 @@ async function charger() {
   dessiner();
 }
 
+// Bandeau du haut : alertes météo (MAA) et SNOWTAM, en cours ou à venir ; sinon « aucune alerte »
+function alertes() {
+  const b = $('alertes');
+  if (!D || D.maa == null) { b.innerHTML = ''; return; }
+  const n = Date.now();
+  const t = (iso: string | null) => { const d = utc(iso); return d ? (jmUtc(d) === jmUtc(new Date()) ? hUtc(d) : `${jmUtc(d)} ${hUtc(d)}`) : '…'; };
+  const enCours = D.maa.filter((m) => m.debut && Date.parse(m.debut) <= n);
+  const aVenir = D.maa.filter((m) => !(m.debut && Date.parse(m.debut) <= n));
+  const snow = (D.notam?.notam ?? []).filter((x) => x.snow);
+  const plus = (l: unknown[]) => (l.length > 1 ? ` (+${l.length - 1})` : '');
+  const h: string[] = [];
+  if (snow.length) h.push(`<div class="al a-on"><b>SNOWTAM en vigueur</b><span>état des pistes publié · voir NOTAM</span></div>`);
+  if (enCours.length) h.push(`<div class="al a-on"><b>Alerte météo en cours</b><span>${esc(enCours[0].motif || 'MAA')}${enCours[0].fin ? ` jusqu’à ${t(enCours[0].fin)} UTC` : ''}${plus(enCours)}</span></div>`);
+  else if (aVenir.length) h.push(`<div class="al a-av"><b>Alerte météo à venir</b><span>${esc(aVenir[0].motif || 'MAA')} dès ${t(aVenir[0].debut)} UTC${plus(aVenir)}</span></div>`);
+  if (!h.length) h.push(`<div class="al a-ok"><b>Aucune alerte météo</b><span>ni MAA ni SNOWTAM, en cours ou à venir</span></div>`);
+  b.innerHTML = h.join('');
+}
+
 function dessiner() {
-  for (const f of [accueil, reservations, meteo]) { try { f(); } catch (e) { console.error(e); } }
+  for (const f of [alertes, accueil, reservations, meteo]) { try { f(); } catch (e) { console.error(e); } }
   majPied();
 }
 

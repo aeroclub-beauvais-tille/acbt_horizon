@@ -2,6 +2,7 @@
 // Tableau de bord TV du club (acbt60.fr/dashboard), protégé par mot de passe (middleware Cloudflare).
 // Quatre écrans en alternance : Accueil, Réservations, Météo, Radar et satellite. Données rafraîchies chaque minute.
 import Dashboard from '../../layouts/Dashboard.astro';
+import Logo from '../../components/Logo.astro';
 import { getCollection } from 'astro:content';
 const avions = await getCollection('avions', (a) => a.data.actif);
 const modele = (t: string) => t.replace(/-\d+.*$| Petit Prince| Paris-Nice/g, '').trim().replace(/^Robin |^Jodel /, '');
@@ -10,7 +11,8 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
 <Dashboard title="Tableau de bord">
   <div id="scene" data-modeles={JSON.stringify(modeles)}>
     <header class="top">
-      <div class="brand"><div class="lg">ACBT</div><div><b>Aéroclub Beauvais-Tillé</b><small>LFOB</small></div></div>
+      <div class="brand"><Logo class="lg" /><div><b>Aéroclub Beauvais-Tillé</b><small>LFOB</small></div></div>
+      <div class="alertes" id="alertes"></div>
       <div class="clock"><span class="h" data-h="local"></span><span class="cu"><span class="u"><span data-h="utc"></span> UTC</span><span class="d" data-h="date"></span></span></div>
     </header>
 
@@ -75,7 +77,16 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   #scene { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; padding: 22px 28px 44px; display: grid; grid-template-rows: auto 1fr; gap: 18px; }
   .top { display: flex; align-items: center; gap: 44px; height: 62px; }
   .brand { display: flex; align-items: center; gap: 16px; }
-  .brand .lg { width: 58px; height: 58px; border-radius: 12px; background: var(--navy); display: grid; place-items: center; font-weight: 800; font-size: 15px; color: #fff; }
+  .alertes { flex: 1; min-width: 0; display: flex; justify-content: center; gap: 12px; }
+  .al { display: inline-flex; align-items: center; gap: 12px; min-width: 0; max-width: 100%; padding: 10px 22px; border-radius: 99px; font-size: 19px; font-weight: 700; color: var(--ink2); background: var(--panel); border: 1.5px solid var(--line); white-space: nowrap; overflow: hidden; }
+  .al::before { content: ''; flex: none; width: 12px; height: 12px; border-radius: 50%; background: currentColor; }
+  .al b { font-weight: 800; flex: none; } .al span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+  .al.a-ok { color: var(--ok); border-color: var(--ok); background: var(--okbg); } .al.a-ok span { color: var(--ink2); }
+  .al.a-av { color: var(--warn); border-color: var(--warn); background: var(--warnbg); } .al.a-av span { color: var(--ink); }
+  .al.a-on { color: var(--bad); border-color: var(--bad); background: var(--badbg); } .al.a-on span { color: var(--ink); }
+  .al.a-on::before { animation: clignote 1.6s ease-in-out infinite; }
+  @keyframes clignote { 50% { opacity: .25; } }
+  .brand { --logo-h: 58px; --logo-rouge: #ec091d; color: var(--ink); }
   .brand b { font-size: 30px; font-weight: 800; display: block; line-height: 1.1; }
   .brand small { color: var(--muted); font-size: 17px; font-weight: 600; }
   .clock { margin-left: auto; display: flex; align-items: center; gap: 16px; }
