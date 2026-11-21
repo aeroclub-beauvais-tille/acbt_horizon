@@ -162,12 +162,11 @@ function carte(a: Avion) {
   if (hs) {
     const motif = hs.motif.trim().replace(/^./, (c) => c.toUpperCase());
     etat = ['p-bad', motif && motif.length <= 18 ? motif : 'Maintenance'];
-    sous = `retour ${jourTxt(hs.fin.slice(0, 8)).toLowerCase()}`;
   } else if (a.enCours) {
     etat = ['p-busy', 'En vol'];
     sous = `jusqu’à ${agH(a.enCours.fin)}`;
   } else etat = ['p-ok', 'Disponible'];
-  return `<article class="av${hs ? ' hs' : ''}"><div class="av-t"><b>${esc(a.immat)}</b><small>${esc(modeles[a.immat] || '')}</small></div>${ring}`
+  return `<article class="av${hs ? ' hs' : ''}"><div class="av-t"><b>${esc(a.immat)}</b><small>${esc(modeles[a.immat] || '\u00a0')}</small></div>${ring}`
     + `<span class="pill ${etat[0]}">${esc(etat[1])}</span><span class="av-n">${esc(sous)}</span></article>`;
 }
 
@@ -224,7 +223,23 @@ function notams() {
   };
   const l = n.notam ?? [];
   $('notam-info').textContent = `${l.length} en vigueur · hors obstacles`;
-  $('notam').innerHTML = l.length ? l.map((x) => ligne(x, false)).join('') : vide('Aucun NOTAM en vigueur (hors obstacles).');
+  // Liste complète ; si elle dépasse le cadre, elle défile en boucle (copie à la suite, environ 25 px par seconde)
+  const html = l.map((x) => ligne(x, false)).join('');
+  const boite = $('notam');
+  if (!l.length) { boite.innerHTML = vide('Aucun NOTAM en vigueur (hors obstacles).'); return; }
+  if (boite.dataset.html === html && boite.dataset.ok) return;
+  boite.dataset.html = html;
+  defileNotam();
+}
+// À faire quand l'écran est visible (sinon la hauteur mesurée est nulle)
+function defileNotam() { defiler($('notam')); }
+function defiler(boite: HTMLElement) {
+  const html = boite.dataset.html;
+  if (!html || !boite.offsetParent) { delete boite.dataset.ok; return; }
+  boite.innerHTML = `<div>${html}</div>`;
+  const h = (boite.firstElementChild as HTMLElement).offsetHeight;
+  if (h > boite.clientHeight) boite.innerHTML = `<div class="def" style="--duree:${Math.round(h / 25)}s"><div style="padding-bottom:24px">${html}</div><div style="padding-bottom:24px">${html}</div></div>`;
+  boite.dataset.ok = '1';
 }
 
 function accueil() {
@@ -366,34 +381,55 @@ function metarBloc() {
 }
 
 // Vent et pistes de LFOB : couronne façon station météo, les deux pistes à leur orientation réelle
-// (12/30 au 124°, 04/22 au 42°, la petite piste au nord de la grande), secteur bleu d'où vient le vent.
+// (12/30 au 124°, 04/22 au 42°, la petite piste au nord de la grande), cône bleu d'où vient le vent.
 const PISTES = [
-  { a: ['12', 120], b: ['30', 300], cap: 124, cx: -3, cy: 4, l: 74 },
-  { a: ['04', 40], b: ['22', 220], cap: 42, cx: 9, cy: -24, l: 30 },
+  { a: ['12', 120], b: ['30', 300], cap: 124, cx: -2.5, cy: 3, l: 58 },
+  { a: ['04', 40], b: ['22', 220], cap: 42, cx: 10, cy: -22, l: 24 },
 ] as const;
+// Vent mesuré par la station Météo-France de Beauvais-Tillé (60639001), une mesure toutes les 6 min (API Observation v2).
+// Repli sur le METAR (toutes les 30 min) si la station ne répond pas ou si sa mesure a plus de 30 min.
+interface Obs { dir: number | null; f: number; g: number | null; t: number }
+let OBS: Obs | null = null;
+let obsLu = 0;
+async function lireObs() {
+  if (Date.now() - obsLu < 110000) return;
+  obsLu = Date.now();
+  try {
+    const r = await fetch(`/dashboard/api/mf?chemin=${encodeURIComponent('/public/DPObs/v2/station/infrahoraire-6m?id_station=60639001&format=json')}`, { cache: 'no-store', credentials: 'same-origin' });
+    const l = await r.json();
+    const o = Array.isArray(l) ? l.filter((x) => x && typeof x.ff === 'number').sort((a, b) => Date.parse(b.validity_time) - Date.parse(a.validity_time))[0] : null;
+    if (!o) return;
+    const kt = (ms: number) => Math.round(ms * 1.94384);
+    const f = kt(o.ff), g = typeof o.raf10 === 'number' ? kt(o.raf10) : null;
+    OBS = { dir: f > 0 && typeof o.dd === 'number' ? Math.round(o.dd / 10) * 10 % 360 || 360 : null, f, g: g != null && g - f >= 5 && g >= 10 ? g : null, t: Date.parse(o.validity_time) };
+  } catch { /* on garde la dernière mesure ou le METAR */ }
+}
+
 function ventBloc() {
-  const m = D?.metar;
+  const metar = D?.metar;
+  const st = OBS && Date.now() - OBS.t < 30 * 60000 ? OBS : null;
+  const m = st ? { ventDir: st.dir ?? (st.f ? 'VRB' : null), ventForce: st.f, rafales: st.g, ventVar: null as [number, number] | null } : metar;
   const dir = typeof m?.ventDir === 'number' ? m.ventDir : null;
   const f = m?.ventForce ?? null;
   const g = m?.rafales ?? null;
-  $('vent-info').textContent = m ? `METAR ${m.heure ? hUtc(new Date(m.heure)) + ' UTC' : ''}` : '';
+  $('vent-info').textContent = st ? `Station LFOB ${hUtc(new Date(st.t))} UTC · toutes les 6 min` : metar ? `METAR ${metar.heure ? hUtc(new Date(metar.heure)) + ' UTC' : ''}` : '';
   const R = 54;
   const pt = (deg: number, r: number, x0 = 0, y0 = 0) => [x0 + r * Math.sin((deg * Math.PI) / 180), y0 - r * Math.cos((deg * Math.PI) / 180)];
-  let s = '<svg viewBox="-62 -62 124 124" aria-hidden="true">';
+  let s = '<svg viewBox="-70 -70 140 140" aria-hidden="true">';
   for (let d = 0; d < 360; d += 10) {
     const [x1, y1] = pt(d, R), [x2, y2] = pt(d, R - 6);
     s += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="${d === 0 ? 'var(--bad)' : 'var(--muted)'}" stroke-width="2.6" stroke-linecap="round"/>`;
   }
   for (const [t, d] of [['N', 0], ['E', 90], ['S', 180], ['O', 270]] as const) {
-    const [x, y] = pt(d, R - 12);
-    s += `<text x="${x.toFixed(1)}" y="${(y + 2.6).toFixed(1)}" fill="var(--muted)" font-size="7" font-weight="800" text-anchor="middle">${t}</text>`;
+    const [x, y] = pt(d, R + 9);
+    s += `<text x="${x.toFixed(1)}" y="${(y + 3.2).toFixed(1)}" fill="var(--muted)" font-size="9" font-weight="800" text-anchor="middle">${t}</text>`;
   }
   if (dir != null && f) {
     const [a, b] = m!.ventVar ?? [dir - 15, dir + 15];
     const ouv = ((b - a) % 360 + 360) % 360;
     const r2 = R - 7;
     const [ax, ay] = pt(a, r2), [bx, by] = pt(b, r2);
-    s += `<path d="M0 0 L${ax.toFixed(2)} ${ay.toFixed(2)} A${r2} ${r2} 0 ${ouv > 180 ? 1 : 0} 1 ${bx.toFixed(2)} ${by.toFixed(2)} Z" fill="#1e9bff" opacity=".35"/>`;
+    s += `<path d="M0 0 L${ax.toFixed(2)} ${ay.toFixed(2)} A${r2} ${r2} 0 ${ouv > 180 ? 1 : 0} 1 ${bx.toFixed(2)} ${by.toFixed(2)} Z" fill="#1e9bff" opacity=".5"/>`;
   }
   // Pistes : bande grise, axe en pointillés, numéros aux seuils (le 12 au nord-ouest, le 04 au sud-ouest)
   for (const p of PISTES) {
@@ -403,12 +439,6 @@ function ventBloc() {
     const [lx1, ly1] = pt(p.cap + 180, p.l / 2 + 6, p.cx, p.cy), [lx2, ly2] = pt(p.cap, p.l / 2 + 6, p.cx, p.cy);
     s += `<text x="${lx1.toFixed(1)}" y="${(ly1 + 2.3).toFixed(1)}" fill="var(--ink)" font-size="6.5" font-weight="800" text-anchor="middle" font-family="JetBrains Mono, monospace">${p.a[0]}</text>`
       + `<text x="${lx2.toFixed(1)}" y="${(ly2 + 2.3).toFixed(1)}" fill="var(--ink)" font-size="6.5" font-weight="800" text-anchor="middle" font-family="JetBrains Mono, monospace">${p.b[0]}</text>`;
-  }
-  // Flèche : part du bord d'où vient le vent et pointe vers le terrain
-  if (dir != null && f) {
-    const [x1, y1] = pt(dir, R - 2), [x2, y2] = pt(dir, 14);
-    s += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="#1e9bff" stroke-width="2.6" stroke-linecap="round"/>`
-      + `<g transform="translate(${x2.toFixed(2)} ${y2.toFixed(2)}) rotate(${dir + 180})"><path d="M0 2 L-4.5 -7 L4.5 -7 Z" fill="#1e9bff"/></g>`;
   }
   s += '</svg>';
   const gauche = !m ? '—' : f === 0 ? 'Calme' : m.ventDir === 'VRB' ? 'VRB' : dir != null ? `${String(dir).padStart(3, '0')}°` : '—';
@@ -425,8 +455,9 @@ function ventBloc() {
     if (dir == null || f == null) return `<div class="qfu"><span class="n">${n}</span><div><b>${f === 0 ? 'Vent calme' : 'Vent variable'}</b><small>pas de composante</small></div></div>`;
     const c = comp(cap, f), cg = g ? comp(cap, g) : null;
     const t1 = c.face >= 0 ? `${c.face} kt de face` : `${-c.face} kt arrière`;
-    const t2 = `travers ${Math.abs(c.trav)} kt${c.trav ? (c.trav > 0 ? ' droite' : ' gauche') : ''}` + (cg ? ` · rafales ${Math.abs(cg.trav)} kt` : '');
-    return `<div class="qfu${n === meilleur ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${n === meilleur ? 'conseillée · ' : ''}${t2}</small></div></div>`;
+    const cote = (v: number) => (v > 0 ? ' droite' : v < 0 ? ' gauche' : '');
+    const t2 = `${Math.abs(c.trav)} kt travers${cote(c.trav)}` + (cg ? ` · rafales ${Math.abs(cg.trav)} kt` : '');
+    return `<div class="qfu${n === meilleur ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${t2}</small></div></div>`;
   }).join('');
   $('vent').innerHTML = `<div class="vd"><div class="t"><span>${gauche}</span>${droite}${sous}</div>${s}</div><div class="qfus">${qfus}</div>`;
 }
@@ -456,11 +487,23 @@ function maaBloc() {
   const n = Date.now();
   $('maa-info').textContent = D?.maa == null ? '' : l.length ? `${l.length} en vigueur ou à venir · UTC` : '';
   const t = (iso: string | null) => { const d = utc(iso); return d ? `${jmUtc(d)} ${hUtc(d)}` : '…'; };
-  $('maa').innerHTML = D?.maa == null ? '<p class="vide">MAA indisponibles pour le moment.</p>'
-    : l.length ? l.map((m) => {
-      const on = m.debut && Date.parse(m.debut) <= n;
-      return `<div class="m${on ? ' on' : ''}"><span class="no">${esc((m.numero || '').split('/')[0])}</span><b>${esc(m.motif || 'Avertissement d’aérodrome')}</b><span class="v"><small>${on ? 'EN COURS' : 'À VENIR'}</small>${t(m.debut)}<br>→ ${t(m.fin)}</span></div>`;
-    }).join('') : '<p class="vide">Aucun MAA en vigueur pour LFOB.</p>';
+  const boite = $('maa');
+  boite.classList.toggle('liste', l.length > 0);
+  if (D?.maa == null || !l.length) {
+    delete boite.dataset.html; delete boite.dataset.ok;
+    boite.innerHTML = D?.maa == null ? '<p class="vide">MAA indisponibles pour le moment.</p>' : '<p class="vide">Aucun MAA en vigueur pour LFOB.</p>';
+    return;
+  }
+  // Une ligne par MAA (fin à l'heure seule si même jour) ; la liste défile si elle dépasse le cadre
+  const html = l.map((m) => {
+    const on = m.debut && Date.parse(m.debut) <= n;
+    const d = utc(m.debut), f = utc(m.fin);
+    const fin = f && d && jmUtc(f) === jmUtc(d) ? hUtc(f) : t(m.fin);
+    return `<div class="m${on ? ' on' : ''}"><span class="no">${esc((m.numero || '').split('/')[0])}</span><b>${esc(m.motif || 'Avertissement d’aérodrome')}</b><span class="v"><small>${on ? 'EN COURS' : 'À VENIR'}</small>${t(m.debut)} → ${fin}</span></div>`;
+  }).join('');
+  if (boite.dataset.html === html && boite.dataset.ok) return;
+  boite.dataset.html = html;
+  defiler(boite);
 }
 
 function meteo() { metarBloc(); ventBloc(); tafBloc(); maaBloc(); }
@@ -518,7 +561,7 @@ function animer(id: string, cadres: { t: number; src: string }[]) {
       n.i = (n.i + 1) % ok.length;
       n.cadres.forEach((c) => c.img.classList.toggle('on', c === ok[n.i]));
       const d = new Date(ok[n.i].t);
-      $(`${id}-h`).textContent = id === 'aro' ? `${ok[n.i].t - Date.now() < 3600000 ? `+${Math.max(0, Math.round((ok[n.i].t - Date.now()) / 60000))} min` : `+${Math.round((ok[n.i].t - Date.now()) / 1800000) / 2} h`.replace('.5', ' h 30').replace(' h h', ' h')} · ${heureLocale(d)}` : `${hUtc(d)} UTC`;
+      $(`${id}-h`).textContent = id === 'aro' ? `${(() => { const m = Math.max(0, Math.round((ok[n.i].t - Date.now()) / 60000)); return m < 60 ? `+${m} min` : `+${Math.floor(m / 60)} h${m % 60 >= 15 ? ` ${p2(m % 60)}` : ''}`; })()} · ${heureLocale(d)}` : `${hUtc(d)} UTC`;
       ($(`${id}-b`) as HTMLElement).style.width = `${ok.length > 1 ? (n.i / (ok.length - 1)) * 100 : 100}%`;
     }
     n.minuteur = window.setTimeout(pas, ok.length && n.i === ok.length - 1 ? 2500 : 450);
@@ -594,6 +637,7 @@ async function charger() {
     D = d;
     derniere = Date.now();
     if (premier) arome();
+    await lireObs();
     $('etat').classList.remove('ko');
   } catch {
     $('etat').classList.add('ko');
@@ -617,7 +661,7 @@ function majPied() {
   $('maj').textContent = (s > 180 ? `Hors ligne · dernières données de ${t}` : `Actualisé il y a ${s < 60 ? `${s} s` : `${Math.floor(s / 60)} min`} · Aerogest, AVWX, Météo-France (MAA), FAA (NOTAM)`) + alerte;
 }
 
-const DUREES = [20, 20, 25, 20]; // secondes par écran
+const DUREES = [30, 20, 25, 20]; // secondes par écran
 let ecran = 0, debutEcran = Date.now(), pauseJusqua = 0;
 const fige = (() => { const e = Number(new URLSearchParams(location.search).get('ecran')); return e >= 1 && e <= 4 ? e - 1 : null; })();
 
@@ -628,6 +672,8 @@ function montrer(i: number) {
   document.querySelectorAll<HTMLElement>('#points button').forEach((b) => b.classList.toggle('on', Number(b.dataset.e) === i));
   const s = $('scene');
   s.className = `s${i}`;
+  if (i === 0 && !$('notam').dataset.ok) defileNotam();
+  if (i === 2 && !$('maa').dataset.ok) defiler($('maa'));
 }
 
 function tic() {
