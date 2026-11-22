@@ -53,7 +53,7 @@ async function lireMaa(env) {
   await tableMaa(env.DB);
   const depuis = new Date().toISOString();
   const { results } = await env.DB.prepare(
-    `SELECT id, numero, motif, debut, fin, recu FROM maa WHERE (fin IS NULL OR fin >= ?1) AND ${MAA_VISIBLES} ORDER BY debut, numero LIMIT 20`,
+    `SELECT id, numero, motif, debut, fin, recu, phen FROM maa WHERE (fin IS NULL OR fin >= ?1) AND ${MAA_VISIBLES} ORDER BY debut, numero LIMIT 20`,
   ).bind(depuis).all();
   return results;
 }

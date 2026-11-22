@@ -21,7 +21,7 @@ interface Cond { regles: string | null; ventDir: number | 'VRB' | null; ventForc
 interface Metar extends Cond { raw: string; heure: string | null; temperature: number | null; rosee: number | null; qnh: number | null }
 interface Periode extends Cond { type: string; probabilite: number | null; debut: string | null; fin: string | null; raw: string }
 interface Taf { raw: string; heure: string | null; periodes: Periode[] }
-interface Maa { id: string; numero: string | null; motif: string | null; debut: string | null; fin: string | null }
+interface Maa { id: string; numero: string | null; motif: string | null; debut: string | null; fin: string | null; phen?: string | null }
 interface Notam { numero: string; snow?: boolean; sujet: string | null; debut: string | null; fin: string | null; texte: string }
 interface Histo { t: string; vent: number | null; rafales: number | null; dir: number | null; plafond: number | null }
 interface Donnees {
@@ -426,33 +426,91 @@ function reservations() {
 /* ------------------------------------------------------------------ */
 /* 3. Météo : METAR, vent sur les pistes, TAF, MAA                     */
 /* ------------------------------------------------------------------ */
+// Décodage aligné sur le Guide aviation Météo-France (METAR / SPECI, TAF, MAA)
 const NUAGES: Record<string, string> = { FEW: 'quelques nuages', SCT: 'nuages épars', BKN: 'nuages fragmentés', OVC: 'ciel couvert', VV: 'ciel invisible' };
 const PHENO: Record<string, string> = {
-  RA: 'pluie', DZ: 'bruine', SN: 'neige', SG: 'neige en grains', GR: 'grêle', GS: 'grésil', PL: 'granules de glace', UP: 'précipitations',
-  FG: 'brouillard', BR: 'brume', HZ: 'brume sèche', FU: 'fumée', SA: 'sable', DU: 'poussière', SQ: 'grains', FC: 'trombe', TS: 'orage',
+  DZ: 'bruine', RA: 'pluie', SN: 'neige', SG: 'neige en grains', PL: 'granules de glace', GR: 'grêle', GS: 'grésil ou neige roulée', UP: 'précipitations inconnues',
+  BR: 'brume', FG: 'brouillard', FU: 'fumée', VA: 'cendres volcaniques', DU: 'poussières généralisées', SA: 'sable', HZ: 'brume sèche',
+  PO: 'tourbillons de poussière ou de sable', SQ: 'grains', FC: 'nuages en entonnoir (trombe)', SS: 'tempête de sable', DS: 'tempête de poussière', TS: 'orage',
 };
+const CHASSE: Record<string, string> = { SN: 'chasse-neige', SA: 'chasse-sable', DU: 'chasse-poussière' };
 function pheno(code: string) {
-  let c = code, pre = '', suf = '';
-  if (c.startsWith('-')) { suf = ' faible'; c = c.slice(1); } else if (c.startsWith('+')) { suf = ' forte'; c = c.slice(1); }
-  if (c.startsWith('VC')) { suf += ' à proximité'; c = c.slice(2); }
+  let c = code, suf = '';
+  if (/^\/+$/.test(c)) return 'temps présent indisponible';
+  if (c === 'NSW') return 'fin des phénomènes significatifs';
+  let int = '';
+  if (c.startsWith('-')) { int = '-'; c = c.slice(1); } else if (c.startsWith('+')) { int = '+'; c = c.slice(1); }
+  if (c.startsWith('VC')) { suf = ' au voisinage'; c = c.slice(2); }
+  // Accord de « faible / fort » : averses (pluriel), orage / brouillard / grésil / grains (masculin), sinon féminin
+  const pl = /^SH/.test(c), masc = /^(TS|FG|GS|SQ|FC)/.test(c.replace(/^(MI|PR|BC|FZ)/, ''));
+  if (int) suf = (int === '-' ? ' faible' : masc ? ' fort' : ' forte') + (pl ? 's' : '') + suf;
+  // Chasse-neige / sable / poussière : basse (DR) ou élevée (BL)
+  const ch = c.match(/^(DR|BL)(SN|SA|DU)$/);
+  if (ch) return `${CHASSE[ch[2]]} ${ch[1] === 'DR' ? 'basse' : 'élevée'}` + suf;
+  if (c === 'BCFG') return 'bancs de brouillard' + suf;
   const desc: string[] = [];
-  for (const [k, v] of [['MI', 'mince'], ['BC', 'en bancs'], ['PR', 'partiel'], ['DR', 'chasse basse'], ['BL', 'chasse haute']] as const) if (c.startsWith(k)) { desc.push(v); c = c.slice(2); }
-  // Guide aviation Météo-France : FZFG = brouillard givrant, FZRA / FZDZ = pluie / bruine se congelant
+  for (const [k, v] of [['MI', 'mince'], ['PR', 'partiel'], ['BC', 'en bancs']] as const) if (c.startsWith(k)) { desc.push(v); c = c.slice(2); }
+  // FZFG = brouillard givrant ; FZRA / FZDZ = pluie / bruine se congelant
   if (c.startsWith('FZ')) { c = c.slice(2); desc.push(c.startsWith('FG') ? 'givrant' : 'se congelant'); }
-  if (c === 'FG' && desc[0] === 'en bancs') return 'bancs de brouillard' + suf;
+  let pre = '';
   if (c.startsWith('SH')) { pre = 'averses de '; c = c.slice(2); }
   let ts = false;
   if (c.startsWith('TS')) { ts = true; c = c.slice(2); }
   const ph: string[] = [];
   for (let i = 0; i < c.length; i += 2) ph.push(PHENO[c.slice(i, i + 2)] ?? c.slice(i, i + 2));
-  const t = (ts ? 'orage' + (ph.length ? ' avec ' : '') : '') + (pre && ph.length ? pre : '') + ph.join(' et ') + (desc.length ? ' ' + desc.join(' ') : '');
+  const t = (ts ? 'orage' + (ph.length ? ' avec ' : '') : '') + (pre && ph.length ? pre : pre ? 'averses' : '') + ph.join(' et ') + (desc.length ? ' ' + desc.join(' ') : '');
   return (t || code) + suf;
+}
+const POINTS: Record<string, string> = { N: 'nord', NE: 'nord-est', E: 'est', SE: 'sud-est', S: 'sud', SW: 'sud-ouest', W: 'ouest', NW: 'nord-ouest' };
+// Un nuage : « ciel couvert à 500 ft (CB) » ; VV = ciel invisible, avec la visibilité verticale si elle est donnée
+const unNuage = (x: Nuage) => (x.type === 'VV'
+  ? (x.hauteur != null ? `ciel invisible, visibilité verticale ${nb(x.hauteur)} ft` : 'ciel invisible')
+  : `${NUAGES[x.type] ?? x.type}${x.hauteur != null ? ` à ${nb(x.hauteur)} ft` : ''}${x.cb ? ` (${x.cb})` : ''}`);
+// Ce qui manque à la lecture AVWX, lu directement dans le message brut
+function extras(raw: string) {
+  const r = ` ${raw} `;
+  const vmin = r.match(/\s\d{4}(?:NDV)?\s(\d{4})(N|NE|E|SE|S|SW|W|NW)\s/);
+  const rvr = [...r.matchAll(/\sR(\d{2}[LCR]?)\/([PM])?(\d{4})(?:V([PM])?(\d{4}))?(FT)?\/?([UDN])?(?=\s)/g)].map((m) => {
+    const val = (pm: string | undefined, v: string) => `${pm === 'P' ? 'plus de ' : pm === 'M' ? 'moins de ' : ''}${nb(Number(v))} ${m[6] ? 'ft' : 'm'}`;
+    return `piste ${m[1]} : ${val(m[2], m[3])}${m[5] ? ` à ${val(m[4], m[5])}` : ''}${m[7] === 'U' ? ', en hausse' : m[7] === 'D' ? ', en baisse' : m[7] === 'N' ? ', sans changement' : ''}`;
+  });
+  const recent = [...r.matchAll(/\sRE([A-Z]{2,8})(?=\s)/g)].map((m) => pheno(m[1]));
+  const ws = [...r.matchAll(/\sWS\s(R\d{2}[LCR]?|ALL RWY)(?=\s)/g)].map((m) => (m[1] === 'ALL RWY' ? 'toutes les pistes' : `piste ${m[1].slice(1)}`));
+  return {
+    vmin: vmin ? `${nb(Number(vmin[1]))} m vers le ${POINTS[vmin[2]]}` : null,
+    rvr, recent, ws,
+    nsc: /\sNSC\s/.test(r), ncd: /\sNCD\s/.test(r), auto: /\sAUTO\s/.test(r), cor: /\sCOR\s/.test(r), amd: /\sAMD\s/.test(r),
+  };
+}
+// Groupe de tendance (METAR) ou groupe d'évolution (TAF) en clair, à partir de ses mots codés
+function groupe(code: string) {
+  const out: string[] = [];
+  const hh = (t: string) => `${t.slice(0, 2)}h${t.slice(2) !== '00' ? t.slice(2) : ''}`;
+  for (const w of code.trim().split(/\s+/)) {
+    let m;
+    if (w === 'NOSIG') out.push('pas de changement significatif prévu dans les 2 h');
+    else if (w === 'TEMPO') out.push('temporairement');
+    else if (w === 'BECMG') out.push('devenant');
+    else if ((m = w.match(/^FM(\d{4})$/))) out.push(`à partir de ${hh(m[1])} UTC`);
+    else if ((m = w.match(/^TL(\d{4})$/))) out.push(`jusqu’à ${hh(m[1])} UTC`);
+    else if ((m = w.match(/^AT(\d{4})$/))) out.push(`à ${hh(m[1])} UTC`);
+    else if ((m = w.match(/^(\d{3}|VRB)(\d{2,3})(?:G(\d{2,3}))?KT$/))) out.push(Number(m[2]) === 0 ? 'vent calme' : `vent ${m[1] === 'VRB' ? 'variable' : m[1] + '°'} ${Number(m[2])} kt${m[3] ? `, rafales ${Number(m[3])} kt` : ''}`);
+    else if (/^\d{4}$/.test(w)) out.push(w === '9999' ? 'visibilité ≥ 10 km' : `visibilité ${nb(Number(w))} m`);
+    else if ((m = w.match(/^(FEW|SCT|BKN|OVC|VV)(\d{3}|\/\/\/)(CB|TCU)?$/))) out.push(unNuage({ type: m[1], hauteur: /\d/.test(m[2]) ? Number(m[2]) * 100 : null, cb: m[3] || null }));
+    else if (w === 'CAVOK') out.push('CAVOK');
+    else if (w === 'NSC') out.push('pas de nuage significatif');
+    else if (w === 'NSW') out.push('fin des phénomènes significatifs');
+    else if (/^[-+]?(VC)?[A-Z]{2,8}$/.test(w)) out.push(pheno(w));
+  }
+  return out.join(' · ');
 }
 const vent = (c: Cond) => (c.ventForce == null ? '' : c.ventForce === 0 ? 'Vent calme' : `${c.ventDir === 'VRB' ? 'Vent variable' : `Vent ${p2(Math.round(Number(c.ventDir) / 10) * 10).padStart(3, '0')}°`} ${c.ventForce} kt${c.rafales ? `, rafales ${c.rafales} kt` : ''}`);
 const visi = (v: Cond['visibilite']) => (v == null ? '' : v === 'CAVOK' ? 'CAVOK' : v >= 9999 ? 'visibilité ≥ 10 km' : `visibilité ${nb(v)} m`);
-const nuages = (n: Nuage[]) => n.map((x) => `${NUAGES[x.type] ?? x.type}${x.hauteur != null ? ` à ${nb(x.hauteur)} ft` : ''}${x.cb ? ` (${x.cb})` : ''}`).join(', ');
+const nuages = (n: Nuage[]) => n.map(unNuage).join(', ');
 const decrire = (c: Cond) => {
-  const t = [vent(c), visi(c.visibilite), c.temps.map((w) => pheno(w.code)).join(', '), nuages(c.nuages)].filter(Boolean).join(' · ');
+  const raw = ` ${(c as Periode).raw ?? ''} `;
+  const t = [vent(c), visi(c.visibilite), c.temps.map((w) => pheno(w.code)).join(', '), / NSW /.test(raw) && !c.temps.some((w) => w.code === 'NSW') ? 'fin des phénomènes significatifs' : '',
+    nuages(c.nuages) || (/ NSC /.test(raw) ? 'pas de nuage significatif' : '')].filter(Boolean).join(' · ');
   return t ? t.charAt(0).toUpperCase() + t.slice(1) : 'Sans changement significatif';
 };
 
@@ -465,19 +523,29 @@ function metarBloc() {
   const age = h ? Math.round((Date.now() - h.getTime()) / 60000) : null;
   const plafs = m.nuages.filter((x) => /BKN|OVC|VV/.test(x.type) && x.hauteur != null).map((x) => x.hauteur!);
   const v = m.visibilite === 'CAVOK' ? 'CAVOK' : m.visibilite == null ? '—' : m.visibilite >= 9999 ? '10 km ou plus' : m.visibilite >= 5000 ? `${Math.round(m.visibilite / 1000)} km` : `${nb(m.visibilite)} m`;
-  const tps = m.temps.map((x) => pheno(x.code)).join(', ');
-  const nu = m.nuages.length ? m.nuages.map((x) => `${(NUAGES[x.type] ?? x.type).replace(/^./, (c) => c.toUpperCase())}${x.hauteur != null ? ` à ${nb(x.hauteur)} ft` : ''}${x.cb ? ` (${x.cb})` : ''}`).join('<br>') : m.visibilite === 'CAVOK' ? 'Aucun (CAVOK)' : 'Aucun signalé';
+  const x = extras(m.raw);
+  // Le METAR seul, sans son groupe de tendance (TEMPO / BECMG / NOSIG, valable 2 h)
+  const iTend = m.raw.search(/\s(TEMPO|BECMG|NOSIG)\b/);
+  const tend = iTend >= 0 ? groupe(m.raw.slice(iTend)) : '';
+  const tps = m.temps.map((w) => pheno(w.code)).join(', ');
+  const maj = (t: string) => t.replace(/^./, (c) => c.toUpperCase());
+  const nu = m.nuages.length ? m.nuages.map((n) => esc(maj(unNuage(n)))).join('<br>') : m.visibilite === 'CAVOK' ? 'Aucun (CAVOK)'
+    : x.nsc ? 'Pas de nuage significatif (NSC)' : x.ncd ? 'Aucun nuage détecté par la station (NCD)' : 'Aucun signalé';
   const ligne = (k: string, val: string) => `<div><span>${k}</span><b>${val}</b></div>`;
   $('metar').innerHTML = `<h2>METAR LFOB <span class="r">${h ? `<span class="dot${age != null && age > 70 ? ' ko' : ''}"></span>&nbsp;${hUtc(h)} UTC · il y a ${age} min` : ''}</span></h2>`
-    + `<div class="mt-h">${fr(m.regles, 'gd')}<span>${esc(m.regles === 'VFR' ? 'Conditions VFR' : m.regles === 'MVFR' ? 'VFR marginal' : m.regles === 'IFR' ? 'Conditions IFR' : m.regles === 'LIFR' ? 'IFR bas' : '')}</span></div>`
-    + `<div class="raw">${esc(m.raw)}</div><div class="rows">`
+    + `<div class="mt-h">${fr(m.regles, 'gd')}<span>${esc(m.regles === 'VFR' ? 'Conditions VFR' : m.regles === 'MVFR' ? 'VFR marginal' : m.regles === 'IFR' ? 'Conditions IFR' : m.regles === 'LIFR' ? 'IFR bas' : '')}${x.auto ? ' · station automatique' : ''}${x.cor ? ' · message corrigé' : ''}</span></div>`
+    + `<div class="raw">${esc(m.raw)}</div><div class="rows${[x.vmin, x.rvr.length, x.recent.length, x.ws.length, tend].filter(Boolean).length > 1 ? ' dense' : ''}">`
     + ligne('Vent', esc(vent(m).replace(/^Vent /, '') || '—'))
-    + ligne('Visibilité', esc(v))
-    + ligne('Temps présent', esc(tps ? tps.replace(/^./, (c) => c.toUpperCase()) : 'Pas de phénomène significatif'))
+    + ligne('Visibilité', esc(v + (x.vmin ? ` · minimale ${x.vmin}` : '')))
+    + (x.rvr.length ? ligne('Portée piste', esc(maj(x.rvr.join(' · ')))) : '')
+    + ligne('Temps présent', esc(tps ? maj(tps) : 'Pas de phénomène significatif'))
     + ligne('Nuages', nu)
     + ligne('Plafond', plafs.length ? `${nb(Math.min(...plafs))} ft` : 'Aucun')
     + ligne('Température', `${m.temperature ?? '—'} °C · rosée ${m.rosee ?? '—'} °C`)
-    + ligne('QNH', `${m.qnh ?? '—'} hPa`) + '</div>';
+    + ligne('QNH', `${m.qnh ?? '—'} hPa`)
+    + (x.recent.length ? ligne('Temps récent', esc(maj(x.recent.join(', ')))) : '')
+    + (x.ws.length ? ligne('Cisaillement', esc(maj(x.ws.join(', ')))) : '')
+    + (tend ? ligne('Tendance 2 h', esc(maj(tend))) : '') + '</div>';
 }
 
 // Vent et pistes de LFOB : couronne façon station météo, les deux pistes à leur orientation réelle
@@ -592,7 +660,7 @@ function tafBloc() {
   const j0 = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate());
   const jr = (d: Date) => { const k = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - j0) / 86400000); return k === 0 ? 'Auj.' : k === 1 ? 'Dem.' : k === -1 ? 'Hier' : jmUtc(d); };
   const lbl = (d: Date) => `${jr(d)} ${p2(d.getUTCHours())}h${d.getUTCMinutes() ? p2(d.getUTCMinutes()) : ''}`;
-  const TYPES: Record<string, string> = { FROM: 'Changement (FM)', BECMG: 'Évolution (BECMG)', TEMPO: 'Temporaire (TEMPO)', INTER: 'Intermittent (INTER)', PROB: 'Probabilité' };
+  const TYPES: Record<string, string> = { FROM: 'À partir de (FM)', BECMG: 'Évolution (BECMG)', TEMPO: 'Temporaire (TEMPO)', INTER: 'Intermittent (INTER)', PROB: 'Probabilité' };
   const h = utc(t.heure);
   const per = t.periodes.map((p, i) => {
     const d = utc(p.debut), f = utc(p.fin);
@@ -602,9 +670,24 @@ function tafBloc() {
     const code = i === 0 ? '' : p.raw;
     return `<div class="per${on ? ' on' : ''}"><div class="q"><b>${d ? lbl(d) : ''} → ${f ? lbl(f).replace(/^(Auj\.|Dem\.)/, (x) => x.toLowerCase()) : ''}</b><small>${esc(ty)}${on ? ' · en cours' : ''}</small></div>${fr(p.regles)}<div class="d">${esc(decrire(p))}${code ? `<code>${esc(code)}</code>` : ''}</div></div>`;
   }).join('');
-  $('taf').innerHTML = `<h2>TAF LFOB <span class="r">${h ? `émis ${hUtc(h)} UTC · ` : ''}heures UTC</span></h2><div class="raw">${esc(t.raw)}</div>${per}`;
+  // Températures maximale et minimale prévues (TX / TN)
+  const tx = [...t.raw.matchAll(/\b(TX|TN)(M?)(\d{2})\/(\d{2})(\d{2})Z\b/g)].map((m) => `${m[1] === 'TX' ? 'Max.' : 'Min.'} ${m[2] ? '-' : ''}${Number(m[3])} °C le ${Number(m[4])} à ${m[5]}h UTC`);
+  const amd = /^(TAF\s+)?AMD\b/.test(t.raw) || /\bTAF AMD\b/.test(t.raw);
+  $('taf').innerHTML = `<h2>TAF LFOB${amd ? ' amendé' : ''} <span class="r">${h ? `émis ${hUtc(h)} UTC · ` : ''}heures UTC</span></h2><div class="raw">${esc(t.raw)}</div>${tx.length ? `<p class="tx">${esc(tx.join(' · '))}</p>` : ''}${per}`;
 }
 
+// MAA (guide Météo-France) : phénomène codé en clair, si le PDF n'a pas de texte, et son évolution
+const MAA_PHEN: [RegExp, string][] = [
+  [/\bTC\s+(\w+)/, 'Cyclone tropical $1'], [/\bHVY TS\b/, 'Orages forts'], [/\bTS\b/, 'Orage'], [/\bGR\b/, 'Grêle'],
+  [/\bSN\s*(\d+)?\s*CM\b/, 'Neige ($1 cm)'], [/\bSN\b/, 'Neige'], [/\bFROST WITH ICE DEPOSIT\b/, 'Gelée, glace au sol'],
+  [/\bFROST WITHOUT ICE DEPOSIT\b/, 'Température sous abri négative'], [/\bFZ(RA|DZ)\b/, 'Précipitations se congelant'], [/\bRIME\b/, 'Gelée blanche ou givre'],
+  [/\bFZFG\b/, 'Brouillard givrant'], [/\b(SS|DS)\b/, 'Tempête de sable ou de poussière'], [/\b(SA|DU)\b/, 'Vent de sable ou de poussière'],
+  [/\bSFC WSPD MAX (\d+) ?KT\b/, 'Rafales jusqu’à $1 kt'], [/\bSFC WSPD (\d+) ?KT\b/, 'Vent moyen fort, $1 kt'], [/\bSQ\b/, 'Grains'],
+  [/\bVA\b/, 'Cendres volcaniques'], [/\bTSUNAMI\b/, 'Tsunami'], [/\bTOX CHEM\b/, 'Produits chimiques toxiques'],
+];
+const maaPhen = (p?: string | null) => { if (!p) return ''; for (const [re, t] of MAA_PHEN) { const m = p.match(re); if (m) return t.replace(/\$(\d)/g, (_, i) => m[+i] ?? ''); } return p; };
+const maaEvolution = (p?: string | null) => [/\bOBS\b/.test(p || '') ? 'observé' : /\bFCST\b/.test(p || '') ? 'prévu' : '',
+  /\bINTSF\b/.test(p || '') ? 's’intensifiant' : /\bWKN\b/.test(p || '') ? 'faiblissant' : /\bNC\b/.test(p || '') ? 'sans changement' : ''].filter(Boolean).join(', ');
 function maaBloc() {
   const l = (D?.maa ?? []).slice(0, 10);
   const n = Date.now();
@@ -622,7 +705,8 @@ function maaBloc() {
     const on = m.debut && Date.parse(m.debut) <= n;
     const d = utc(m.debut), f = utc(m.fin);
     const fin = f && d && jmUtc(f) === jmUtc(d) ? hUtc(f) : t(m.fin);
-    return `<div class="m${on ? ' on' : ''}"><span class="no">${esc((m.numero || '').split('/')[0])}</span><b>${esc(m.motif || 'Avertissement d’aérodrome')}</b><span class="v"><small>${on ? 'EN COURS' : 'À VENIR'}</small>${t(m.debut)} → ${fin}</span></div>`;
+    const ev = maaEvolution(m.phen);
+    return `<div class="m${on ? ' on' : ''}"><span class="no">${esc((m.numero || '').split('/')[0])}</span><b>${esc(m.motif || maaPhen(m.phen) || 'Avertissement d’aérodrome')}${ev ? `<small class="ev">${esc(ev)}</small>` : ''}</b><span class="v"><small>${on ? 'EN COURS' : 'À VENIR'}</small>${t(m.debut)} → ${fin}</span></div>`;
   }).join('');
   if (boite.dataset.html === html && boite.dataset.ok) return;
   boite.dataset.html = html;
