@@ -349,7 +349,8 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .vd svg { flex: 1; min-height: 0; width: 100%; margin-top: 8px; }
   .qfus { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .qfu { display: grid; grid-template-columns: 50px 1fr; gap: 10px; align-items: center; background: var(--panel2); border: 1px solid transparent; border-radius: 12px; padding: 9px 14px; }
-  .qfu .n { font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--muted); }
+  .qfu .n { font-family: var(--mono); font-size: 24px; font-weight: 700; color: var(--muted); line-height: 1.1; }
+  .qfu .n i { display: block; font-style: normal; font-size: 13px; font-weight: 600; opacity: .8; }
   .qfu b { font-size: 19px; font-weight: 800; display: block; } .qfu small { font-size: 14.5px; color: var(--muted); font-weight: 600; }
   .qfu.co { border-color: var(--ok); background: var(--okbg); } .qfu.co .n, .qfu.co b { color: var(--ok); }
   .qfu.arr b { color: var(--warn); }

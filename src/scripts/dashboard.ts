@@ -559,6 +559,8 @@ function metarBloc() {
 
 // Vent et pistes de LFOB : couronne façon station météo, les deux pistes à leur orientation réelle
 // (QFU 122°/302° et 040°/220°, la petite piste au nord de la grande), cône bleu d'où vient le vent.
+// Cap magnétique exact sur 3 chiffres (040°)
+const p3 = (c: number) => String(c).padStart(3, '0');
 const PISTES = [
   { a: ['12', 122], b: ['30', 302], cap: 122, cx: -2.5, cy: 3, l: 58 },
   { a: ['04', 40], b: ['22', 220], cap: 40, cx: 10, cy: -22, l: 24 },
@@ -642,7 +644,7 @@ function ventBloc() {
     }
   }
   const qfus = PISTES.flatMap((p) => [p.a, p.b]).map(([n, cap]) => {
-    if (dir == null || f == null) return `<div class="qfu"><span class="n">${n}</span><div><b>${f === 0 ? 'Vent calme' : 'Vent variable'}</b><small>pas de composante</small></div></div>`;
+    if (dir == null || f == null) return `<div class="qfu"><span class="n">${n}<i>${p3(cap)}°</i></span><div><b>${f === 0 ? 'Vent calme' : 'Vent variable'}</b><small>pas de composante</small></div></div>`;
     const c = comp(cap, f), cg = g ? comp(cap, g) : null;
     const t1 = c.face >= 0 ? `${c.face} kt de face` : `${-c.face} kt arrière`;
     const cote = (v: number) => (v > 0 ? ' droite' : v < 0 ? ' gauche' : '');
@@ -651,7 +653,7 @@ function ventBloc() {
     // Petit panneau « attention » quand le travers (rafales comprises) atteint la limite du DR400
     const att = trop ? `<svg class="att" viewBox="0 0 24 24" aria-label="Vent de travers ≥ ${TRAVERS_MAX} kt (limite DR400)"><path d="M12 2.5 1.5 21h21z" fill="currentColor"/><path d="M12 9.5v5.2M12 17.6v.1" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>` : '';
     const t2 = `${att}${Math.abs(c.trav)} kt travers${cote(c.trav)}` + (cg ? `<br>rafales ${Math.abs(cg.trav)} kt travers` : '');
-    return `<div class="qfu${conseilles.has(n) ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${t2}</small></div></div>`;
+    return `<div class="qfu${conseilles.has(n) ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}<i>${p3(cap)}°</i></span><div><b>${t1}</b><small>${t2}</small></div></div>`;
   }).join('');
   const avant = $('vent').querySelector('.qfus')?.innerHTML;
   $('vent').innerHTML = `<div class="vd"><div class="t"><span>${gauche}</span>${droite}</div>${sous}${s}</div><div class="qfus">${qfus}</div>`;
