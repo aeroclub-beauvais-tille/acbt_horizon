@@ -258,8 +258,8 @@ function defiler(boite: HTMLElement, repere = true) {
   if (!html || !boite.offsetParent) { delete boite.dataset.ok; return; }
   boite.innerHTML = `<div>${html}</div>`;
   const h = (boite.firstElementChild as HTMLElement).offsetHeight;
-  // Liste en boucle : un repère « retour au début » marque la jonction entre la fin et le début (NOTAM : un simple trait)
-  const fin = repere ? '<div class="boucle"><span>retour au début</span></div>' : '<div class="boucle nu"></div>';
+  // Liste en boucle : un repère « retour au début » marque la jonction entre la fin et le début (NOTAM : le trait sous le dernier NOTAM suffit)
+  const fin = repere ? '<div class="boucle"><span>retour au début</span></div>' : '';
   // Défile seulement si la liste dépasse vraiment la hauteur du cadre
   if (h > boite.clientHeight + 2) boite.innerHTML = `<div class="def" style="--duree:${Math.round(h / 25)}s"><div>${html}${fin}</div><div>${html}${fin}</div></div>`;
   boite.dataset.ok = '1';
