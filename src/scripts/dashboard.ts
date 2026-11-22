@@ -464,7 +464,7 @@ function pheno(code: string) {
 const POINTS: Record<string, string> = { N: 'nord', NE: 'nord-est', E: 'est', SE: 'sud-est', S: 'sud', SW: 'sud-ouest', W: 'ouest', NW: 'nord-ouest' };
 // Un nuage : « ciel couvert à 500 ft (CB) » ; VV = ciel invisible, avec la visibilité verticale si elle est donnée
 const unNuage = (x: Nuage) => (x.type === 'VV'
-  ? (x.hauteur != null ? `ciel invisible, visibilité verticale ${nb(x.hauteur)} ft` : 'ciel invisible')
+  ? (x.hauteur != null ? `ciel invisible, visibilité verticale ${nb(x.hauteur)} ft` : 'ciel invisible, visibilité verticale non mesurée')
   : `${NUAGES[x.type] ?? x.type}${x.hauteur != null ? ` à ${nb(x.hauteur)} ft` : ''}${x.cb ? ` (${x.cb})` : ''}`);
 // Ce qui manque à la lecture AVWX, lu directement dans le message brut
 function extras(raw: string) {
@@ -626,6 +626,11 @@ function ventBloc() {
   // sauf vent vraiment plein travers (à moins de 10° de la perpendiculaire) : aucun sens n'est alors mis en avant
   const comp = (cap: number, v: number) => { const a = ((dir! - cap) * Math.PI) / 180; return { face: Math.round(v * Math.cos(a)), trav: Math.round(v * Math.sin(a)) }; };
   const conseilles = new Set<string>();
+  // Vent de travers (rafales comprises) au-delà de la limite démontrée du DR400 : alerte sur la carte et dans le bandeau
+  TRAVERS = dir != null && f != null ? PISTES.map((p) => {
+    const tr = (v: number) => Math.round(Math.abs(v * Math.sin(((dir - p.a[1]) * Math.PI) / 180)));
+    return { piste: `${p.a[0]}/${p.b[0]}`, kt: Math.max(tr(f), g ? tr(g) : 0) };
+  }).filter((x) => x.kt >= TRAVERS_MAX) : [];
   if (dir != null && f != null && f >= 3) {
     for (const p of PISTES) {
       const cosA = Math.cos(((dir - p.a[1]) * Math.PI) / 180);
@@ -637,8 +642,10 @@ function ventBloc() {
     const c = comp(cap, f), cg = g ? comp(cap, g) : null;
     const t1 = c.face >= 0 ? `${c.face} kt de face` : `${-c.face} kt arrière`;
     const cote = (v: number) => (v > 0 ? ' droite' : v < 0 ? ' gauche' : '');
-    const t2 = `${Math.abs(c.trav)} kt travers${cote(c.trav)}` + (cg ? ` · rafales ${Math.abs(cg.trav)} kt` : '');
-    return `<div class="qfu${conseilles.has(n) ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${t2}</small></div></div>`;
+    const tMax = Math.max(Math.abs(c.trav), cg ? Math.abs(cg.trav) : 0);
+    const trop = tMax >= TRAVERS_MAX;
+    const t2 = `${Math.abs(c.trav)} kt travers${cote(c.trav)}` + (cg ? `<br>rafales ${Math.abs(cg.trav)} kt travers` : '') + (trop ? `<br><em>au-delà de ${TRAVERS_MAX} kt (limite DR400)</em>` : '');
+    return `<div class="qfu${trop ? ' trop' : conseilles.has(n) ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${t2}</small></div></div>`;
   }).join('');
   const avant = $('vent').querySelector('.qfus')?.innerHTML;
   $('vent').innerHTML = `<div class="vd"><div class="t"><span>${gauche}</span>${droite}</div>${sous}${s}</div><div class="qfus">${qfus}</div>`;
@@ -650,12 +657,15 @@ function ventBloc() {
   } else coneAng = null;
   // Valeurs et cartes des pistes : fondu léger quand elles changent
   if (avant != null && avant !== qfus) $('vent').classList.add('maj'), setTimeout(() => $('vent').classList.remove('maj'), 900);
+  try { alertes(); } catch { /* bandeau */ }
 }
 let coneAng: number | null = null;
+const TRAVERS_MAX = 22; // kt, limite de vent de travers du DR400
+let TRAVERS: { piste: string; kt: number }[] = [];
 
 function tafBloc() {
   const t = D?.taf;
-  if (!t) { $('taf').innerHTML = '<h2>TAF LFOB</h2><p class="vide">TAF indisponible pour le moment.</p>'; return; }
+  if (!t) { delete $('taf').dataset.tete; $('taf').innerHTML = '<h2>TAF LFOB</h2><p class="vide">TAF indisponible pour le moment.</p>'; return; }
   const n = new Date();
   const j0 = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate());
   const jr = (d: Date) => { const k = Math.floor((Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()) - j0) / 86400000); return k === 0 ? 'Auj.' : k === 1 ? 'Dem.' : k === -1 ? 'Hier' : jmUtc(d); };
@@ -673,7 +683,14 @@ function tafBloc() {
   // Températures maximale et minimale prévues (TX / TN)
   const tx = [...t.raw.matchAll(/\b(TX|TN)(M?)(\d{2})\/(\d{2})(\d{2})Z\b/g)].map((m) => `${m[1] === 'TX' ? 'Max.' : 'Min.'} ${m[2] ? '-' : ''}${Number(m[3])} °C le ${Number(m[4])} à ${m[5]}h UTC`);
   const amd = /^(TAF\s+)?AMD\b/.test(t.raw) || /\bTAF AMD\b/.test(t.raw);
-  $('taf').innerHTML = `<h2>TAF LFOB${amd ? ' amendé' : ''} <span class="r">${h ? `émis ${hUtc(h)} UTC · ` : ''}heures UTC</span></h2><div class="raw">${esc(t.raw)}</div>${tx.length ? `<p class="tx">${esc(tx.join(' · '))}</p>` : ''}${per}`;
+  // Les périodes défilent si elles ne tiennent pas dans le cadre (comme les MAA)
+  const tete = `<h2>TAF LFOB${amd ? ' amendé' : ''} <span class="r">${h ? `émis ${hUtc(h)} UTC · ` : ''}heures UTC</span></h2><div class="raw">${esc(t.raw)}</div>${tx.length ? `<p class="tx">${esc(tx.join(' · '))}</p>` : ''}`;
+  const boite = $('taf');
+  if (boite.dataset.tete !== tete || !boite.querySelector('#taf-per')) { boite.innerHTML = tete + '<div id="taf-per"></div>'; boite.dataset.tete = tete; }
+  const liste = $('taf-per');
+  if (liste.dataset.html === per && liste.dataset.ok) return;
+  liste.dataset.html = per;
+  defiler(liste);
 }
 
 // MAA (guide Météo-France) : phénomène codé en clair, si le PDF n'a pas de texte, et son évolution
@@ -904,6 +921,7 @@ function alertes() {
   const snow = (D.notam?.notam ?? []).filter((x) => x.snow);
   const plus = (l: unknown[]) => (l.length > 1 ? ` (+${l.length - 1})` : '');
   const h: string[] = [];
+  if (TRAVERS.length) h.push(`<div class="al a-on"><b>Vent de travers fort</b><span>${TRAVERS.map((x) => `${x.kt} kt sur ${x.piste}`).join(' · ')} · limite DR400 ${TRAVERS_MAX} kt</span></div>`);
   if (snow.length) h.push(`<div class="al a-on"><b>SNOWTAM en vigueur</b><span>état des pistes publié · voir NOTAM</span></div>`);
   if (enCours.length) h.push(`<div class="al a-on"><b>Alerte météo en cours</b><span>${esc(enCours[0].motif || 'MAA')}${enCours[0].fin ? ` jusqu’à ${t(enCours[0].fin)} UTC` : ''}${plus(enCours)}</span></div>`);
   else if (aVenir.length) h.push(`<div class="al a-av"><b>Alerte météo à venir</b><span>${esc(aVenir[0].motif || 'MAA')} dès ${t(aVenir[0].debut)} UTC${plus(aVenir)}</span></div>`);
@@ -941,6 +959,7 @@ function montrer(i: number) {
   s.className = `s${i}`;
   if (i === 0 && !$('notam').dataset.ok) defileNotam();
   if (i === 3 && !$('maa').dataset.ok) defiler($('maa'));
+  if (i === 3 && document.getElementById('taf-per') && !$('taf-per').dataset.ok) defiler($('taf-per'));
   if (i === 4) { flWintem++; cartesAero(); if (!$('voisins').dataset.ok) defiler($('voisins')); }
 }
 
