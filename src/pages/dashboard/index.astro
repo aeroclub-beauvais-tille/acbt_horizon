@@ -179,9 +179,13 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .alt .fl { display: inline-block; width: 18px; height: 18px; vertical-align: -3px; margin-right: 6px; color: var(--accent); }
   .alt .t { color: var(--muted); font-weight: 600; }
   .voisins-p { flex: 1; display: flex; flex-direction: column; }
-  #voisins { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+  #voisins { flex: 1; min-height: 0; overflow: hidden; position: relative; }
+  #voisins .def { animation: defile var(--duree, 60s) linear infinite; } #voisins .def > div { padding-bottom: 0 !important; }
+  #voisins .mv { margin-bottom: 8px; }
   .mv { font-family: var(--mono); font-size: 14.5px; line-height: 1.35; color: var(--ink2); padding: 7px 10px 7px 12px; border-radius: 8px; background: var(--panel2); border-left: 4px solid var(--k, var(--muted)); }
   .mv b { color: var(--ink); } .mv .nm { font-family: var(--sans, inherit); font-weight: 700; color: var(--muted); font-size: 12.5px; margin-left: 6px; }
+  #voisins-h { display: flex; gap: 14px; } .lgc { display: inline-flex; align-items: center; gap: 6px; } .lgc i { width: 10px; height: 10px; border-radius: 50%; background: var(--k); }
+  .lgc.VFR, .mv.VFR { --k: var(--ok); } .lgc.MVFR { --k: var(--accent); } .lgc.IFR { --k: var(--bad); } .lgc.LIFR { --k: #c050ff; }
   .mv.VFR { --k: var(--ok); } .mv.MVFR { --k: var(--accent); } .mv.IFR { --k: var(--bad); } .mv.LIFR { --k: #c050ff; }
   .sf { position: relative; height: 40px; border-radius: 9px; overflow: hidden; background: var(--panel2); }
   .sf .seg { position: absolute; top: 0; bottom: 0; }
@@ -261,6 +265,8 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .nl b { font-size: 16.5px; font-weight: 700; display: block; }
   #notam { padding: 0 3px; flex: 1; min-height: 0; overflow: hidden; position: relative; -webkit-mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); }
   #notam .def { animation: defile var(--duree, 60s) linear infinite; }
+  /* Boucle de défilement : pas de trou entre la fin et le retour au début, trait de séparation gardé */
+  #notam .def > div { padding-bottom: 0 !important; } #notam .def .n:last-child { border-bottom: 1px solid var(--line); }
   @keyframes defile { from { transform: translateY(0); } to { transform: translateY(-50%); } }
   .nl small { display: block; color: var(--muted); font-size: 14px; font-weight: 600; margin-top: 3px; }
 

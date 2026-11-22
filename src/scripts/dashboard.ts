@@ -239,7 +239,9 @@ function notams() {
     return `<div class="n"><span class="ic ${coul}${l.length > 2 && !l.startsWith('<') ? ' l' + l.length : ''}" title="${nom}">${l}</span><div><b>${texteNotam(x.texte)} <span class="no">${esc(x.numero || '')}</span></b><small>${actif(x.debut) ? '<span class="actif">ACTIF</span>' : ''}${esc(validite(x.debut, x.fin))}</small></div></div>`;
   };
   // Procédures (SID, STAR, approches) masquées pour l'instant : elles concernent surtout les vols IFR
-  const l = [...(n.notam ?? [])].filter((x) => x.snow || cat(x.sujet)[1] !== 'PROC').sort((a, b) => Number(b.snow) - Number(a.snow) || Number(actif(b.debut)) - Number(actif(a.debut)) || ORDRE.indexOf(cat(a.sujet)[1]) - ORDRE.indexOf(cat(b.sujet)[1]) || String(b.debut).localeCompare(String(a.debut)));
+  // La source renvoie parfois le même NOTAM deux fois : un seul par numéro
+  const vus = new Set<string>();
+  const l = [...(n.notam ?? [])].filter((x) => { const k = x.numero || x.texte; if (vus.has(k)) return false; vus.add(k); return true; }).filter((x) => x.snow || cat(x.sujet)[1] !== 'PROC').sort((a, b) => Number(b.snow) - Number(a.snow) || Number(actif(b.debut)) - Number(actif(a.debut)) || ORDRE.indexOf(cat(a.sujet)[1]) - ORDRE.indexOf(cat(b.sujet)[1]) || String(b.debut).localeCompare(String(a.debut)));
   $('notam-info').textContent = `${l.length} en vigueur · hors obstacles et procédures IFR`;
   // Liste complète ; si elle dépasse le cadre, elle défile en boucle (copie à la suite, environ 25 px par seconde)
   const html = l.map((x) => ligne(x, false)).join('');
@@ -336,8 +338,13 @@ function categorie(raw: string) {
 function voisins() {
   const l = D?.voisins ?? [];
   if (!l.length) { $('voisins').innerHTML = '<p class="vide">METAR indisponibles pour le moment.</p>'; $('voisins-h').textContent = ''; return; }
-  $('voisins-h').textContent = 'vert VFR · bleu MVFR · rouge IFR · violet LIFR';
-  $('voisins').innerHTML = l.map((m) => { const r = m.raw.replace(/^(METAR|SPECI)\s+/, ''); const [id, ...reste] = r.split(' '); return `<div class="mv ${categorie(r)}"><b>${esc(id)}</b><span class="nm">${esc(m.nom)}</span><br>${esc(reste.join(' '))}</div>`; }).join('');
+  $('voisins-h').innerHTML = ['VFR', 'MVFR', 'IFR', 'LIFR'].map((c) => `<span class="lgc ${c}"><i></i>${c}</span>`).join('');
+  // Si la liste dépasse le cadre, elle défile en boucle comme les NOTAM
+  const html = l.map((m) => { const r = m.raw.replace(/^(METAR|SPECI)\s+/, ''); const [id, ...reste] = r.split(' '); return `<div class="mv ${categorie(r)}"><b>${esc(id)}</b><span class="nm">${esc(m.nom)}</span><br>${esc(reste.join(' '))}</div>`; }).join('');
+  const boite = $('voisins');
+  if (boite.dataset.html === html && boite.dataset.ok) return;
+  boite.dataset.html = html;
+  if (ecran === 4) defiler(boite); else boite.innerHTML = html;
 }
 
 /* ------------------------------------------------------------------ */
@@ -844,7 +851,7 @@ function montrer(i: number) {
   s.className = `s${i}`;
   if (i === 0 && !$('notam').dataset.ok) defileNotam();
   if (i === 3 && !$('maa').dataset.ok) defiler($('maa'));
-  if (i === 4) { flWintem++; cartesAero(); }
+  if (i === 4) { flWintem++; cartesAero(); if (!$('voisins').dataset.ok) defiler($('voisins')); }
 }
 
 function tic() {
