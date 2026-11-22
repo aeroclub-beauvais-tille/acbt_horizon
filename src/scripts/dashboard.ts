@@ -551,12 +551,15 @@ function ventBloc() {
   const gauche = !m ? '—' : f === 0 ? 'Calme' : m.ventDir === 'VRB' ? 'VRB' : dir != null ? `${String(dir).padStart(3, '0')}°` : '—';
   const sous = st ? '' : m?.ventVar ? `<div class="vsous">variable ${String(m.ventVar[0]).padStart(3, '0')}° à ${String(m.ventVar[1]).padStart(3, '0')}°</div>` : m?.ventDir === 'VRB' && f ? '<div class="vsous">direction variable</div>' : '';
   const droite = f == null || f === 0 ? '' : `<i class="sep"></i><span>${f} kt</span>${g ? `<small class="raf">rafales ${g} kt</small>` : ''}`;
-  // Composantes pour chaque sens de piste, sens conseillé = le plus de vent de face (à partir de 3 kt)
+  // Composantes pour chaque sens de piste. Sens conseillé sur CHAQUE piste = celui qui a le vent de face (à partir de 3 kt),
+  // sauf vent vraiment plein travers (à moins de 10° de la perpendiculaire) : aucun sens n'est alors mis en avant
   const comp = (cap: number, v: number) => { const a = ((dir! - cap) * Math.PI) / 180; return { face: Math.round(v * Math.cos(a)), trav: Math.round(v * Math.sin(a)) }; };
-  let meilleur = '';
+  const conseilles = new Set<string>();
   if (dir != null && f != null && f >= 3) {
-    let max = -Infinity;
-    for (const p of PISTES) for (const [n, cap] of [p.a, p.b]) { const c = comp(cap, f); if (c.face > max) { max = c.face; meilleur = n; } }
+    for (const p of PISTES) {
+      const cosA = Math.cos(((dir - p.a[1]) * Math.PI) / 180);
+      if (Math.abs(cosA) >= Math.sin((10 * Math.PI) / 180)) conseilles.add(cosA > 0 ? p.a[0] : p.b[0]);
+    }
   }
   const qfus = PISTES.flatMap((p) => [p.a, p.b]).map(([n, cap]) => {
     if (dir == null || f == null) return `<div class="qfu"><span class="n">${n}</span><div><b>${f === 0 ? 'Vent calme' : 'Vent variable'}</b><small>pas de composante</small></div></div>`;
@@ -564,7 +567,7 @@ function ventBloc() {
     const t1 = c.face >= 0 ? `${c.face} kt de face` : `${-c.face} kt arrière`;
     const cote = (v: number) => (v > 0 ? ' droite' : v < 0 ? ' gauche' : '');
     const t2 = `${Math.abs(c.trav)} kt travers${cote(c.trav)}` + (cg ? ` · rafales ${Math.abs(cg.trav)} kt` : '');
-    return `<div class="qfu${n === meilleur ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${t2}</small></div></div>`;
+    return `<div class="qfu${conseilles.has(n) ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${t2}</small></div></div>`;
   }).join('');
   const avant = $('vent').querySelector('.qfus')?.innerHTML;
   $('vent').innerHTML = `<div class="vd"><div class="t"><span>${gauche}</span>${droite}</div>${sous}${s}</div><div class="qfus">${qfus}</div>`;
@@ -722,7 +725,7 @@ function animer(id: string, cadres: { t: number; src: string }[]) {
       if (id === 'aro') { const f = document.getElementById('aro-fin'); if (f) f.textContent = ech(ok[ok.length - 1].t); }
       ($(`${id}-b`) as HTMLElement).style.width = `${ok.length > 1 ? (n.i / (ok.length - 1)) * 100 : 100}%`;
     }
-    n.minuteur = window.setTimeout(pas, ok.length && n.i === ok.length - 1 ? 2500 : 450);
+    n.minuteur = window.setTimeout(pas, ok.length && n.i === ok.length - 1 ? 2500 : 900);
   };
   pas();
 }

@@ -161,7 +161,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .ef .cartes .av { padding: 16px 14px 14px; gap: 10px; }
   .ef .ring { width: 150px; height: 150px; } .ef .ring b { font-size: 32px; } .ef .ring small { font-size: 14px; }
   .ef .act .ar { max-height: 76px; grid-template-columns: 210px minmax(0, 1fr) minmax(0, 1fr); }
-  .ef .act .im { font-size: 24px; } .ef .act .et { font-size: 15px; } .ef .act .et::before { width: 10px; height: 10px; }
+  .ef .act .im { font-size: 24px; } .ef .act .et { font-size: 13.5px; }
   .ef .act .ac b { font-size: 22px; } .ef .act .ac small { font-size: 15.5px; }
   /* 5. TEMSI / WINTEM */
   .ec { grid-template-columns: 1fr 1fr 520px; }
@@ -227,26 +227,21 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .ring b { font-weight: 800; line-height: 1; font-size: 22px; } .ring small { color: var(--muted); font-weight: 700; margin-top: 4px; font-size: 12px; }
   .ring.warn b { color: var(--warn); } .ring.bad b { color: var(--bad); }
   #activite { flex: 1; min-height: 0; }
-  /* Activité des avions : état sous l'immat (point de couleur), cases liseré + dégradé comme l'onglet Flotte de l'espace membre */
-  .act { height: 100%; display: flex; flex-direction: column; gap: 5px; }
+  /* Activité des avions (variante B) : bloc plein à la couleur de l'état avec l'immat en blanc, le reste de la ligne sur fond neutre */
+  .act { height: 100%; display: flex; flex-direction: column; gap: 6px; }
   .act .ar { flex: 1; min-height: 0; max-height: 64px; display: grid; grid-template-columns: 170px minmax(0, 1fr) minmax(0, 1fr); column-gap: 14px; align-items: stretch; }
+  .act .ar:not(.th) { background: var(--panel2); border-radius: 12px; overflow: hidden; }
   .act .ar.th { flex: none; align-items: center; padding-bottom: 2px; }
-  .act .ar.th span { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding-left: 12px; }
+  .act .ar.th span { font-size: 13px; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding-left: 14px; }
   .act .ai, .act .ac { min-width: 0; display: flex; flex-direction: column; justify-content: center; line-height: 1.1; }
-  .act .ai { padding-left: 12px; }
-  .act .im { font-family: var(--mono); font-weight: 700; font-size: 19px; color: var(--ink); }
-  .act .et { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--k); margin-top: 2px; }
-  .act .et::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--k); }
-  .act .k-l { --k: var(--ok); } .act .k-r { --k: var(--accent); } .act .k-v { --k: #23a55a; } .act .k-m { --k: var(--bad); }
-  .act .ac { position: relative; overflow: hidden; border-radius: 10px; padding: 0 14px 0 16px; }
-  .act .ac::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+  .act .ai { padding: 0 14px; background: var(--k); }
+  .act .im { font-family: var(--mono); font-weight: 700; font-size: 19px; color: #fff; }
+  .act .et { font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: rgba(255,255,255,.9); margin-top: 2px; }
+  .act .k-l { --k: #1f9d57; } .act .k-r { --k: #3b5bdb; } .act .k-v { --k: #0f7a3d; } .act .k-m { --k: #d6333f; }
+  .act .ac { padding: 0 8px; }
   .act .ac b { font-size: 18px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .act .ac small { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
   .act .ac.vide b { color: var(--muted); font-weight: 600; }
-  .act .ac.rs { background: linear-gradient(90deg, rgba(143,166,255,.22), transparent 90%); } .act .ac.rs::before { background: var(--accent); }
-  .act .ac.rs.vide { background: linear-gradient(90deg, rgba(64,201,127,.18), transparent 90%); } .act .ac.rs.vide::before { background: var(--ok); }
-  .act .ac.mt { background: linear-gradient(90deg, rgba(255,100,100,.18), transparent 90%); } .act .ac.mt::before { background: var(--bad); }
-  .act .ac.dv { background: linear-gradient(90deg, color-mix(in srgb, var(--muted) 20%, transparent), transparent 90%); } .act .ac.dv::before { background: var(--muted); }
   .nl .n { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); align-items: start; }
   .nl .ic.l3 { font-size: 13px; letter-spacing: .3px; } .nl .ic.l4 { font-size: 11px; letter-spacing: .2px; }
   .nl .ic { width: 44px; height: 30px; border-radius: 7px; display: grid; place-items: center; font-weight: 900; font-size: 18px; color: #111; background: #f5c518; box-shadow: inset 0 0 0 2px #111, 0 0 0 1px #f5c518; letter-spacing: -.5px; }
@@ -395,7 +390,8 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .carte { position: relative; flex: 1; border-radius: 12px; overflow: hidden; background: #0b1430; }
   .carte img { position: absolute; left: 50%; top: 50%; width: 1060px; height: 1060px; transform: translate(-50%, -50%); }
   .carte img.fond { filter: brightness(.55) contrast(1.1); }
-  .carte img.f { opacity: 0; } .carte img.f.on { opacity: 1; }
+  /* Fondu enchaîné entre deux prises de vue (l'image suivante apparaît pendant que la précédente s'efface) */
+  .carte img.f { opacity: 0; transition: opacity .85s ease-in-out; } .carte img.f.on { opacity: 1; }
   .carte .pt { position: absolute; transform: translate(-50%, -50%); font-size: 14px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px #000; white-space: nowrap; z-index: 3; }
   .carte .pt::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #fff; margin-right: 6px; vertical-align: middle; }
   .carte .lfob { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4; display: grid; justify-items: center; gap: 4px; }
