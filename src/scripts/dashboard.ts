@@ -180,30 +180,22 @@ function carte(a: Avion) {
 // Le jour (« demain », « ven. 27/11 ») passe AVANT l'heure, dans une petite étiquette, pour se lire d'un coup d'œil.
 function activite(l: Avion[]) {
   const quiC = (r: { pilote?: string | null; instructeur?: string | null }) => [court(r.pilote ?? null), r.instructeur && `+ ${court(r.instructeur)}`].filter(Boolean).join(' ');
-  const auj = jourParis(new Date());
-  const jr = (j: string) => (j === auj ? '' : jourTxt(j).toLowerCase());
-  const jour = (j: string) => (j ? `<i>${esc(j)}</i>` : '');
-  const qui = (n: string) => (n ? `<span class="nm2">${esc(n)}</span>` : '');
-  let h = '<div class="act"><div class="ar th"><span>Avion</span><span>État</span><span>Prochaine réservation</span><span>Dernier vol</span></div>';
+  const hier = jourParis(new Date(Date.now() - 86400000));
+  const jourL = (j: string) => (j === hier ? 'Hier' : jourTxt(j));
+  const cell = (cls: string, t: string, sous = '') => `<div class="ac ${cls}"><b>${t}</b>${sous ? `<small>${esc(sous)}</small>` : ''}</div>`;
+  let h = '<div class="act"><div class="ar th"><span>Avion</span><span>Prochaine réservation</span><span>Dernier vol</span></div>';
   for (const a of l) {
-    let etat: string, resa: string;
-    // Couleur de la ligne (liseré + dégradé) selon l'état, comme l'onglet Flotte de l'espace membre
-    const ton = a.indispo ? 'e-m' : a.enVol ? 'e-v' : a.enCours ? 'e-r' : 'e-l';
-    if (a.indispo) {
-      etat = '<em class="pe r">Maintenance</em>';
-      resa = `<b>${esc(jourTxt(a.indispo.fin.slice(0, 8)))}</b><span class="mu">retour prévu</span>`;
-    } else if (a.enCours) {
-      etat = a.enVol ? '<em class="pe v">En vol</em>' : '<em class="pe a">Réservé</em>';
-      resa = `<b>${agH(a.enCours.debut)} – ${agH(a.enCours.fin)}</b>${qui(quiC(a.enCours))}<i>en cours</i>`;
-    } else {
-      etat = a.enVol ? '<em class="pe v">En vol</em>' : '<em class="pe g">Libre</em>';
-      const r = a.prochaine;
-      resa = r ? `<b>${agH(r.debut)} – ${agH(r.fin)}</b>${qui(quiC(r))}${jour(jr(r.debut.slice(0, 8)))}` : '<span class="mu">Aucune sur 7 jours</span>';
-    }
-    let der = '';
-    if (a.dernier) der = `<b>${agH(a.dernier.debut)} – ${agH(a.dernier.fin)}</b>${qui(quiC(a.dernier))}${jour(jr(a.dernier.fin.slice(0, 8)))}`;
-    else if (a.dernierVol) { const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/); der = m ? `<b>${m[2]}</b>${jour(m[1])}` : esc(a.dernierVol); }
-    h += `<div class="ar ${ton}${a.indispo ? ' off' : ''}"><span class="im">${esc(a.immat)}</span><span>${etat}</span><span>${resa}</span><span>${der}</span></div>`;
+    const [k, etat] = a.indispo ? ['m', 'Maintenance'] : a.enVol ? ['v', 'En vol'] : a.enCours ? ['r', 'Réservé'] : ['l', 'Libre'];
+    let resa: string;
+    if (a.indispo) resa = cell('mt', `Retour ${esc(jourL(a.indispo.fin.slice(0, 8)).toLowerCase())}`, 'Maintenance');
+    else if (a.enCours) resa = cell('rs', `${agH(a.enCours.debut)} → ${agH(a.enCours.fin)}`, ['En cours', quiC(a.enCours)].filter(Boolean).join(' · '));
+    else if (a.prochaine) resa = cell('rs', `${agH(a.prochaine.debut)} → ${agH(a.prochaine.fin)}`, [jourL(a.prochaine.debut.slice(0, 8)), quiC(a.prochaine)].filter(Boolean).join(' · '));
+    else resa = cell('rs vide', 'Aucune sur 7 jours');
+    let der: string;
+    if (a.dernier) der = cell('dv', `${agH(a.dernier.debut)} → ${agH(a.dernier.fin)}`, [jourL(a.dernier.fin.slice(0, 8)), quiC(a.dernier), a.dernier.temps].filter(Boolean).join(' · '));
+    else if (a.dernierVol) { const m = a.dernierVol.match(/^(\d\d)\/(\d\d)\/(\d{4})\s+(\d\d:\d\d)/); der = m ? cell('dv', m[4], jourL(`${m[3]}${m[2]}${m[1]}`)) : cell('dv', esc(a.dernierVol)); }
+    else der = cell('dv vide', '—');
+    h += `<div class="ar k-${k}"><div class="ai"><span class="im">${esc(a.immat)}</span><span class="et">${etat}</span></div>${resa}${der}</div>`;
   }
   return h + '</div>';
 }
