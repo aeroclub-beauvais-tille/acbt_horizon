@@ -333,7 +333,7 @@ function categorie(raw: string) {
 function voisins() {
   const l = D?.voisins ?? [];
   if (!l.length) { $('voisins').innerHTML = '<p class="vide">METAR indisponibles pour le moment.</p>'; $('voisins-h').textContent = ''; return; }
-  $('voisins-h').textContent = 'bruts · vert VFR · bleu MVFR · rouge IFR';
+  $('voisins-h').textContent = 'vert VFR · bleu MVFR · rouge IFR · violet LIFR';
   $('voisins').innerHTML = l.map((m) => { const r = m.raw.replace(/^(METAR|SPECI)\s+/, ''); const [id, ...reste] = r.split(' '); return `<div class="mv ${categorie(r)}"><b>${esc(id)}</b><span class="nm">${esc(m.nom)}</span><br>${esc(reste.join(' '))}</div>`; }).join('');
 }
 
