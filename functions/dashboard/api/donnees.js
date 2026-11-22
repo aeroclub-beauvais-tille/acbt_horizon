@@ -3,6 +3,7 @@
 // Chaque source est facultative : si l'une ne répond pas, les autres s'affichent quand même.
 import { lireFlotte } from '../../membre/api/flotte.js';
 import { tableMaa, MAA_VISIBLES } from '../../_maa.js';
+import { lireMessages } from '../../_messages.js';
 
 const AVWX_CLE = 'v1k-d7EgXdAiRybNQZ6gij20qSs0n9DEPki8lQD0jjo'; // clé publique déjà utilisée par le site
 const CACHE = 'https://cache.acbt60.local/dashboard/api/donnees';
@@ -15,7 +16,7 @@ export async function onRequestGet({ env, request, waitUntil }) {
     const deja = await cache.match(new Request(CACHE));
     if (deja) return deja;
   }
-  const [flotte, maa, metar, taf, notam, historique, vigilance] = await Promise.all([
+  const [flotte, maa, metar, taf, notam, historique, vigilance, messages, voisins, altitude] = await Promise.all([
     env.AEROGEST_PLANNING_URL
       ? lireFlotte(env.AEROGEST_PLANNING_URL, new Date(), fetch, { jour: true, instructeurs: true, brut: debug === 'instructeurs' }).catch(() => null)
       : null,
@@ -25,8 +26,11 @@ export async function onRequestGet({ env, request, waitUntil }) {
     lireNotam(env, cache, waitUntil, debug === 'notam', (new URL(request.url).searchParams.get('lieu') || 'LFOB').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 4)).catch((e) => ({ ok: false, raison: String(e.message || e) })),
     lireHistorique().catch(() => null),
     lireVigilance(env, cache, waitUntil).catch(() => null),
+    env.DB ? lireMessages(env.DB).catch(() => null) : null,
+    lireVoisins().catch(() => null),
+    lireAltitude().catch(() => null),
   ]);
-  const corps = { ok: true, maj: new Date().toISOString(), flotte, maa, metar, taf, notam, historique, vigilance, meteofrance: Boolean(env.METEOFRANCE_BASIC || env.METEOFRANCE_APIKEY), meteofranceExpire: expiration(env.METEOFRANCE_APIKEY) };
+  const corps = { ok: true, maj: new Date().toISOString(), flotte, maa, metar, taf, notam, historique, vigilance, messages, voisins, altitude, cartes: { temsi: null, wintem: null, raison: env.AEROWEB_CODE ? 'a-brancher' : 'code' }, meteofrance: Boolean(env.METEOFRANCE_BASIC || env.METEOFRANCE_APIKEY), meteofranceExpire: expiration(env.METEOFRANCE_APIKEY) };
   const rep = (portee) => new Response(JSON.stringify(corps), {
     headers: { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': `${portee}, max-age=50` },
   });
@@ -99,6 +103,33 @@ async function lireHistorique() {
     const plafond = (m.clouds || []).filter((c) => /BKN|OVC|VV/.test(c.cover) && c.base != null).map((c) => c.base);
     return { t: new Date(m.obsTime * 1000).toISOString(), vent: m.wspd ?? null, rafales: m.wgst ?? null, dir: typeof m.wdir === 'number' ? m.wdir : null, plafond: plafond.length ? Math.min(...plafond) : null };
   }).sort((a, b) => a.t.localeCompare(b.t));
+}
+
+// METAR bruts des terrains voisins (aviationweather.gov, sans clé), le plus récent de chacun, dans l'ordre ci-dessous
+const VOISINS = [['LFAQ', 'Albert-Bray'], ['LFAT', 'Le Touquet'], ['LFOP', 'Rouen'], ['LFOE', 'Évreux'], ['LFPT', 'Pontoise'], ['LFPG', 'Roissy-CDG'], ['LFPB', 'Le Bourget'], ['LFPO', 'Orly']];
+async function lireVoisins() {
+  const r = await fetch(`https://aviationweather.gov/api/data/metar?ids=${VOISINS.map((v) => v[0]).join(',')}&hours=2&format=json`, { headers: { 'User-Agent': 'ACBT tableau de bord' } });
+  if (!r.ok) return null;
+  const l = await r.json();
+  const dernier = {};
+  for (const m of Array.isArray(l) ? l : []) if (m.rawOb && (!dernier[m.icaoId] || m.obsTime > dernier[m.icaoId].obsTime)) dernier[m.icaoId] = m;
+  return VOISINS.filter(([id]) => dernier[id]).map(([id, nom]) => ({ id, nom, raw: dernier[id].rawOb, obs: new Date(dernier[id].obsTime * 1000).toISOString() }));
+}
+
+// Vents et températures en altitude au-dessus de LFOB (Open-Meteo, modèles Météo-France AROME/ARPEGE, sans clé) :
+// 925 hPa ≈ 2500 ft, 850 hPa ≈ FL050, 700 hPa ≈ FL100 ; maintenant, +3 h et +6 h
+async function lireAltitude() {
+  const niv = [['2500 ft', 925], ['FL050', 850], ['FL100', 700]];
+  const champs = niv.flatMap(([, p]) => [`wind_speed_${p}hPa`, `wind_direction_${p}hPa`, `temperature_${p}hPa`]).join(',');
+  const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=49.4544&longitude=2.1128&hourly=${champs}&wind_speed_unit=kn&forecast_hours=9&models=meteofrance_seamless&timezone=GMT`);
+  if (!r.ok) return null;
+  const h = (await r.json()).hourly;
+  if (!h?.time?.length) return null;
+  const idx = [0, 3, 6].filter((i) => i < h.time.length);
+  return {
+    heures: idx.map((i) => `${h.time[i]}:00Z`),
+    niveaux: niv.map(([nom, p]) => ({ nom, dir: idx.map((i) => h[`wind_direction_${p}hPa`][i]), ff: idx.map((i) => h[`wind_speed_${p}hPa`][i]), t: idx.map((i) => h[`temperature_${p}hPa`][i]) })),
+  };
 }
 
 // NOTAM de LFOB par l'API NMS de la FAA (NOTAM Management System, relais de l'échange international OACI).

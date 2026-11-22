@@ -270,7 +270,10 @@ function accueil() {
 function messagesClub() {
   const l = D?.messages ?? [];
   $('msg-info').textContent = l.length ? `${l.length} message${l.length > 1 ? 's' : ''}` : '';
-  if (!l.length) { $('messages').innerHTML = '<p class="vide">Aucun message du club pour le moment.</p>'; return; }
+  // Sans message, le cadre disparaît et les NOTAM prennent toute la largeur
+  const r3 = $('messages').closest('.r3') as HTMLElement;
+  if (r3.classList.contains('sans-msg') !== !l.length) { r3.classList.toggle('sans-msg', !l.length); delete $('notam').dataset.ok; if (ecran === 0) defileNotam(); }
+  if (!l.length) { $('messages').innerHTML = ''; return; }
   const quand = (iso: string) => { const d = new Date(iso); const j = jourParis(d); return `${j === jourParis(new Date()) ? 'Aujourd’hui' : jourTxt(j)} · ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}`; };
   $('messages').innerHTML = l.map((m) => `<div class="mc${m.important ? ' imp' : ''}"><b>${esc(m.titre)}</b>${m.texte ? `<p>${esc(m.texte)}</p>` : ''}<small>${[m.auteur, quand(m.date)].filter(Boolean).map(esc).join(' · ')}</small></div>`).join('');
 }
@@ -824,7 +827,7 @@ function majPied() {
   const jours = Math.floor((exp - Date.now()) / 86400000);
   const alerte = Number.isFinite(jours) && jours <= 30 ? (jours < 0 ? ' · CLÉ MÉTÉO-FRANCE EXPIRÉE : à renouveler' : ` · Clé Météo-France à renouveler dans ${jours} j`) : '';
   $('maj').classList.toggle('alerte', !!alerte);
-  $('maj').textContent = (s > 180 ? `Hors ligne · dernières données de ${t}` : `Actualisé il y a ${s < 60 ? `${s} s` : `${Math.floor(s / 60)} min`} · Aerogest, AVWX, Météo-France (MAA), FAA (NOTAM)`) + alerte;
+  $('maj').textContent = (s > 180 ? `Hors ligne · dernières données de ${t}` : `Actualisé il y a ${s < 60 ? `${s} s` : `${Math.floor(s / 60)} min`} · Aerogest, AVWX, Météo-France, FAA (NOTAM), Open-Meteo`) + alerte;
 }
 
 const DUREES = [40, 25, 20, 25, 25, 20]; // secondes par écran (accueil plus long pour lire les NOTAM)

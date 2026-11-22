@@ -1,0 +1,128 @@
+---
+// Messages du club affichés sur la TV (/dashboard). Un admin les publie ou les retire ici (mot de passe admin).
+import MembreApp from '../../layouts/MembreApp.astro';
+import Logo from '../../components/Logo.astro';
+import { url } from '../../lib/utils';
+---
+<MembreApp title="Messages TV">
+  <div class="ecran" id="ecran" data-api={url('/membre/api/messages')}>
+    <header class="haut">
+      <a href={url('/membre/#avions')} class="retour" aria-label="Retour à l'espace membres">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
+      </a>
+      <Logo class="logo" />
+      <span>Messages sur la TV</span>
+    </header>
+
+    <main class="corps">
+      <form class="carte" id="form" novalidate>
+        <h2>Nouveau message</h2>
+        <p class="sous">Il s'affiche sur la TV du club à la minute suivante, sur l'écran d'accueil.</p>
+        <label for="m-titre">Titre</label>
+        <input id="m-titre" type="text" maxlength="120" required placeholder="Ex. Assemblée générale le 6 décembre" />
+        <label for="m-texte">Texte (facultatif)</label>
+        <textarea id="m-texte" rows="3" maxlength="600"></textarea>
+        <div class="ligne">
+          <div><label for="m-jours">Afficher pendant</label>
+            <select id="m-jours"><option value="1">1 jour</option><option value="3">3 jours</option><option value="7" selected>7 jours</option><option value="14">2 semaines</option><option value="30">1 mois</option><option value="0">Jusqu'à ce qu'on le retire</option></select></div>
+          <div><label for="m-auteur">Signé</label><input id="m-auteur" type="text" maxlength="60" placeholder="Ex. Le bureau" /></div>
+        </div>
+        <label class="coche"><input type="checkbox" id="m-imp" /> Important (en jaune, affiché en premier)</label>
+        <label for="m-mdp">Mot de passe admin</label>
+        <input id="m-mdp" type="password" autocomplete="current-password" />
+        <p class="erreur" id="erreur" role="alert" hidden></p>
+        <button class="pri" type="submit" id="envoyer">Publier sur la TV</button>
+      </form>
+
+      <h2 class="titre-liste">Affichés en ce moment</h2>
+      <p class="etat" id="etat">Chargement…</p>
+      <ol class="liste" id="liste"></ol>
+    </main>
+  </div>
+</MembreApp>
+
+<script>
+  const API = document.getElementById('ecran')!.dataset.api!;
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const liste = $('liste'), etat = $('etat'), erreur = $('erreur');
+  const mdp = $<HTMLInputElement>('m-mdp'), auteur = $<HTMLInputElement>('m-auteur');
+  type Msg = { id: number; titre: string; texte: string | null; auteur: string | null; important: boolean; date: string; fin: string | null };
+  const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
+  const quand = (d: string) => new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  try { mdp.value = localStorage.getItem('acbt-admin-alertes') || ''; auteur.value = localStorage.getItem('acbt-nom-messages') || ''; } catch { /* privé */ }
+
+  const montrerErreur = (t: string) => { erreur.textContent = t; erreur.hidden = !t; };
+
+  async function charger() {
+    try {
+      const d = await (await fetch(API, { credentials: 'same-origin', cache: 'no-store' })).json();
+      const l: Msg[] = d.messages || [];
+      etat.hidden = l.length > 0;
+      etat.textContent = 'Aucun message : la TV affiche les NOTAM sur toute la largeur.';
+      liste.innerHTML = l.map((m) => `<li class="msg${m.important ? ' imp' : ''}"><b>${esc(m.titre)}</b>${m.texte ? `<p>${esc(m.texte).replace(/\n/g, '<br>')}</p>` : ''}
+        <div class="pied"><span>${m.auteur ? esc(m.auteur) + ' · ' : ''}${quand(m.date)}${m.fin ? ` · jusqu'au ${quand(m.fin)}` : ''}</span><button type="button" data-id="${m.id}">Retirer</button></div></li>`).join('');
+    } catch { etat.hidden = false; etat.textContent = 'Impossible de charger les messages (pas de réseau ?).'; }
+  }
+
+  async function envoyer(methode: string, corps: object) {
+    const r = await fetch(API, { method: methode, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...corps, motDePasse: mdp.value }) }).catch(() => null);
+    const d = r ? await r.json().catch(() => ({})) : {};
+    if (!r || !r.ok) { montrerErreur(d.erreur || 'Envoi impossible (pas de réseau ?).'); return false; }
+    try { localStorage.setItem('acbt-admin-alertes', mdp.value); localStorage.setItem('acbt-nom-messages', auteur.value); } catch { /* privé */ }
+    montrerErreur('');
+    return true;
+  }
+
+  $('form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const b = $<HTMLButtonElement>('envoyer');
+    const titre = $<HTMLInputElement>('m-titre');
+    if (!titre.value.trim()) { montrerErreur('Indiquez au moins un titre.'); titre.focus(); return; }
+    b.disabled = true;
+    const ok = await envoyer('POST', { titre: titre.value, texte: $<HTMLTextAreaElement>('m-texte').value, auteur: auteur.value, important: $<HTMLInputElement>('m-imp').checked, jours: Number($<HTMLSelectElement>('m-jours').value) });
+    b.disabled = false;
+    if (ok) { titre.value = ''; $<HTMLTextAreaElement>('m-texte').value = ''; $<HTMLInputElement>('m-imp').checked = false; charger(); }
+  });
+
+  liste.addEventListener('click', async (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-id]');
+    if (!b) return;
+    if (!mdp.value) { montrerErreur('Indiquez le mot de passe admin en haut pour retirer un message.'); mdp.focus(); return; }
+    b.disabled = true;
+    if (await envoyer('DELETE', { id: Number(b.dataset.id) })) charger(); else b.disabled = false;
+  });
+
+  charger();
+</script>
+
+<style>
+  .ecran { min-height: 100svh; display: flex; flex-direction: column; background: var(--bg); }
+  .haut { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; gap: 10px; min-height: calc(54px + env(safe-area-inset-top, 0px)); padding: 0 16px 0 8px; padding-top: env(safe-area-inset-top, 0px); background: var(--bar); color: var(--bar-ink); }
+  .retour { display: grid; place-items: center; width: 34px; height: 34px; color: var(--bar-ic); }
+  .retour svg { width: 22px; height: 22px; }
+  .haut :global(.logo) { --logo-h: 40px; --logo-rouge: var(--bar-rouge); color: var(--bar-ink); }
+  .haut span { font-weight: 800; font-size: 1.05rem; }
+  .corps { flex: 1; width: 100%; max-width: 640px; margin: 0 auto; padding: 18px 16px 40px; display: grid; gap: 14px; align-content: start; }
+  .carte { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px 18px; }
+  h2 { font-size: 1.1rem; margin: 0 0 4px; }
+  .titre-liste { margin-top: 10px; }
+  .sous { color: var(--muted); font-size: .9rem; margin: 0 0 8px; }
+  label { display: block; font-weight: 700; font-size: .76rem; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); margin: 12px 0 6px; }
+  input[type=password], input[type=text], textarea, select { width: 100%; min-height: 46px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; font: inherit; background: var(--surface-2, var(--surface)); color: var(--ink); box-sizing: border-box; }
+  textarea { resize: vertical; }
+  .ligne { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .coche { text-transform: none; letter-spacing: 0; font-weight: 650; font-size: .92rem; color: var(--ink); display: flex; gap: 8px; align-items: center; margin-top: 14px; }
+  input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .erreur { color: var(--bad); background: var(--bad-bg); border: 1px solid var(--bad-line); border-radius: 10px; padding: 9px 12px; margin: 12px 0 0; font-size: .9rem; }
+  .pri { width: 100%; min-height: 48px; margin-top: 16px; border: 0; border-radius: 10px; background: var(--navy); color: #fff; font: inherit; font-weight: 800; cursor: pointer; }
+  .pri:disabled { opacity: .7; cursor: wait; }
+  .etat { margin: 0; color: var(--muted); }
+  .liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .liste :global(.msg) { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 12px; padding: 14px 14px 12px; }
+  .liste :global(.msg.imp) { border-left-color: #f5b800; }
+  .liste :global(.msg b) { font-size: 1.02rem; }
+  .liste :global(.msg p) { margin: 6px 0 0; line-height: 1.45; overflow-wrap: anywhere; }
+  .liste :global(.pied) { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 10px; font-size: .84rem; color: var(--muted); }
+  .liste :global(.pied button) { border: 1px solid var(--line); background: transparent; color: var(--bad); border-radius: 8px; padding: 6px 10px; font: inherit; font-weight: 700; font-size: .8rem; cursor: pointer; }
+  [hidden] { display: none !important; }
+</style>
