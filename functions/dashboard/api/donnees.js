@@ -2,7 +2,7 @@
 // Un seul appel par minute depuis la télé : flotte et réservations (Aerogest), instructeurs, MAA, METAR, TAF, NOTAM.
 // Chaque source est facultative : si l'une ne répond pas, les autres s'affichent quand même.
 import { lireFlotte } from '../../membre/api/flotte.js';
-import { tableMaa } from '../../_maa.js';
+import { tableMaa, MAA_VISIBLES } from '../../_maa.js';
 
 const AVWX_CLE = 'v1k-d7EgXdAiRybNQZ6gij20qSs0n9DEPki8lQD0jjo'; // clé publique déjà utilisée par le site
 const CACHE = 'https://cache.acbt60.local/dashboard/api/donnees';
@@ -49,7 +49,7 @@ async function lireMaa(env) {
   await tableMaa(env.DB);
   const depuis = new Date().toISOString();
   const { results } = await env.DB.prepare(
-    'SELECT id, numero, motif, debut, fin, recu FROM maa WHERE fin IS NULL OR fin >= ?1 ORDER BY debut, numero LIMIT 20',
+    `SELECT id, numero, motif, debut, fin, recu FROM maa WHERE (fin IS NULL OR fin >= ?1) AND ${MAA_VISIBLES} ORDER BY debut, numero LIMIT 20`,
   ).bind(depuis).all();
   return results;
 }

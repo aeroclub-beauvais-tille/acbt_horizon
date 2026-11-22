@@ -12,6 +12,7 @@ interface Avion {
   occupe?: { debut: string; fin: string }[];
   dernier?: { debut: string; fin: string; temps: string | null; pilote?: string | null; instructeur?: string | null } | null;
   enCours: Resa | null; prochaine: Resa | null; indispo: Indispo | null; jour?: Resa[]; indispos?: Indispo[];
+  enVol?: { depuis: string } | null; volsJour?: { debut: string; fin: string | null; temps: string | null }[];
 }
 interface Creneau { debut: string; fin: string; texte: string | null; type: string | null; pilote: string | null; avion: string | null; flottant: boolean }
 interface Instructeur { nom: string; creneaux: Creneau[] }
@@ -163,8 +164,11 @@ function carte(a: Avion) {
   if (hs) {
     const motif = hs.motif.trim().replace(/^./, (c) => c.toUpperCase());
     etat = ['p-bad', motif && motif.length <= 18 ? motif : 'Maintenance'];
+  } else if (a.enVol) {
+    etat = ['p-vol', 'En vol'];
+    sous = `depuis ${agH(a.enVol.depuis)}`;
   } else if (a.enCours) {
-    etat = ['p-busy', 'En vol'];
+    etat = ['p-busy', 'Réservé'];
     sous = `jusqu’à ${agH(a.enCours.fin)}`;
   } else etat = ['p-ok', 'Disponible'];
   return `<article class="av${hs ? ' hs' : ''}"><div class="av-t"><b>${esc(a.immat)}</b><small>${esc(modeles[a.immat] || '\u00a0')}</small></div>${ring}`
@@ -187,10 +191,10 @@ function activite(l: Avion[]) {
       etat = '<em class="pe r">Maintenance</em>';
       resa = `<b>${esc(jourTxt(a.indispo.fin.slice(0, 8)))}</b><span class="mu">retour prévu</span>`;
     } else if (a.enCours) {
-      etat = '<em class="pe a">Réservé</em>';
+      etat = a.enVol ? '<em class="pe v">En vol</em>' : '<em class="pe a">Réservé</em>';
       resa = `<b>${agH(a.enCours.debut)} – ${agH(a.enCours.fin)}</b>${qui(quiC(a.enCours))}<i>en cours</i>`;
     } else {
-      etat = '<em class="pe g">Libre</em>';
+      etat = a.enVol ? '<em class="pe v">En vol</em>' : '<em class="pe g">Libre</em>';
       const r = a.prochaine;
       resa = r ? `<b>${agH(r.debut)} – ${agH(r.fin)}</b>${qui(quiC(r))}${jour(jr(r.debut.slice(0, 8)))}` : '<span class="mu">Aucune sur 7 jours</span>';
     }
@@ -219,7 +223,7 @@ const texteNotam = (t: string) => esc(t).replace(ROUGES, (m) => `<em>${m === 'CL
 const actif = (debut: string | null) => { const d = utc(debut); return !!d && d.getTime() <= Date.now(); };
 function validite(debut: string | null, fin: string | null) {
   const d = utc(debut), f = fin && /^\d{4}-/.test(fin) ? new Date(fin) : null;
-  const t = (x: Date) => `${jmUtc(x)} ${hUtc(x)}`;
+  const t = (x: Date) => `${jmUtc(x)} · ${hUtc(x)}`;
   if (!d) return '';
   if (fin === 'PERM') return `Depuis le ${t(d)} · permanent`;
   return d.getTime() <= Date.now() ? (f ? `Jusqu’au ${t(f)} UTC` : '') : `${t(d)} → ${f ? t(f) : '…'} UTC`;
@@ -236,12 +240,13 @@ function notams() {
     const [, l, nom, coul] = sup ? [null, 'SUP', 'SUP AIP', 'gris'] : x.snow ? [null, 'SNOW', 'SNOWTAM · état des pistes', 'neige'] : cat(x.sujet);
     return `<div class="n"><span class="ic ${coul}${l.length > 2 && !l.startsWith('<') ? ' l' + l.length : ''}" title="${nom}">${l}</span><div><b>${texteNotam(x.texte)} <span class="no">${esc(x.numero || '')}</span></b><small>${actif(x.debut) ? '<span class="actif">ACTIF</span>' : ''}${esc(validite(x.debut, x.fin))}</small></div></div>`;
   };
-  const l = [...(n.notam ?? [])].sort((a, b) => Number(b.snow) - Number(a.snow) || Number(actif(b.debut)) - Number(actif(a.debut)) || ORDRE.indexOf(cat(a.sujet)[1]) - ORDRE.indexOf(cat(b.sujet)[1]) || String(b.debut).localeCompare(String(a.debut)));
-  $('notam-info').textContent = `${l.length} en vigueur · hors obstacles`;
+  // Procédures (SID, STAR, approches) masquées pour l'instant : elles concernent surtout les vols IFR
+  const l = [...(n.notam ?? [])].filter((x) => x.snow || cat(x.sujet)[1] !== 'PROC').sort((a, b) => Number(b.snow) - Number(a.snow) || Number(actif(b.debut)) - Number(actif(a.debut)) || ORDRE.indexOf(cat(a.sujet)[1]) - ORDRE.indexOf(cat(b.sujet)[1]) || String(b.debut).localeCompare(String(a.debut)));
+  $('notam-info').textContent = `${l.length} en vigueur · hors obstacles et procédures IFR`;
   // Liste complète ; si elle dépasse le cadre, elle défile en boucle (copie à la suite, environ 25 px par seconde)
   const html = l.map((x) => ligne(x, false)).join('');
   const boite = $('notam');
-  if (!l.length) { boite.innerHTML = vide('Aucun NOTAM en vigueur (hors obstacles).'); return; }
+  if (!l.length) { boite.innerHTML = vide('Aucun NOTAM en vigueur (hors obstacles et procédures IFR).'); return; }
   if (boite.dataset.html === html && boite.dataset.ok) return;
   boite.dataset.html = html;
   defileNotam();
@@ -322,6 +327,13 @@ function reservations() {
     for (const r of (a.jour ?? []).filter((r) => r.debut.slice(0, 8) === auj)) {
       b += barre(mins(r.debut, auj), mins(r.fin, auj), classeType(r.type), court(r.pilote) || r.type || 'Réservé', `${agH(r.debut)} – ${agH(r.fin)}`, r.instructeur ? `avec ${court(r.instructeur)}` : '');
     }
+    // Temps réellement volé (départ → arrivée enregistrés dans Aerogest) : bande verte en bas de la ligne
+    for (const v of a.volsJour ?? []) {
+      const fin = v.fin ? mins(v.fin, auj) : now;
+      const dur = Math.max(0, fin - mins(v.debut, auj));
+      const t = v.fin ? `${agH(v.debut)} – ${agH(v.fin)} · ${Math.floor(dur / 60)}h${p2(dur % 60)}` : `en vol depuis ${agH(v.debut)}`;
+      b += `<div class="reel${v.fin ? '' : ' ouvert'}" style="left:${P(mins(v.debut, auj))}%;width:${Math.max(0.4, P(fin) - P(mins(v.debut, auj)))}%"><span>${t}</span></div>`;
+    }
     html += `<div class="lab"><b>${esc(a.immat)}</b><small>${esc(modeles[a.immat] || '')}</small></div><div class="trk" style="height:${hA}px">${fond()}${b}</div>`;
   }
   if (nbI) {
@@ -335,7 +347,7 @@ function reservations() {
       html += `<div class="lab ins"><b>${esc(court(i.nom))}</b></div><div class="trk ins">${fond()}${b}</div>`;
     }
   }
-  html += '</div><div class="leg"><span><i style="background:var(--r1)"></i>Vol</span><span><i style="background:var(--r2)"></i>Instruction</span><span><i style="background:var(--r3)"></i>Club / baptême</span><span><i style="background:#6d7c92"></i>Indisponible</span>'
+  html += '</div><div class="leg"><span><i style="background:var(--r1)"></i>Vol</span><span><i style="background:var(--r2)"></i>Instruction</span><span><i style="background:var(--r3)"></i>Club / baptême</span><span><i style="background:#6d7c92"></i>Indisponible</span><span><i style="background:var(--ok)"></i>Temps volé (Aerogest)</span>'
     + (instr.some((i) => i.creneaux.some((c) => c.flottant)) ? '<span><i style="background:rgba(64,201,127,.4)"></i>Instructeur présent</span>' : '') + '<span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.5) 0 3px,transparent 3px 6px)"></i>Nuit aéronautique</span><span><i style="width:3px;background:var(--warn)"></i>Limite jour / nuit aéro.</span></div>';
   $('timeline').innerHTML = avions.length ? html : '<p class="vide">Données Aerogest indisponibles pour le moment.</p>';
   const enCours = jour.filter((r) => mins(r.debut, auj) <= now && mins(r.fin, auj) > now).length;
@@ -636,7 +648,10 @@ function animer(id: string, cadres: { t: number; src: string }[]) {
       n.i = (n.i + 1) % ok.length;
       n.cadres.forEach((c) => c.img.classList.toggle('on', c === ok[n.i]));
       const d = new Date(ok[n.i].t);
-      $(`${id}-h`).textContent = id === 'aro' ? `${(() => { const m = Math.max(0, Math.round((ok[n.i].t - Date.now()) / 600000) * 10); return m < 60 ? `+${m} min` : `+${Math.floor(m / 60)} h${m % 60 >= 15 ? ` ${p2(m % 60)}` : ''}`; })()} · ${heureLocale(d)}` : `${hUtc(d)} UTC`;
+      // Échéance « +2 h 30 » arrondie à 10 min ; la fin de la barre = la dernière image vraiment disponible
+      const ech = (t: number) => { const m = Math.max(0, Math.round((t - Date.now()) / 600000) * 10); return m < 60 ? `+${m} min` : `+${Math.floor(m / 60)} h${m % 60 ? ` ${p2(m % 60)}` : ''}`; };
+      $(`${id}-h`).textContent = id === 'aro' ? `${ech(ok[n.i].t)} · ${heureLocale(d)}` : `${hUtc(d)} UTC`;
+      if (id === 'aro') { const f = document.getElementById('aro-fin'); if (f) f.textContent = ech(ok[ok.length - 1].t); }
       ($(`${id}-b`) as HTMLElement).style.width = `${ok.length > 1 ? (n.i / (ok.length - 1)) * 100 : 100}%`;
     }
     n.minuteur = window.setTimeout(pas, ok.length && n.i === ok.length - 1 ? 2500 : 450);

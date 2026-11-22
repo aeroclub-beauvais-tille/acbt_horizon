@@ -2,7 +2,7 @@
 // (scripts/maa-gmail.gs) ou, plus tard, par un Email Worker Cloudflare.
 //   POST /api/maa   Authorization: Bearer <MAA_CLE>   corps = le PDF (application/pdf)
 // La clé est la variable secrète MAA_CLE du projet Cloudflare (Réglages > Variables et secrets).
-import { tableMaa, lireMaa, empreinte, json } from '../_maa.js';
+import { tableMaa, lireMaa, empreinte, json, appliquerMaa } from '../_maa.js';
 import { egal } from '../_session.js';
 
 const MAX = 5 * 1024 * 1024;
@@ -27,9 +27,10 @@ export async function onRequestPost({ request, env }) {
 
   const id = await empreinte(octets);
   await tableMaa(env.DB);
-  const r = await env.DB.prepare(`INSERT OR IGNORE INTO maa (id, numero, motif, debut, fin, recu, nom, pdf)
-    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)`)
-    .bind(id, lu.numero, lu.motif, lu.debut, lu.fin, new Date().toISOString(), url.searchParams.get('nom') || null, octets)
+  const r = await env.DB.prepare(`INSERT OR IGNORE INTO maa (id, numero, motif, debut, fin, recu, nom, pdf, phen, ref)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)`)
+    .bind(id, lu.numero, lu.motif, lu.debut, lu.fin, new Date().toISOString(), url.searchParams.get('nom') || null, octets, lu.phen, lu.annule || lu.amende)
     .run();
+  if (r.meta.changes > 0) await appliquerMaa(env.DB, id, lu);
   return json({ ok: true, nouveau: r.meta.changes > 0, id, ...lu });
 }
