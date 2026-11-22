@@ -562,9 +562,10 @@ function metarBloc() {
 // (QFU 122°/302° et 040°/220°, la petite piste au nord de la grande), cône bleu d'où vient le vent.
 // Cap magnétique exact sur 3 chiffres (040°)
 const p3 = (c: number) => String(c).padStart(3, '0');
+// La 04/22 est posée sur le rayon 040° du cercle, pour qu'elle pointe visuellement vers la bonne graduation
 const PISTES = [
   { a: ['12', 122], b: ['30', 302], cap: 122, cx: -2.5, cy: 3, l: 58 },
-  { a: ['04', 40], b: ['22', 220], cap: 40, cx: 10, cy: -22, l: 24 },
+  { a: ['04', 40], b: ['22', 220], cap: 40, cx: 15, cy: -17.9, l: 24 },
 ] as const;
 // Vent mesuré par la station Météo-France de Beauvais-Tillé (60639001), une mesure toutes les 6 min (API Observation v2).
 // Repli sur le METAR (toutes les 30 min) si la station ne répond pas ou si rien de neuf depuis 18 min.
