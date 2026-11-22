@@ -6,9 +6,9 @@ name: Republier sur Cloudflare
 # (Quand l'appli Perfs change, le dépôt calculateurperformances appelle le même Deploy hook.)
 # Il faut la variable secrète CLOUDFLARE_DEPLOY_HOOK (Settings > Secrets and variables > Actions) :
 # l'adresse du « Deploy hook » créé dans Cloudflare (projet Pages > Settings > Builds > Deploy hooks).
+# 2026-11-22 : acbt60.fr est désormais publié depuis le dépôt acbt. Horizon n'est plus republié :
+# plus de passage chaque nuit (sinon il remplacerait le site du club). Lancement manuel seulement.
 on:
-  schedule:
-    - cron: '17 2 * * *'
   workflow_dispatch:
 
 permissions: {}
