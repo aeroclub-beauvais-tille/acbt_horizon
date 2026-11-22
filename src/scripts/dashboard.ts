@@ -184,16 +184,14 @@ function carte(a: Avion) {
 // Le jour (« demain », « ven. 27/11 ») passe AVANT l'heure, dans une petite étiquette, pour se lire d'un coup d'œil.
 // Mini calendrier : en-tête bleu aujourd'hui, jaune demain, gris ensuite ; le mois toujours en petit sous le chiffre
 function cal(j: string) {
-  const d = dateJ(j), auj = jourParis(new Date()), dem = jourParis(new Date(Date.now() + 86400000));
+  const d = dateJ(j), auj = jourParis(new Date()), dem = jourParis(new Date(Date.now() + 86400000)), hier = jourParis(new Date(Date.now() - 86400000));
   const kj = j === auj ? 'j0' : j === dem ? 'j1' : 'j2';
-  const wd = j === auj ? 'Auj.' : j === dem ? 'Demain' : d.toLocaleDateString('fr-FR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
+  const wd = j === auj ? 'Auj.' : j === dem ? 'Demain' : j === hier ? 'Hier' : d.toLocaleDateString('fr-FR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
   const mois = `<em>${d.toLocaleDateString('fr-FR', { month: 'short', timeZone: 'UTC' })}</em>`;
   return `<span class="cal ${kj}"><i>${esc(wd)}</i><b>${d.getUTCDate()}</b>${mois}</span>`;
 }
 function activite(l: Avion[]) {
   const quiC = (r: { pilote?: string | null; instructeur?: string | null }) => [court(r.pilote ?? null), r.instructeur && `+ ${court(r.instructeur)}`].filter(Boolean).join(' ');
-  const hier = jourParis(new Date(Date.now() - 86400000));
-  const jourL = (j: string) => (j === hier ? 'Hier' : jourTxt(j));
   const cell = (cls: string, t: string, sous = '') => `<div class="ac ${cls}"><b>${t}</b>${sous ? `<small>${esc(sous)}</small>` : ''}</div>`;
   let h = '<div class="act"><div class="ar th"><span>Avion</span><span>Prochaine réservation</span><span>Dernier vol</span></div>';
   for (const a of l) {
@@ -207,8 +205,9 @@ function activite(l: Avion[]) {
     }
     else resa = cell('rs vide', 'Aucune sur 7 jours');
     let der: string;
-    if (a.dernier) der = cell('dv', `${agH(a.dernier.debut)} → ${agH(a.dernier.fin)}`, [jourL(a.dernier.fin.slice(0, 8)), quiC(a.dernier), a.dernier.temps].filter(Boolean).join(' · '));
-    else if (a.dernierVol) { const m = a.dernierVol.match(/^(\d\d)\/(\d\d)\/(\d{4})\s+(\d\d:\d\d)/); der = m ? cell('dv', m[4], jourL(`${m[3]}${m[2]}${m[1]}`)) : cell('dv', esc(a.dernierVol)); }
+    // Dernier vol : même mini calendrier que les réservations
+    if (a.dernier) { const sous = [quiC(a.dernier), a.dernier.temps].filter(Boolean).join(' · '); der = `<div class="ac dv vb">${cal(a.dernier.fin.slice(0, 8))}<div><b>${agH(a.dernier.debut)} → ${agH(a.dernier.fin)}</b>${sous ? `<small>${esc(sous)}</small>` : ''}</div></div>`; }
+    else if (a.dernierVol) { const m = a.dernierVol.match(/^(\d\d)\/(\d\d)\/(\d{4})\s+(\d\d:\d\d)/); der = m ? `<div class="ac dv vb">${cal(`${m[3]}${m[2]}${m[1]}`)}<div><b>${m[4]}</b></div></div>` : cell('dv', esc(a.dernierVol)); }
     else der = cell('dv vide', '—');
     h += `<div class="ar k-${k}"><div class="ai"><span class="im">${esc(a.immat)}</span><span class="et">${etat}</span></div>${resa}${der}</div>`;
   }
