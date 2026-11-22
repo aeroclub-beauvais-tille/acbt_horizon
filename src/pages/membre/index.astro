@@ -467,6 +467,17 @@ const onglets = [
   :global(.fl-lignes) { margin-top: 12px; border-top: 1px solid var(--line); }
   :global(.fl-r) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--line); }
   :global(.fl-r:last-child) { border-bottom: 0; padding-bottom: 0; }
+  /* Lignes sous le cadran : liseré + léger dégradé selon le type (bleu réservation, vert dispo, gris dernier vol) */
+  :global(.fl-lignes) { border-top: 0; display: grid; gap: 6px; }
+  :global(.fl-r[class*="fl-r-"]) { position: relative; overflow: hidden; border: 0; border-radius: 10px; padding: 9px 12px 9px 14px; }
+  :global(.fl-r[class*="fl-r-"]:last-child) { padding-bottom: 9px; }
+  :global(.fl-r[class*="fl-r-"])::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; }
+  :global(.fl-r-resa) { background: linear-gradient(90deg, var(--accent-soft), transparent 85%); }
+  :global(.fl-r-resa)::before { background: var(--accent); }
+  :global(.fl-r-dispo) { background: linear-gradient(90deg, var(--ok-bg), transparent 85%); }
+  :global(.fl-r-dispo)::before { background: var(--ok); }
+  :global(.fl-r-dernier) { background: linear-gradient(90deg, var(--surface-2), transparent 85%); }
+  :global(.fl-r-dernier)::before { background: var(--muted); }
   :global(.fl-h) { text-align: right; font-size: 1rem; font-weight: 800; white-space: nowrap; align-self: center; font-variant-numeric: tabular-nums; }
   :global(.fl-h small) { display: block; font-size: .7rem; color: var(--muted); font-weight: 700; }
   :global(.fl-tol) { margin: 8px 0 0; font-size: .72rem; color: var(--muted); font-weight: 600; }

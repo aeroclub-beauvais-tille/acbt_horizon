@@ -698,12 +698,12 @@ export function flotte() {
           + L('fl-gros', `${lireAg(r.debut).h} → ${lireAg(r.fin).h}`)
           + (qui(r) ? L('fl-nom', qui(r)) : '')
         : L('fl-lbl', 'Prochaine réservation') + L('fl-jour', 'dans les 7 jours') + L('fl-gros', 'Aucune');
-      const ligne = (lbl: string, sous: string, heure: string, petit: string, cls = '') =>
-        `<div class="fl-r"><span class="fl-g">${L('fl-lbl ' + cls, lbl)}${sous ? L(cls ? 'fl-jour' : 'fl-nom', sous) : ''}</span><span class="fl-h">${esc(heure)}<small>${esc(petit)}</small></span></div>`;
+      const ligne = (lbl: string, sous: string, heure: string, petit: string, cls = '', type = '') =>
+        `<div class="fl-r${type ? ' fl-r-' + type : ''}"><span class="fl-g">${L('fl-lbl ' + cls, lbl)}${sous ? L(cls ? 'fl-jour' : 'fl-nom', sous) : ''}</span><span class="fl-h">${esc(heure)}<small>${esc(petit)}</small></span></div>`;
       const lignes: string[] = [];
       if ((a.enCours || hs) && a.prochaine) {
         const p = a.prochaine;
-        lignes.push(ligne('Réservation suivante', qui(p) || jourTxt(p.debut.slice(0, 8)), `${lireAg(p.debut).h} → ${lireAg(p.fin).h}`, jourTxt(p.debut.slice(0, 8))));
+        lignes.push(ligne('Réservation suivante', qui(p) || jourTxt(p.debut.slice(0, 8)), `${lireAg(p.debut).h} → ${lireAg(p.fin).h}`, jourTxt(p.debut.slice(0, 8)), '', 'resa'));
       }
       const x = dispo(a.occupe ?? []);
       // Créneau qui va jusqu'à la nuit aéro : « Dès 15:00 » ; tout le jour aéro : « Toute la journée »
@@ -711,17 +711,17 @@ export function flotte() {
       const finJour = !!(x && eph && x[2] >= minutesParis(eph.nuitAero));
       const toutJour = finJour && !!eph && x![1] <= minutesParis(eph.jourAero);
       const creneau: [string, string] = !x ? ['', ''] : toutJour ? ['Toute la journée', 'aucune réservation'] : finJour ? [`Dès ${hm(x[1])}`, 'jusqu’à la nuit aéro.'] : [`${hm(x[1])} → ${hm(x[2])}`, duree(x[2] - x[1])];
-      if (!hs) lignes.push(x ? ligne('Prochaine dispo. > 30 min', jourTxt(x[0]), creneau[0], creneau[1], 'fl-vert') : ligne('Prochaine dispo. > 30 min', 'dans les 7 jours', 'Aucune', '', 'fl-vert'));
+      if (!hs) lignes.push(x ? ligne('Prochaine dispo. > 30 min', jourTxt(x[0]), creneau[0], creneau[1], 'fl-vert', 'dispo') : ligne('Prochaine dispo. > 30 min', 'dans les 7 jours', 'Aucune', '', 'fl-vert', 'dispo'));
       if (a.dernier) {
         const dd = lireAg(a.dernier.debut), ff = lireAg(a.dernier.fin);
         const [dj, dm] = jm(a.dernier.debut); const [fj, fm] = jm(a.dernier.fin);
         const min = (fj === dj ? 0 : 1440) + fm - dm;
         const nom = [a.dernier.pilote, a.dernier.instructeur && `avec ${a.dernier.instructeur}`].filter(Boolean).join(' ');
-        lignes.push(ligne('Dernier vol', nom, `${dd.h} → ${ff.h}`, `${ff.j.slice(6, 8)}/${ff.j.slice(4, 6)} · ${min > 0 ? duree(min) : a.dernier.temps ?? ''}`));
+        lignes.push(ligne('Dernier vol', nom, `${dd.h} → ${ff.h}`, `${ff.j.slice(6, 8)}/${ff.j.slice(4, 6)} · ${min > 0 ? duree(min) : a.dernier.temps ?? ''}`, '', 'dernier'));
       } else if (a.dernierVol) {
         const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/);
-        lignes.push(ligne('Dernier vol', '', m ? m[2] : a.dernierVol, m ? m[1] : ''));
-      } else lignes.push(ligne('Dernier vol', '', '—', ''));
+        lignes.push(ligne('Dernier vol', '', m ? m[2] : a.dernierVol, m ? m[1] : '', '', 'dernier'));
+      } else lignes.push(ligne('Dernier vol', '', '—', '', '', 'dernier'));
       return `<article class="fl-carte${a.indispo ? ' fl-hs' : ''}" data-q="${esc(a.immat.toLowerCase())}">
         <div class="fl-tete"><span class="fl-l"><b class="fl-im">${esc(a.immat)}</b>${modeles[a.immat] ? `<small>${esc(modeles[a.immat])}</small>` : ''}</span><span class="fl-etat fl-${etat[0]}"><i></i>${etat[1]}</span></div>
         <div class="fl-haut">
