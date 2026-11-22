@@ -935,6 +935,31 @@ async function charger() {
   dessiner();
 }
 
+// Fermeture de l'aire de trafic aviation légère (NOTAM « LIGHT AVIATION APRON CLSD ») : le club ne peut pas voler
+const AAL = /LIGHT\s+AVIATION\s+APRON\b[^.]*\b(CLSD|CLOSED)\b/;
+function fermetureAAL() {
+  const n = Date.now();
+  const l = (D?.notam?.notam ?? []).filter((x) => AAL.test(x.texte) && (!x.fin || !/^\d{4}-/.test(x.fin) || Date.parse(x.fin) > n))
+    .sort((a, b) => String(a.debut).localeCompare(String(b.debut)));
+  if (!l.length) return null;
+  const x = l[0];
+  const enCours = !x.debut || Date.parse(x.debut) <= n;
+  const jl = (iso: string | null) => { if (!iso || !/^\d{4}-/.test(iso)) return 'nouvel ordre'; const d = new Date(iso); return `${d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' }).replace('.', '')} ${heureLocale(d).replace(':', 'h')}`; };
+  return { ref: x.numero, enCours, debut: jl(x.debut), fin: jl(x.fin) };
+}
+const PANNEAU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M5.3 5.3l13.4 13.4"/></svg>';
+// Bandeau rouge sous l'en-tête, sur tous les écrans (orange tant que la fermeture est seulement prévue)
+function alerteAAL() {
+  const f = fermetureAAL();
+  const sc = $('scene'), band = $('aal');
+  if (!f) { band.hidden = true; sc.classList.remove('avec-aal'); return; }
+  const titre = f.enCours ? 'Vols impossibles : aire aviation légère fermée' : 'Fermeture prévue de l’aire aviation légère';
+  const quand = f.enCours ? `jusqu’au ${f.fin}` : `du ${f.debut} au ${f.fin}`;
+  band.className = f.enCours ? 'on' : 'av';
+  band.innerHTML = `<i>${PANNEAU}</i><div><b>${titre}</b><span>${quand} (heure locale)</span></div><em>NOTAM ${esc(f.ref)}</em>`;
+  band.hidden = false; sc.classList.add('avec-aal');
+}
+
 // Bandeau du haut : alertes météo (MAA) et SNOWTAM, en cours ou à venir ; sinon « aucune alerte »
 function alertes() {
   const b = $('alertes');
@@ -949,6 +974,7 @@ function alertes() {
   const snow = hiver ? (D.notam?.notam ?? []).filter((x) => x.snow) : [];
   const plus = (l: unknown[]) => (l.length > 1 ? ` (+${l.length - 1})` : '');
   const h: string[] = [];
+  alerteAAL();
   if (snow.length) h.push(`<div class="al a-on"><b>SNOWTAM en vigueur</b><span>état des pistes publié · voir NOTAM</span></div>`);
   if (enCours.length) h.push(`<div class="al a-on"><b>Alerte météo en cours</b><span>${esc(enCours[0].motif || 'MAA')}${enCours[0].fin ? ` jusqu’à ${t(enCours[0].fin)} UTC` : ''}${plus(enCours)}</span></div>`);
   else if (aVenir.length) h.push(`<div class="al a-av"><b>Alerte météo à venir</b><span>${esc(aVenir[0].motif || 'MAA')} dès ${t(aVenir[0].debut)} UTC${plus(aVenir)}</span></div>`);
