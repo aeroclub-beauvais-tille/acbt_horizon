@@ -194,10 +194,13 @@ function activite(l: Avion[]) {
     if (a.indispo) resa = cell('mt', `Retour ${esc(jourL(a.indispo.fin.slice(0, 8)).toLowerCase())}`, 'Maintenance');
     else if (a.enCours) resa = cell('rs', `${agH(a.enCours.debut)} → ${agH(a.enCours.fin)}`, ['En cours', quiC(a.enCours)].filter(Boolean).join(' · '));
     else if (a.prochaine) {
-      // Le jour en pastille devant l'heure : bleu aujourd'hui, jaune demain, gris ensuite
-      const j = a.prochaine.debut.slice(0, 8);
-      const kj = j === jourParis(new Date()) ? 'j0' : j === jourParis(new Date(Date.now() + 86400000)) ? 'j1' : 'j2';
-      resa = `<div class="ac rs"><b><span class="jt ${kj}">${esc(jourTxt(j))}</span>${agH(a.prochaine.debut)} → ${agH(a.prochaine.fin)}</b>${quiC(a.prochaine) ? `<small>${esc(quiC(a.prochaine))}</small>` : ''}</div>`;
+      // Mini calendrier devant l'heure : en-tête bleu aujourd'hui, jaune demain, gris ensuite
+      const j = a.prochaine.debut.slice(0, 8), d = dateJ(j);
+      const auj = jourParis(new Date()), dem = jourParis(new Date(Date.now() + 86400000));
+      const kj = j === auj ? 'j0' : j === dem ? 'j1' : 'j2';
+      const wd = j === auj ? 'Auj.' : j === dem ? 'Demain' : d.toLocaleDateString('fr-FR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
+      const qui = quiC(a.prochaine);
+      resa = `<div class="ac rs vb"><span class="cal ${kj}"><i>${esc(wd)}</i><b>${d.getUTCDate()}</b></span><div><b>${agH(a.prochaine.debut)} → ${agH(a.prochaine.fin)}</b>${qui ? `<small>${esc(qui)}</small>` : ''}</div></div>`;
     }
     else resa = cell('rs vide', 'Aucune sur 7 jours');
     let der: string;

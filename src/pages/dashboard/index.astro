@@ -241,8 +241,13 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .act .ac b { font-size: 18px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .act .ac small { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
   .act .ac.vide b { color: var(--muted); font-weight: 600; }
-  .jt { display: inline-block; font-size: .72em; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; padding: 3px 10px; border-radius: 99px; margin-right: 10px; vertical-align: 2px; }
-  .jt.j0 { background: #3b5bdb; color: #fff; } .jt.j1 { background: var(--yellow); color: #1b1b1b; } .jt.j2 { background: var(--line); color: var(--ink2); }
+  /* Prochaine réservation : mini calendrier (jour + date) devant l'heure */
+  .act .ac.vb { flex-direction: row; align-items: center; justify-content: flex-start; gap: 14px; }
+  .act .ac.vb > div { display: flex; flex-direction: column; min-width: 0; }
+  .cal { flex: none; width: 62px; border-radius: 9px; overflow: hidden; text-align: center; background: var(--panel); box-shadow: 0 0 0 1px var(--line); line-height: 1; }
+  .cal i { display: block; font-style: normal; font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; padding: 3px 0; color: #fff; background: #6d7c92; }
+  .cal.j0 i { background: #3b5bdb; } .cal.j1 i { background: var(--yellow); color: #1b1b1b; }
+  .act .cal b { display: block; font-size: 22px; padding: 4px 0 5px; }
   .nl .n { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); align-items: start; }
   .nl .ic.l3 { font-size: 13px; letter-spacing: .3px; } .nl .ic.l4 { font-size: 11px; letter-spacing: .2px; }
   .nl .ic { width: 44px; height: 30px; border-radius: 7px; display: grid; place-items: center; font-weight: 900; font-size: 18px; color: #111; background: #f5c518; box-shadow: inset 0 0 0 2px #111, 0 0 0 1px #f5c518; letter-spacing: -.5px; }
