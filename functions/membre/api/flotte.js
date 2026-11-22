@@ -135,7 +135,13 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch, optio
 
 // Planning des instructeurs (même format que celui des avions) : une ligne par instructeur,
 // avec ses créneaux (réservations où il vole, et créneaux posés à part : présences ou absences).
-const FONDS_NUIT = new Set(['#39c2ff', '#11719c']);
+const VERT = '#c1ffc1', GRIS = '#dddddd';
+// Retire d'un intervalle [début, fin] (dates « AAAAMMJJhhmm ») les intervalles à exclure
+function soustraire(iv, moins) {
+  let reste = [iv];
+  for (const [a, b] of moins) reste = reste.flatMap(([d, f]) => (b <= d || a >= f ? [[d, f]] : [...(a > d ? [[d, a]] : []), ...(b < f ? [[b, f]] : [])]));
+  return reste;
+}
 function lireInstructeurs(plannings) {
   const parNom = new Map();
   for (const p of plannings) {
@@ -150,11 +156,14 @@ function lireInstructeurs(plannings) {
       };
       for (const s of l.sublignes || []) for (const r of s.reservations || []) ajouter(r, false);
       for (const r of l.reservationsFlottantes || []) ajouter(r, true);
-      // Disponibilités posées par l'instructeur : Aerogest les dessine en fond de ligne (couleursFond),
-      // à côté des fonds bleus du lever/coucher du soleil et de la nuit aéronautique, qu'on ignore.
-      for (const c of l.couleursFond || []) {
-        if (!c?.color || FONDS_NUIT.has(String(c.color).toLowerCase())) continue;
-        i.creneaux.push({ id: null, debut: c.debut, fin: c.fin, texte: texte(c.content) || null, type: null, pilote: null, avion: null, flottant: true, couleur: c.color });
+      // Disponibilités posées par l'instructeur : Aerogest les dessine en fond de ligne (couleursFond).
+      // Vert clair = disponible, gris = indisponible (prioritaire). Les fonds bleus (lever/coucher, nuit) sont ignorés.
+      const fonds = (l.couleursFond || []).filter((c) => c?.debut && c?.fin);
+      const gris = fonds.filter((c) => String(c.color).toLowerCase() === GRIS);
+      for (const c of fonds.filter((x) => String(x.color).toLowerCase() === VERT)) {
+        for (const [debut, fin] of soustraire([String(c.debut), String(c.fin)], gris.map((g) => [String(g.debut), String(g.fin)]))) {
+          i.creneaux.push({ id: null, debut, fin, texte: texte(c.content) || null, type: null, pilote: null, avion: null, flottant: true });
+        }
       }
     }
   }
