@@ -7,7 +7,6 @@ import Etapes from '../components/Etapes.astro';
 import Faq from '../components/Faq.astro';
 import BandePhoto from '../components/BandePhoto.astro';
 import AppelFinal from '../components/AppelFinal.astro';
-import Icone from '../components/Icone.astro';
 import d from '../data/decouvrir.json';
 import pages from '../data/pages.json';
 import club from '../data/club.json';
@@ -17,14 +16,6 @@ const n = (x: number) => x.toLocaleString('fr-FR');
 const tel = `tel:${club.telephone.replace(/\s/g, '')}`;
 ---
 <Base univers="decouvrir" title="Baptême de l'air" description={`Baptême de l'air, vol découverte et vol d'initiation à Beauvais-Tillé, dès ${n(Math.min(...t.formules.flatMap((f) => f.prix.map((p) => p.prix))))} €.`}>
-  {/* Bon cadeau en fine bannière tout en haut : visible tout de suite, sans pousser les prix hors de l'écran */}
-  <a class="bandeau-cadeau" href={url('/contact?objet=Bon cadeau')}>
-    <span class="container">
-      <Icone nom="cadeau" />
-      <span class="bc-texte"><b>Offrez un baptême de l'air</b><span class="bc-detail">{d.bon_cadeau}</span></span>
-      <span class="bc-action"><span class="bc-long">Demander un bon cadeau</span><span class="bc-court">Bon cadeau</span> <span aria-hidden="true">→</span></span>
-    </span>
-  </a>
   <section class="offre">
     <div class="container offre-grid">
       <div class="intro" style={`--img: url('${photoUrl(pages.decouvrir.image)}'); --img-pos: ${positionFond(pages.decouvrir.image)}`}>
@@ -32,9 +23,10 @@ const tel = `tel:${club.telephone.replace(/\s/g, '')}`;
         <h1>{pages.decouvrir.titre.replace(/-/g, '\u2011')}</h1>
         <p class="accroche">{d.accroche}</p>
         <div class="btns cta-large">
-          <a class="btn btn-primary" href={url('/contact?objet=Baptême')}>Réserver mon vol</a>
-          <a class="btn btn-clair" href={tel}>{club.telephone}</a>
+          <a class="btn btn-primary" href={url('/contact?objet=Vol découverte')}>Réserver un baptême</a>
+          <a class="btn btn-clair" href={url('/contact?objet=Bon cadeau')}>Offrir un baptême</a>
         </div>
+        <p class="tel-ligne">Ou appelez le <a href={tel}>{club.telephone}</a></p>
       </div>
       <div class="prix" aria-label="Formules et prix">
         {t.formules.map((f) => (
@@ -73,9 +65,12 @@ const tel = `tel:${club.telephone.replace(/\s/g, '')}`;
       </div>
     </section>
   )}
-  <AppelFinal titre="On vous emmène quand ?" texte="Choisissez votre formule, on convient ensemble d'une date. Bon cadeau possible." boutons={[{ label: 'Réserver mon vol', href: url('/contact?objet=Baptême'), principal: true }, { label: `Appeler le ${club.telephone}`, href: tel }]} />
+  <AppelFinal titre="On vous emmène quand ?" texte="Choisissez votre formule, on convient ensemble d'une date. Bon cadeau possible." boutons={[{ label: 'Réserver un baptême', href: url('/contact?objet=Vol découverte'), principal: true }, { label: 'Offrir un baptême', href: url('/contact?objet=Bon cadeau') }]} />
 </Base>
 <style>
+  .tel-ligne { display: none; margin: 12px 0 0; font-size: .92rem; color: rgba(255,255,255,.85); }
+  .tel-ligne a { color: #fff; font-weight: 600; }
+  @media (min-width: 900px) { .tel-ligne { display: block; } }
   .offre { padding: 20px 0 28px; background: var(--paper); }
   .offre-grid { display: grid; gap: 18px; grid-template-columns: 1fr; }
   @media (min-width: 900px) { .offre { padding: 28px 0 36px; } .offre-grid { grid-template-columns: .9fr 1.1fr; align-items: stretch; gap: 24px; } }
@@ -141,24 +136,7 @@ const tel = `tel:${club.telephone.replace(/\s/g, '')}`;
     .montant span { display: none; }
     .formule h2 { font-size: 1.05rem; }
   }
-  .bandeau-cadeau { display: block; background: var(--nuit); color: #fff; text-decoration: none; transition: background-color .2s; }
-  .bandeau-cadeau:hover { background: var(--ink-2); color: #fff; }
-  .bandeau-cadeau .container { display: flex; align-items: center; gap: 12px; padding-top: 10px; padding-bottom: 10px; }
-  .bandeau-cadeau :global(svg) { flex: none; width: 20px; height: 20px; color: var(--sun-clair); }
-  .bc-texte { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; min-width: 0; font-size: .92rem; }
-  .bc-texte b { font-family: var(--font-title); font-weight: 600; font-size: 1.02rem; }
-  .bc-detail { color: rgba(255,255,255,.75); }
-  .bc-action { margin-left: auto; flex: none; padding: 6px 14px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.55); font-weight: 600; font-size: .86rem; white-space: nowrap; transition: background-color .2s, color .2s; }
-  .bandeau-cadeau:hover .bc-action { background: #fff; color: var(--ink); }
-  .bc-court { display: none; }
-  @media (max-width: 899px) { .bc-detail { display: none; } }
   @media (max-width: 599px) {
-    .bandeau-cadeau .container { padding-top: 5px; padding-bottom: 5px; gap: 8px; }
-    .bandeau-cadeau :global(svg) { width: 17px; height: 17px; }
-    .bc-texte b { font-size: .92rem; }
-    .bc-long { display: none; }
-    .bc-action { padding: 3px 10px; font-size: .78rem; }
-    .bc-court { display: inline; }
   }
   .white .lead { margin-bottom: 24px; }
 </style>

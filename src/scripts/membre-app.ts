@@ -565,25 +565,27 @@ export function soleil() {
     const el = zone.querySelector<HTMLElement>(`[data-soleil="${k}"]`);
     if (el) el.textContent = heureLocale(e[k]);
   });
-  // Compte à rebours et frise du jour aéronautique (du début du jour aéro à la nuit aéro)
-  const bas = zone.querySelector<HTMLElement>('[data-soleil-etat]');
-  if (bas) {
+  // Compte à rebours et frise des 24 h (heure de Paris) : nuit hachurée, jour aéro. encadré, soleil levé en plein
+  const tete = zone.querySelector<HTMLElement>('[data-soleil-etat]');
+  if (tete) {
     const t = Date.now(), d = e.jourAero.getTime(), f = e.nuitAero.getTime();
-    const q = (sel: string) => zone.querySelector<HTMLElement>(sel);
-    const pos = (x: number) => `${(Math.max(0, Math.min(1, (x - d) / (f - d))) * 100).toFixed(2)}%`;
+    const q = (sel: string) => zone.querySelector<HTMLElement>(sel)!;
+    const minutes = (x: Date) => { const [h, m] = heureLocale(x).split(':').map(Number); return h * 60 + m; };
+    const pct = (x: Date) => `${(minutes(x) / 1440 * 100).toFixed(2)}%`;
+    const bloc = (el: HTMLElement, a: Date, b: Date) => { el.style.left = pct(a); el.style.width = `${((minutes(b) - minutes(a)) / 1440 * 100).toFixed(2)}%`; };
+    bloc(q('[data-soleil-a]'), e.jourAero, e.nuitAero);
+    bloc(q('[data-soleil-j]'), e.lever, e.coucher);
+    const maintenant = new Date(t);
+    q('[data-soleil-now]').style.left = pct(maintenant);
+    q('[data-soleil-h]').textContent = heureLocale(maintenant);
     const nuit = t >= f || t < d;
-    const etat = nuit ? 'nuit' : f - t <= 3600_000 ? 'proche' : 'jour';
-    bas.dataset.soleilEtat = etat;
+    tete.dataset.soleilEtat = nuit ? 'nuit' : f - t <= 3600_000 ? 'proche' : 'jour';
     const reste = Math.max(0, Math.floor((f - t) / 60000));
-    const demain = t >= f ? ephemeride(new Date(t + 86400000)) : e;
-    q('[data-soleil-txt]')!.textContent = nuit ? 'Nuit aéronautique en cours' : 'Nuit aéro. dans';
-    q('[data-soleil-val]')!.textContent = nuit
-      ? `jour aéro. à ${demain ? heureLocale(demain.jourAero) : '--:--'}`
+    const prochain = t >= f ? ephemeride(new Date(t + 86400000)) : e;
+    q('[data-soleil-txt]').textContent = nuit ? 'Nuit aéronautique en cours' : 'Nuit aéro. dans';
+    q('[data-soleil-val]').textContent = nuit
+      ? `jour aéro. à ${prochain ? heureLocale(prochain.jourAero) : '--:--'}`
       : `${Math.floor(reste / 60)} h ${String(reste % 60).padStart(2, '0')}`;
-    q('[data-soleil-f]')!.style.width = pos(t);
-    q('[data-soleil-now]')!.style.left = pos(t);
-    q('[data-soleil-l]')!.style.left = pos(e.lever.getTime());
-    q('[data-soleil-c]')!.style.left = pos(e.coucher.getTime());
   }
 }
 
