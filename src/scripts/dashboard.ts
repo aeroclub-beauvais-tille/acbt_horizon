@@ -187,6 +187,8 @@ function activite(l: Avion[]) {
   let h = '<div class="act"><div class="ar th"><span>Avion</span><span>État</span><span>Prochaine réservation</span><span>Dernier vol</span></div>';
   for (const a of l) {
     let etat: string, resa: string;
+    // Couleur de la ligne (liseré + dégradé) selon l'état, comme l'onglet Flotte de l'espace membre
+    const ton = a.indispo ? 'e-m' : a.enVol ? 'e-v' : a.enCours ? 'e-r' : 'e-l';
     if (a.indispo) {
       etat = '<em class="pe r">Maintenance</em>';
       resa = `<b>${esc(jourTxt(a.indispo.fin.slice(0, 8)))}</b><span class="mu">retour prévu</span>`;
@@ -201,7 +203,7 @@ function activite(l: Avion[]) {
     let der = '';
     if (a.dernier) der = `<b>${agH(a.dernier.debut)} – ${agH(a.dernier.fin)}</b>${qui(quiC(a.dernier))}${jour(jr(a.dernier.fin.slice(0, 8)))}`;
     else if (a.dernierVol) { const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/); der = m ? `<b>${m[2]}</b>${jour(m[1])}` : esc(a.dernierVol); }
-    h += `<div class="ar${a.indispo ? ' off' : ''}"><span class="im">${esc(a.immat)}</span><span>${etat}</span><span>${resa}</span><span>${der}</span></div>`;
+    h += `<div class="ar ${ton}${a.indispo ? ' off' : ''}"><span class="im">${esc(a.immat)}</span><span>${etat}</span><span>${resa}</span><span>${der}</span></div>`;
   }
   return h + '</div>';
 }
