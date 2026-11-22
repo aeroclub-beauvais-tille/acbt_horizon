@@ -656,6 +656,12 @@ function jourTxt(j: string) {
   const t = new Date(Date.UTC(+j.slice(0, 4), +j.slice(4, 6) - 1, +j.slice(6, 8), 12)).toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'UTC' });
   return t.charAt(0).toUpperCase() + t.slice(1);
 }
+// Jour passé : « Aujourd’hui », « Hier », sinon la date (21/11)
+function jourPasse(j: string) {
+  if (j === jourParis(new Date())) return 'Aujourd’hui';
+  if (j === jourParis(new Date(Date.now() - 86400000))) return 'Hier';
+  return `${j.slice(6, 8)}/${j.slice(4, 6)}`;
+}
 const qui = (r: Resa) => [r.pilote, r.instructeur && `avec ${r.instructeur}`].filter(Boolean).join(' ');
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
 
@@ -710,17 +716,20 @@ export function flotte() {
       const eph = x ? ephemeride(new Date(Date.UTC(+x[0].slice(0, 4), +x[0].slice(4, 6) - 1, +x[0].slice(6, 8), 12))) : null;
       const finJour = !!(x && eph && x[2] >= minutesParis(eph.nuitAero));
       const toutJour = finJour && !!eph && x![1] <= minutesParis(eph.jourAero);
-      const creneau: [string, string] = !x ? ['', ''] : toutJour ? ['Toute la journée', 'aucune réservation'] : finJour ? [`Dès ${hm(x[1])}`, 'jusqu’à la nuit aéro.'] : [`${hm(x[1])} → ${hm(x[2])}`, duree(x[2] - x[1])];
+      // Après la nuit aéro, l'avion peut rester libre (vol de nuit) : on regarde la réservation suivante du même jour
+      const apres = !x ? null : (a.occupe ?? []).map((o) => jm(o.debut)).filter(([dj, dm]) => dj === x[0] && dm >= x[2]).sort((p, q) => p[1] - q[1])[0] ?? null;
+      const suite = apres ? `libre jusqu’à ${hm(apres[1])}` : 'aucune réservation ensuite';
+      const creneau: [string, string] = !x ? ['', ''] : toutJour ? ['Toute la journée', apres ? suite : 'aucune réservation'] : finJour ? [`Dès ${hm(x[1])}`, suite] : [`${hm(x[1])} → ${hm(x[2])}`, duree(x[2] - x[1])];
       if (!hs) lignes.push(x ? ligne('Prochaine dispo. > 30 min', jourTxt(x[0]), creneau[0], creneau[1], 'fl-vert', 'dispo') : ligne('Prochaine dispo. > 30 min', 'dans les 7 jours', 'Aucune', '', 'fl-vert', 'dispo'));
       if (a.dernier) {
         const dd = lireAg(a.dernier.debut), ff = lireAg(a.dernier.fin);
         const [dj, dm] = jm(a.dernier.debut); const [fj, fm] = jm(a.dernier.fin);
         const min = (fj === dj ? 0 : 1440) + fm - dm;
         const nom = [a.dernier.pilote, a.dernier.instructeur && `avec ${a.dernier.instructeur}`].filter(Boolean).join(' ');
-        lignes.push(ligne('Dernier vol', nom, `${dd.h} → ${ff.h}`, `${ff.j.slice(6, 8)}/${ff.j.slice(4, 6)} · ${min > 0 ? duree(min) : a.dernier.temps ?? ''}`, '', 'dernier'));
+        lignes.push(ligne('Dernier vol', nom, `${dd.h} → ${ff.h}`, `${jourPasse(ff.j)} · ${min > 0 ? duree(min) : a.dernier.temps ?? ''}`, '', 'dernier'));
       } else if (a.dernierVol) {
-        const m = a.dernierVol.match(/^(\d\d\/\d\d)\/\d{4}\s+(\d\d:\d\d)/);
-        lignes.push(ligne('Dernier vol', '', m ? m[2] : a.dernierVol, m ? m[1] : '', '', 'dernier'));
+        const m = a.dernierVol.match(/^(\d\d)\/(\d\d)\/(\d{4})\s+(\d\d:\d\d)/);
+        lignes.push(ligne('Dernier vol', '', m ? m[4] : a.dernierVol, m ? jourPasse(m[3] + m[2] + m[1]) : '', '', 'dernier'));
       } else lignes.push(ligne('Dernier vol', '', '—', '', '', 'dernier'));
       return `<article class="fl-carte${a.indispo ? ' fl-hs' : ''}" data-q="${esc(a.immat.toLowerCase())}">
         <div class="fl-tete"><span class="fl-l"><b class="fl-im">${esc(a.immat)}</b>${modeles[a.immat] ? `<small>${esc(modeles[a.immat])}</small>` : ''}</span><span class="fl-etat fl-${etat[0]}"><i></i>${etat[1]}</span></div>
