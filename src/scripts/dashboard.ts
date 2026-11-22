@@ -667,19 +667,25 @@ function tafBloc() {
   const lbl = (d: Date) => `${jr(d)} ${p2(d.getUTCHours())}h${d.getUTCMinutes() ? p2(d.getUTCMinutes()) : ''}`;
   const TYPES: Record<string, string> = { FROM: 'À partir de (FM)', BECMG: 'Évolution (BECMG)', TEMPO: 'Temporaire (TEMPO)', INTER: 'Intermittent (INTER)', PROB: 'Probabilité' };
   const h = utc(t.heure);
-  const per = t.periodes.map((p, i) => {
+  const on = (p: Periode) => { const d = utc(p.debut), f = utc(p.fin); return !!(d && f && d <= n && n < f); };
+  const carte = (p: Periode, i: number) => {
     const d = utc(p.debut), f = utc(p.fin);
     const on = d && f && d <= n && n < f;
     let ty = i === 0 ? 'Période de base' : TYPES[p.type] ?? p.type;
     if (p.probabilite) ty = `Probabilité ${p.probabilite} %${p.type === 'TEMPO' ? ' · temporaire' : ''}`;
     const code = i === 0 ? '' : p.raw;
     return `<div class="per${on ? ' on' : ''}"><div class="q"><b>${d ? lbl(d) : ''} → ${f ? lbl(f).replace(/^(Auj\.|Dem\.)/, (x) => x.toLowerCase()) : ''}</b><small>${esc(ty)}${on ? ' · en cours' : ''}</small></div>${fr(p.regles)}<div class="d">${esc(decrire(p))}${code ? `<code>${esc(code)}</code>` : ''}</div></div>`;
-  }).join('');
+  };
+  // Les périodes en cours restent fixes en haut ; les autres (à venir) défilent en dessous si besoin
+  const enCours = t.periodes.map((p, i) => (on(p) ? carte(p, i) : '')).join('');
+  // À venir : dans l'ordre chronologique de début (le TAF les donne par type, pas toujours dans l'ordre des heures)
+  const per = t.periodes.map((p, i) => ({ p, i })).filter(({ p }) => !on(p))
+    .sort((x, y) => (Date.parse(x.p.debut || '') || 0) - (Date.parse(y.p.debut || '') || 0) || x.i - y.i).map(({ p, i }) => carte(p, i)).join('');
   // Températures maximale et minimale prévues (TX / TN)
   const tx = [...t.raw.matchAll(/\b(TX|TN)(M?)(\d{2})\/(\d{2})(\d{2})Z\b/g)].map((m) => `${m[1] === 'TX' ? 'Max.' : 'Min.'} ${m[2] ? '-' : ''}${Number(m[3])} °C le ${Number(m[4])} à ${m[5]}h UTC`);
   const amd = /^(TAF\s+)?AMD\b/.test(t.raw) || /\bTAF AMD\b/.test(t.raw);
   // Les périodes défilent si elles ne tiennent pas dans le cadre (comme les MAA)
-  const tete = `<h2>TAF LFOB${amd ? ' amendé' : ''} <span class="r">${h ? `émis ${hUtc(h)} UTC · ` : ''}heures UTC</span></h2><div class="raw">${esc(t.raw)}</div>${tx.length ? `<p class="tx">${esc(tx.join(' · '))}</p>` : ''}`;
+  const tete = `<h2>TAF LFOB${amd ? ' amendé' : ''} <span class="r">${h ? `émis ${hUtc(h)} UTC · ` : ''}heures UTC</span></h2><div class="raw">${esc(t.raw)}</div>${tx.length ? `<p class="tx">${esc(tx.join(' · '))}</p>` : ''}${enCours ? `<div class="taf-on">${enCours}</div>` : ''}`;
   const boite = $('taf');
   if (boite.dataset.tete !== tete || !boite.querySelector('#taf-per')) { boite.innerHTML = tete + '<div id="taf-per"></div>'; boite.dataset.tete = tete; }
   const liste = $('taf-per');
