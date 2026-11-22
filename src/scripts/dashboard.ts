@@ -436,7 +436,10 @@ function pheno(code: string) {
   if (c.startsWith('-')) { suf = ' faible'; c = c.slice(1); } else if (c.startsWith('+')) { suf = ' forte'; c = c.slice(1); }
   if (c.startsWith('VC')) { suf += ' à proximité'; c = c.slice(2); }
   const desc: string[] = [];
-  for (const [k, v] of [['MI', 'mince'], ['BC', 'en bancs'], ['PR', 'partiel'], ['DR', 'chasse basse'], ['BL', 'chasse haute'], ['FZ', 'verglaçant']] as const) if (c.startsWith(k)) { desc.push(v); c = c.slice(2); }
+  for (const [k, v] of [['MI', 'mince'], ['BC', 'en bancs'], ['PR', 'partiel'], ['DR', 'chasse basse'], ['BL', 'chasse haute']] as const) if (c.startsWith(k)) { desc.push(v); c = c.slice(2); }
+  // Guide aviation Météo-France : FZFG = brouillard givrant, FZRA / FZDZ = pluie / bruine se congelant
+  if (c.startsWith('FZ')) { c = c.slice(2); desc.push(c.startsWith('FG') ? 'givrant' : 'se congelant'); }
+  if (c === 'FG' && desc[0] === 'en bancs') return 'bancs de brouillard' + suf;
   if (c.startsWith('SH')) { pre = 'averses de '; c = c.slice(2); }
   let ts = false;
   if (c.startsWith('TS')) { ts = true; c = c.slice(2); }
