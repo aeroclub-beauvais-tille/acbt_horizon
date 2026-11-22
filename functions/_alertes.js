@@ -1,7 +1,8 @@
 // Alertes des responsables : notifications push (Web Push, norme VAPID) vers les téléphones des admins.
 // Tout est rangé dans la base D1 du site (liaison DB) :
 //   - reglages      : la paire de clés VAPID, créée toute seule au premier besoin (aucun réglage à faire) ;
-//   - abonnements   : l'adresse de notification de chaque téléphone admin ;
+//   - abonnements   : l'adresse de notification de chaque téléphone (admin = alertes des responsables,
+//                     messages = messages du club envoyés à tous les membres) ;
 //   - alertes       : le texte de chaque alerte, que le téléphone vient lire quand il est réveillé.
 // La notification envoyée est vide : le téléphone vient chercher la dernière alerte lui-même (avec son cookie membre),
 // ce qui évite de chiffrer le contenu et ne fait passer aucune information par les serveurs de Google ou d'Apple.
@@ -20,6 +21,17 @@ export async function tablesAlertes(db) {
     db.prepare(`CREATE TABLE IF NOT EXISTS alertes (
       id INTEGER PRIMARY KEY AUTOINCREMENT, titre TEXT NOT NULL, texte TEXT, lien TEXT, date TEXT NOT NULL)`),
   ]);
+  // Colonnes ajoutées pour les messages du club (les téléphones déjà abonnés sont ceux des admins)
+  const { results } = await db.prepare("SELECT name FROM pragma_table_info('abonnements')").all();
+  const deja = new Set((results || []).map((r) => r.name));
+  for (const [c, def] of [['admin', 1], ['messages', 0]]) {
+    if (!deja.has(c)) { try { await db.prepare(`ALTER TABLE abonnements ADD COLUMN ${c} INTEGER NOT NULL DEFAULT ${def}`).run(); } catch { /* ajoutée entre-temps */ } }
+  }
+}
+
+/** Ce que le téléphone réveillé doit afficher : la dernière alerte admin ou le dernier message du club. */
+export async function noterEnvoi(db, quoi) {
+  await db.prepare("INSERT OR REPLACE INTO reglages (cle, valeur) VALUES ('dernier_push', ?1)").bind(JSON.stringify({ ...quoi, date: new Date().toISOString() })).run();
 }
 
 /** Mot de passe admin : MOT_DE_PASSE_ADMIN, ou à défaut celui des archives Perfs (ARCHIVE_PASSWORD). */
@@ -57,10 +69,10 @@ async function enteteVapid(cles, endpoint, site) {
  * Envoie une notification vide à chaque téléphone abonné et renvoie le détail par téléphone.
  * Les abonnements refusés pour de bon (404/410 : appli désinstallée, notifications coupées) sont retirés.
  */
-export async function pousser(env, site) {
+export async function pousser(env, site, qui = 'admin') {
   const db = env.DB;
   const cles = await clesVapid(db);
-  const { results } = await db.prepare('SELECT endpoint, nom FROM abonnements').all();
+  const { results } = await db.prepare(`SELECT endpoint, nom FROM abonnements WHERE ${qui === 'messages' ? 'messages' : 'admin'} = 1`).all();
   const details = await Promise.all(results.map(async ({ endpoint, nom }) => {
     const service = new URL(endpoint).host;
     try {
@@ -88,6 +100,7 @@ export async function alerter(env, site, { titre, texte = '', lien = '/membre/' 
   await tablesAlertes(env.DB);
   await env.DB.prepare('INSERT INTO alertes (titre, texte, lien, date) VALUES (?1, ?2, ?3, ?4)')
     .bind(titre, texte, lien, new Date().toISOString()).run();
+  await noterEnvoi(env.DB, { type: 'alerte' });
   const details = await pousser(env, site);
   return { envoyes: details.filter((d) => d.ok).length, details };
 }
