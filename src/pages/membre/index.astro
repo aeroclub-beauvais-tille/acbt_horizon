@@ -99,6 +99,9 @@ const onglets = [
       <button type="button" class="ic" id="btn-recherche" aria-label="Rechercher un document">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7" /><path d="M21 21l-4-4" /></svg>
       </button>
+      <button type="button" class="ic cloche" id="btn-notif" aria-label="Recevoir les messages du club en notification" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.4 0" /><path class="barre" d="M3 3l18 18" /></svg>
+      </button>
       <button type="button" class="ic" id="installer" aria-label="Installer l'appli" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M12 7v7M9 11l3 3 3-3M10.5 18.5h3" /></svg>
       </button>
@@ -242,7 +245,7 @@ const onglets = [
         ))}
       </div>
       <a class="adm-lien" href={url('/membre/admin/')}>Administration</a>
-      <a class="adm-lien" href={url('/membre/messages/')}>Messages sur la TV du club</a>
+      <a class="adm-lien" href={url('/membre/messages/')}>Messages du club</a>
     </section>
 
     <!-- PRÉPARER -->
@@ -276,6 +279,11 @@ const onglets = [
       </button>
     ))}
   </nav>
+
+  <dialog class="feuille-msg" id="msg-club" aria-label="Message du club">
+    <div class="mc-corps"></div>
+    <button type="button" class="mc-lu" id="mc-lu">J'ai lu</button>
+  </dialog>
 
   <dialog class="modale" id="signalement" aria-label="Signaler un problème technique" data-api={url('/membre/api/signalements')} data-cle-mail={cleFormulaire(club.formulaire_cle)} data-page={url('/membre/signalements/')}>
     <form method="dialog">
@@ -334,6 +342,7 @@ const onglets = [
   setInterval(maaEnLigne, 5 * 60_000); // nouveaux MAA reçus par mail
   setInterval(maa, 60_000); // le MAA peut commencer ou se terminer pendant la consultation
   signalement();
+  import('../../scripts/membre-messages').then((m) => m.messagesClub());
   try { if (localStorage.getItem('acbt-admin-jeton')) import('../../scripts/membre-admin').then((m) => m.modeAdmin()); } catch { /* privé */ }
   boutonInstaller(document.getElementById('installer') as HTMLButtonElement, document.getElementById('aide-ios'));
   document.getElementById('deconnexion')?.addEventListener('click', () => {
@@ -372,6 +381,18 @@ const onglets = [
   .marque .logo { --logo-h: 30px; --logo-rouge: var(--bar-rouge); color: var(--bar-ink); }
   .marque span { font-weight: 800; font-size: 1.05rem; letter-spacing: -.01em; white-space: nowrap; }
   .actions { display: flex; gap: 2px; }  /* comme Perfs : boutons 36 × 38, 2 px d'écart */
+  .cloche .barre { display: inline; }
+  .cloche.on .barre { display: none; }
+  .cloche.on { color: #f5c400; }
+  .feuille-msg { margin: auto auto 0; width: min(560px, 100vw); max-width: 100vw; max-height: 85dvh; border: 0; border-radius: 22px 22px 0 0; padding: 22px 20px calc(18px + env(safe-area-inset-bottom, 0px)); background: var(--surface); color: var(--ink); box-shadow: 0 -20px 60px rgba(14,26,43,.3); overflow: auto; }
+  .feuille-msg::backdrop { background: rgba(14,26,43,.55); backdrop-filter: blur(3px); }
+  .feuille-msg :global(.mc-tag) { display: inline-block; background: #fff2b8; color: #7a5a00; font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; padding: 5px 10px; border-radius: 8px; }
+  .feuille-msg :global(h3) { font-size: 1.35rem; line-height: 1.2; margin: 12px 0 8px; }
+  .feuille-msg :global(p) { margin: 0 0 10px; line-height: 1.5; color: var(--ink2, var(--ink)); overflow-wrap: anywhere; }
+  .feuille-msg :global(small) { display: block; color: var(--muted); font-size: .86rem; margin-top: 4px; }
+  .feuille-msg :global(.mc-n) { margin-top: 10px; font-weight: 700; }
+  .mc-lu { width: 100%; min-height: 50px; margin-top: 16px; border: 0; border-radius: 12px; background: var(--navy); color: #fff; font: inherit; font-weight: 800; font-size: 1.02rem; cursor: pointer; }
+  :global(.bulle-notif) { position: fixed; right: 12px; z-index: 60; max-width: min(320px, calc(100vw - 24px)); background: var(--navy); color: #fff; font-size: .88rem; font-weight: 650; padding: 10px 13px; border-radius: 10px; box-shadow: 0 10px 30px rgba(14,26,43,.3); }
   .ic { width: 36px; height: 38px; border: 0; background: transparent; color: var(--bar-ic); display: grid; place-items: center; border-radius: 10px; cursor: pointer; }
   /* Mêmes icônes que Perfs : 18 px, trait 2. :global car l'icône du thème est injectée en JS (sans attribut de portée) */
   .ic :global(svg) { width: 18px; height: 18px; }

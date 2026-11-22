@@ -1,23 +1,24 @@
 ---
-// Messages du club affichés sur la TV (/dashboard). Un admin les publie ou les retire ici (mot de passe admin).
+// Messages du club : sur la TV (/dashboard), en notification sur les téléphones et/ou à valider à l'ouverture de l'appli.
+// Un admin les publie ou les retire ici (mot de passe admin).
 import MembreApp from '../../layouts/MembreApp.astro';
 import Logo from '../../components/Logo.astro';
 import { url } from '../../lib/utils';
 ---
-<MembreApp title="Messages TV">
+<MembreApp title="Messages du club">
   <div class="ecran" id="ecran" data-api={url('/membre/api/messages')}>
     <header class="haut">
       <a href={url('/membre/#avions')} class="retour" aria-label="Retour à l'espace membres">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="15 18 9 12 15 6" /></svg>
       </a>
       <Logo class="logo" />
-      <span>Messages sur la TV</span>
+      <span>Messages du club</span>
     </header>
 
     <main class="corps">
       <form class="carte" id="form" novalidate>
         <h2>Nouveau message</h2>
-        <p class="sous">Il s'affiche sur la TV du club à la minute suivante, sur l'écran d'accueil.</p>
+        <p class="sous">Choisissez où il apparaît.</p>
         <label for="m-titre">Titre</label>
         <input id="m-titre" type="text" maxlength="120" required placeholder="Ex. Assemblée générale le 6 décembre" />
         <label for="m-texte">Texte (facultatif)</label>
@@ -27,14 +28,21 @@ import { url } from '../../lib/utils';
             <select id="m-jours"><option value="1">1 jour</option><option value="3">3 jours</option><option value="7" selected>7 jours</option><option value="14">2 semaines</option><option value="30">1 mois</option><option value="0">Jusqu'à ce qu'on le retire</option></select></div>
           <div><label for="m-auteur">Signé</label><input id="m-auteur" type="text" maxlength="60" placeholder="Ex. Le bureau" /></div>
         </div>
-        <label class="coche"><input type="checkbox" id="m-imp" /> Important (en jaune, affiché en premier)</label>
+        <label>Diffusion</label>
+        <div class="diff">
+          <label class="opt"><input type="checkbox" id="m-tv" checked /><span><b>Sur la TV du club</b><small>écran d'accueil, pendant la durée choisie</small></span></label>
+          <label class="opt"><input type="checkbox" id="m-push" /><span><b>Notification sur les téléphones</b><small>membres ayant activé la cloche dans l'appli</small></span></label>
+          <label class="opt"><input type="checkbox" id="m-val" /><span><b>À valider à l'ouverture de l'appli</b><small>le membre doit toucher « J'ai lu » pour continuer</small></span></label>
+          <label class="opt"><input type="checkbox" id="m-imp" /><span><b>Important</b><small>en jaune, affiché en premier</small></span></label>
+        </div>
         <label for="m-mdp">Mot de passe admin</label>
         <input id="m-mdp" type="password" autocomplete="current-password" />
         <p class="erreur" id="erreur" role="alert" hidden></p>
-        <button class="pri" type="submit" id="envoyer">Publier sur la TV</button>
+        <p class="ok" id="ok" role="status" hidden></p>
+        <button class="pri" type="submit" id="envoyer">Publier</button>
       </form>
 
-      <h2 class="titre-liste">Affichés en ce moment</h2>
+      <h2 class="titre-liste">Messages en cours</h2>
       <p class="etat" id="etat">Chargement…</p>
       <ol class="liste" id="liste"></ol>
     </main>
@@ -46,7 +54,7 @@ import { url } from '../../lib/utils';
   const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
   const liste = $('liste'), etat = $('etat'), erreur = $('erreur');
   const mdp = $<HTMLInputElement>('m-mdp'), auteur = $<HTMLInputElement>('m-auteur');
-  type Msg = { id: number; titre: string; texte: string | null; auteur: string | null; important: boolean; date: string; fin: string | null };
+  type Msg = { id: number; titre: string; texte: string | null; auteur: string | null; important: boolean; date: string; fin: string | null; tv: boolean; push: boolean; valider: boolean };
   const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]!));
   const quand = (d: string) => new Date(d).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
   try { mdp.value = localStorage.getItem('acbt-admin-alertes') || ''; auteur.value = localStorage.getItem('acbt-nom-messages') || ''; } catch { /* privé */ }
@@ -58,8 +66,9 @@ import { url } from '../../lib/utils';
       const d = await (await fetch(API, { credentials: 'same-origin', cache: 'no-store' })).json();
       const l: Msg[] = d.messages || [];
       etat.hidden = l.length > 0;
-      etat.textContent = 'Aucun message : la TV affiche les NOTAM sur toute la largeur.';
-      liste.innerHTML = l.map((m) => `<li class="msg${m.important ? ' imp' : ''}"><b>${esc(m.titre)}</b>${m.texte ? `<p>${esc(m.texte).replace(/\n/g, '<br>')}</p>` : ''}
+      etat.textContent = 'Aucun message en cours : la TV affiche les NOTAM sur toute la largeur.';
+      const tags = (m: Msg) => [m.tv && 'TV', m.push && 'Notification', m.valider && 'À valider'].filter(Boolean).map((t) => `<span class="tag">${t}</span>`).join('');
+      liste.innerHTML = l.map((m) => `<li class="msg${m.important ? ' imp' : ''}"><div class="tags">${tags(m)}</div><b>${esc(m.titre)}</b>${m.texte ? `<p>${esc(m.texte).replace(/\n/g, '<br>')}</p>` : ''}
         <div class="pied"><span>${m.auteur ? esc(m.auteur) + ' · ' : ''}${quand(m.date)}${m.fin ? ` · jusqu'au ${quand(m.fin)}` : ''}</span><button type="button" data-id="${m.id}">Retirer</button></div></li>`).join('');
     } catch { etat.hidden = false; etat.textContent = 'Impossible de charger les messages (pas de réseau ?).'; }
   }
@@ -67,10 +76,10 @@ import { url } from '../../lib/utils';
   async function envoyer(methode: string, corps: object) {
     const r = await fetch(API, { method: methode, credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...corps, motDePasse: mdp.value }) }).catch(() => null);
     const d = r ? await r.json().catch(() => ({})) : {};
-    if (!r || !r.ok) { montrerErreur(d.erreur || 'Envoi impossible (pas de réseau ?).'); return false; }
+    if (!r || !r.ok) { montrerErreur(d.erreur || 'Envoi impossible (pas de réseau ?).'); return null; }
     try { localStorage.setItem('acbt-admin-alertes', mdp.value); localStorage.setItem('acbt-nom-messages', auteur.value); } catch { /* privé */ }
     montrerErreur('');
-    return true;
+    return d as { envoyes?: number | null };
   }
 
   $('form').addEventListener('submit', async (e) => {
@@ -78,10 +87,18 @@ import { url } from '../../lib/utils';
     const b = $<HTMLButtonElement>('envoyer');
     const titre = $<HTMLInputElement>('m-titre');
     if (!titre.value.trim()) { montrerErreur('Indiquez au moins un titre.'); titre.focus(); return; }
+    const coche = (id: string) => $<HTMLInputElement>(id).checked;
+    if (!coche('m-tv') && !coche('m-push') && !coche('m-val')) { montrerErreur('Choisissez au moins une diffusion.'); return; }
     b.disabled = true;
-    const ok = await envoyer('POST', { titre: titre.value, texte: $<HTMLTextAreaElement>('m-texte').value, auteur: auteur.value, important: $<HTMLInputElement>('m-imp').checked, jours: Number($<HTMLSelectElement>('m-jours').value) });
+    $('ok').hidden = true;
+    const d = await envoyer('POST', { titre: titre.value, texte: $<HTMLTextAreaElement>('m-texte').value, auteur: auteur.value, important: coche('m-imp'), jours: Number($<HTMLSelectElement>('m-jours').value), tv: coche('m-tv'), push: coche('m-push'), valider: coche('m-val') });
     b.disabled = false;
-    if (ok) { titre.value = ''; $<HTMLTextAreaElement>('m-texte').value = ''; $<HTMLInputElement>('m-imp').checked = false; charger(); }
+    if (d) {
+      titre.value = ''; $<HTMLTextAreaElement>('m-texte').value = ''; $<HTMLInputElement>('m-imp').checked = false;
+      $('ok').textContent = d.envoyes == null ? 'Message publié.' : `Message publié. Notification envoyée à ${d.envoyes} téléphone${d.envoyes > 1 ? 's' : ''}.`;
+      $('ok').hidden = false;
+      charger();
+    }
   });
 
   liste.addEventListener('click', async (e) => {
@@ -111,6 +128,14 @@ import { url } from '../../lib/utils';
   input[type=password], input[type=text], textarea, select { width: 100%; min-height: 46px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 13px; font: inherit; background: var(--surface-2, var(--surface)); color: var(--ink); box-sizing: border-box; }
   textarea { resize: vertical; }
   .ligne { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .diff { display: grid; border-top: 1px solid var(--line); }
+  .opt { display: flex; gap: 12px; align-items: flex-start; margin: 0; padding: 12px 2px; border-bottom: 1px solid var(--line); text-transform: none; letter-spacing: 0; color: var(--ink); font-size: .95rem; cursor: pointer; }
+  .opt input { width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--navy); flex: none; }
+  .opt b { display: block; font-weight: 700; }
+  .opt small { display: block; color: var(--muted); font-weight: 500; font-size: .84rem; margin-top: 2px; }
+  .ok { color: var(--ok, #1f8a4c); background: var(--ok-bg, #e6f6ec); border-radius: 10px; padding: 9px 12px; margin: 12px 0 0; font-size: .9rem; font-weight: 650; }
+  .liste :global(.tags) { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+  .liste :global(.tag) { font-size: .7rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line); border-radius: 6px; padding: 2px 7px; }
   .coche { text-transform: none; letter-spacing: 0; font-weight: 650; font-size: .92rem; color: var(--ink); display: flex; gap: 8px; align-items: center; margin-top: 14px; }
   input:focus, select:focus, textarea:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .erreur { color: var(--bad); background: var(--bad-bg); border: 1px solid var(--bad-line); border-radius: 10px; padding: 9px 12px; margin: 12px 0 0; font-size: .9rem; }
