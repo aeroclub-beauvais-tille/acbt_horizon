@@ -626,11 +626,6 @@ function ventBloc() {
   // sauf vent vraiment plein travers (à moins de 10° de la perpendiculaire) : aucun sens n'est alors mis en avant
   const comp = (cap: number, v: number) => { const a = ((dir! - cap) * Math.PI) / 180; return { face: Math.round(v * Math.cos(a)), trav: Math.round(v * Math.sin(a)) }; };
   const conseilles = new Set<string>();
-  // Vent de travers (rafales comprises) au-delà de la limite démontrée du DR400 : alerte sur la carte et dans le bandeau
-  TRAVERS = dir != null && f != null ? PISTES.map((p) => {
-    const tr = (v: number) => Math.round(Math.abs(v * Math.sin(((dir - p.a[1]) * Math.PI) / 180)));
-    return { piste: `${p.a[0]}/${p.b[0]}`, kt: Math.max(tr(f), g ? tr(g) : 0) };
-  }).filter((x) => x.kt >= TRAVERS_MAX) : [];
   if (dir != null && f != null && f >= 3) {
     for (const p of PISTES) {
       const cosA = Math.cos(((dir - p.a[1]) * Math.PI) / 180);
@@ -644,8 +639,10 @@ function ventBloc() {
     const cote = (v: number) => (v > 0 ? ' droite' : v < 0 ? ' gauche' : '');
     const tMax = Math.max(Math.abs(c.trav), cg ? Math.abs(cg.trav) : 0);
     const trop = tMax >= TRAVERS_MAX;
-    const t2 = `${Math.abs(c.trav)} kt travers${cote(c.trav)}` + (cg ? `<br>rafales ${Math.abs(cg.trav)} kt travers` : '') + (trop ? `<br><em>au-delà de ${TRAVERS_MAX} kt (limite DR400)</em>` : '');
-    return `<div class="qfu${trop ? ' trop' : conseilles.has(n) ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${t2}</small></div></div>`;
+    // Petit panneau « attention » quand le travers (rafales comprises) atteint la limite du DR400
+    const att = trop ? `<svg class="att" viewBox="0 0 24 24" aria-label="Vent de travers ≥ ${TRAVERS_MAX} kt (limite DR400)"><path d="M12 2.5 1.5 21h21z" fill="currentColor"/><path d="M12 9.5v5.2M12 17.6v.1" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></svg>` : '';
+    const t2 = `${att}${Math.abs(c.trav)} kt travers${cote(c.trav)}` + (cg ? `<br>rafales ${Math.abs(cg.trav)} kt travers` : '');
+    return `<div class="qfu${conseilles.has(n) ? ' co' : c.face < 0 ? ' arr' : ''}"><span class="n">${n}</span><div><b>${t1}</b><small>${t2}</small></div></div>`;
   }).join('');
   const avant = $('vent').querySelector('.qfus')?.innerHTML;
   $('vent').innerHTML = `<div class="vd"><div class="t"><span>${gauche}</span>${droite}</div>${sous}${s}</div><div class="qfus">${qfus}</div>`;
@@ -657,11 +654,9 @@ function ventBloc() {
   } else coneAng = null;
   // Valeurs et cartes des pistes : fondu léger quand elles changent
   if (avant != null && avant !== qfus) $('vent').classList.add('maj'), setTimeout(() => $('vent').classList.remove('maj'), 900);
-  try { alertes(); } catch { /* bandeau */ }
 }
 let coneAng: number | null = null;
 const TRAVERS_MAX = 22; // kt, limite de vent de travers du DR400
-let TRAVERS: { piste: string; kt: number }[] = [];
 
 function tafBloc() {
   const t = D?.taf;
@@ -921,7 +916,6 @@ function alertes() {
   const snow = (D.notam?.notam ?? []).filter((x) => x.snow);
   const plus = (l: unknown[]) => (l.length > 1 ? ` (+${l.length - 1})` : '');
   const h: string[] = [];
-  if (TRAVERS.length) h.push(`<div class="al a-on"><b>Vent de travers fort</b><span>${TRAVERS.map((x) => `${x.kt} kt sur ${x.piste}`).join(' · ')} · limite DR400 ${TRAVERS_MAX} kt</span></div>`);
   if (snow.length) h.push(`<div class="al a-on"><b>SNOWTAM en vigueur</b><span>état des pistes publié · voir NOTAM</span></div>`);
   if (enCours.length) h.push(`<div class="al a-on"><b>Alerte météo en cours</b><span>${esc(enCours[0].motif || 'MAA')}${enCours[0].fin ? ` jusqu’à ${t(enCours[0].fin)} UTC` : ''}${plus(enCours)}</span></div>`);
   else if (aVenir.length) h.push(`<div class="al a-av"><b>Alerte météo à venir</b><span>${esc(aVenir[0].motif || 'MAA')} dès ${t(aVenir[0].debut)} UTC${plus(aVenir)}</span></div>`);
