@@ -48,17 +48,17 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
       <div class="panel vent-p"><h2>Vent et pistes <span class="r" id="vent-info"></span></h2><div id="vent"></div></div>
       <div class="col">
         <div class="panel taf-p" id="taf"></div>
-        <div class="panel vigi-p" hidden><h2>Vigilance Météo-France <span class="r">Oise et voisins</span></h2><div id="vigi"></div></div>
       </div>
     </section>
 
-    <!-- 5. Cartes aéro : TEMSI, WINTEM, vents en altitude, METAR des terrains voisins -->
+    <!-- 5. Cartes aéro : TEMSI, WINTEM, vents en altitude, METAR des terrains voisins, vigilance Météo-France -->
     <section class="ecran ec" data-e="4">
       <div class="panel carte-aero"><h2>TEMSI France <span class="r" id="temsi-h"></span></h2><div class="ca-img" id="temsi"></div></div>
       <div class="panel carte-aero"><h2>WINTEM <span class="r" id="wintem-h"></span></h2><div class="ca-img" id="wintem"></div></div>
       <div class="col">
         <div class="panel alt-p"><h2>Vents en altitude LFOB <span class="r">kt · prévision Météo-France</span></h2><div id="altitude"></div></div>
         <div class="panel voisins-p"><h2>METAR voisins <span class="r" id="voisins-h"></span></h2><div id="voisins"></div></div>
+        <div class="panel vigi-p" hidden><h2>Vigilance Météo-France <span class="r">Oise et voisins</span></h2><div id="vigi"></div></div>
       </div>
     </section>
 
