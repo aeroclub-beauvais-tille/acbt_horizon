@@ -935,28 +935,38 @@ async function charger() {
   dessiner();
 }
 
-// Fermeture de l'aire de trafic aviation légère (NOTAM « LIGHT AVIATION APRON CLSD ») : le club ne peut pas voler
+// Fermetures par NOTAM affichées en bandeau sous l'en-tête, sur tous les écrans :
+// aire de trafic aviation légère (« LIGHT AVIATION APRON CLSD » : le club ne peut pas voler) et pistes (« RWY 04/22 CLSD »)
 const AAL = /LIGHT\s+AVIATION\s+APRON\b[^.]*\b(CLSD|CLOSED)\b/;
-function fermetureAAL() {
+const RWY = /\b(?:RWY|RUNWAY)\s+(\d{2}[LRC]?(?:\s*\/\s*\d{2}[LRC]?)?)\b[^.]{0,60}?\b(?:CLSD|CLOSED)\b/g;
+type Fermeture = { ref: string; enCours: boolean; debut: string; fin: string; aal: boolean; piste?: string; t: string };
+function fermetures(): Fermeture[] {
   const n = Date.now();
-  const l = (D?.notam?.notam ?? []).filter((x) => AAL.test(x.texte) && (!x.fin || !/^\d{4}-/.test(x.fin) || Date.parse(x.fin) > n))
-    .sort((a, b) => String(a.debut).localeCompare(String(b.debut)));
-  if (!l.length) return null;
-  const x = l[0];
-  const enCours = !x.debut || Date.parse(x.debut) <= n;
   const jl = (iso: string | null) => { if (!iso || !/^\d{4}-/.test(iso)) return 'nouvel ordre'; const d = new Date(iso); return `${d.toLocaleDateString('fr-FR', { weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'Europe/Paris' }).replace('.', '')} ${heureLocale(d).replace(':', 'h')}`; };
-  return { ref: x.numero, enCours, debut: jl(x.debut), fin: jl(x.fin) };
+  const out: Fermeture[] = [];
+  for (const x of D?.notam?.notam ?? []) {
+    if (x.fin && /^\d{4}-/.test(x.fin) && Date.parse(x.fin) <= n) continue;
+    const base = { ref: x.numero, enCours: !x.debut || Date.parse(x.debut) <= n, debut: jl(x.debut), fin: jl(x.fin), t: String(x.debut ?? '') };
+    if (AAL.test(x.texte)) out.push({ ...base, aal: true });
+    const pistes = new Set<string>();
+    for (const m of String(x.texte).matchAll(RWY)) pistes.add(m[1].replace(/\s+/g, ''));
+    for (const piste of pistes) out.push({ ...base, aal: false, piste });
+  }
+  // L'aire aviation légère d'abord, puis les fermetures en cours, puis par date de début
+  return out.sort((a, b) => Number(b.aal) - Number(a.aal) || Number(b.enCours) - Number(a.enCours) || a.t.localeCompare(b.t));
 }
 const PANNEAU = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M5.3 5.3l13.4 13.4"/></svg>';
-// Bandeau rouge sous l'en-tête, sur tous les écrans (orange tant que la fermeture est seulement prévue)
+// Rouge si la fermeture est en cours, orange tant qu'elle est seulement prévue (au plus 2 bandeaux)
 function alerteAAL() {
-  const f = fermetureAAL();
+  const l = fermetures().slice(0, 2);
   const sc = $('scene'), band = $('aal');
-  if (!f) { band.hidden = true; sc.classList.remove('avec-aal'); return; }
-  const titre = f.enCours ? 'Vols impossibles : aire aviation légère fermée' : 'Fermeture prévue de l’aire aviation légère';
-  const quand = f.enCours ? `jusqu’au ${f.fin}` : `du ${f.debut} au ${f.fin}`;
-  band.className = f.enCours ? 'on' : 'av';
-  band.innerHTML = `<i>${PANNEAU}</i><div><b>${titre}</b><span>${quand} (heure locale)</span></div><em>NOTAM ${esc(f.ref)}</em>`;
+  if (!l.length) { band.hidden = true; band.innerHTML = ''; sc.classList.remove('avec-aal'); return; }
+  band.innerHTML = l.map((f) => {
+    const titre = f.aal ? (f.enCours ? 'Vols impossibles : aire aviation légère fermée' : 'Fermeture prévue de l’aire aviation légère')
+      : (f.enCours ? `Piste ${f.piste} fermée` : `Fermeture prévue de la piste ${f.piste}`);
+    const quand = f.enCours ? `jusqu’au ${f.fin}` : `du ${f.debut} au ${f.fin}`;
+    return `<div class="fz ${f.enCours ? 'on' : 'prevu'}"><i>${PANNEAU}</i><div><b>${esc(titre)}</b><span>${quand} (heure locale)</span></div><em>NOTAM ${esc(f.ref)}</em></div>`;
+  }).join('');
   band.hidden = false; sc.classList.add('avec-aal');
 }
 
