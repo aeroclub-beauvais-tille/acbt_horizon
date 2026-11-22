@@ -331,7 +331,7 @@ function reservations() {
     for (const v of a.volsJour ?? []) {
       const fin = v.fin ? mins(v.fin, auj) : now;
       const dur = Math.max(0, fin - mins(v.debut, auj));
-      const t = v.fin ? `${agH(v.debut)} – ${agH(v.fin)} · ${Math.floor(dur / 60)}h${p2(dur % 60)}` : `en vol depuis ${agH(v.debut)}`;
+      const t = v.fin ? (dur < 60 ? `${dur} min` : `${Math.floor(dur / 60)} h ${p2(dur % 60)}`) : 'en vol';
       b += `<div class="reel${v.fin ? '' : ' ouvert'}" style="left:${P(mins(v.debut, auj))}%;width:${Math.max(0.4, P(fin) - P(mins(v.debut, auj)))}%"><span>${t}</span></div>`;
     }
     html += `<div class="lab"><b>${esc(a.immat)}</b><small>${esc(modeles[a.immat] || '')}</small></div><div class="trk" style="height:${hA}px">${fond()}${b}</div>`;
