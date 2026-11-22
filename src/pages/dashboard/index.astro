@@ -1,6 +1,6 @@
 ---
 // Tableau de bord TV du club (acbt60.fr/dashboard), protégé par mot de passe (middleware Cloudflare).
-// Quatre écrans en alternance : Accueil, Réservations, Météo, Radar et satellite. Données rafraîchies chaque minute.
+// Six écrans en alternance : Accueil, Flotte, Réservations, Météo, TEMSI/WINTEM, Radar et satellite. Données rafraîchies chaque minute.
 import Dashboard from '../../layouts/Dashboard.astro';
 import Logo from '../../components/Logo.astro';
 import { getCollection } from 'astro:content';
@@ -16,26 +16,31 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
       <div class="clock"><span class="h" data-h="local"></span><span class="cu"><span class="u"><span data-h="utc"></span> UTC</span><span class="d" data-h="date"></span></span></div>
     </header>
 
-    <!-- 1. Accueil -->
+    <!-- 1. Accueil : soleil, messages du club, NOTAM -->
     <section class="ecran e1" data-e="0">
       <div class="panel" id="soleil"></div>
-      <div class="panel flotte">
-        <h2>Flotte <span class="r">potentiel avant visite · vert &gt; 5 h · orange 2 à 5 h · rouge &lt; 2 h</span></h2>
-        <div class="cartes" id="cartes"></div>
-      </div>
       <div class="r3">
-        <div class="panel"><h2>Activité des avions <span class="r">heures locales</span></h2><div id="activite"></div></div>
+        <div class="panel msg-p"><h2>Messages du club <span class="r" id="msg-info"></span></h2><div id="messages"></div></div>
         <div class="panel"><h2>NOTAM LFOB <span class="r" id="notam-info"></span></h2><div id="notam" class="nl"></div></div>
       </div>
     </section>
 
+    <!-- 2. Flotte : potentiels et activité -->
+    <section class="ecran ef" data-e="1">
+      <div class="panel flotte">
+        <h2>Flotte <span class="r">potentiel avant visite · vert &gt; 5 h · orange 2 à 5 h · rouge &lt; 2 h</span></h2>
+        <div class="cartes" id="cartes"></div>
+      </div>
+      <div class="panel act-p"><h2>Activité des avions <span class="r">heures locales</span></h2><div id="activite"></div></div>
+    </section>
+
     <!-- 2. Réservations -->
-    <section class="ecran e2" data-e="1">
+    <section class="ecran e2" data-e="2">
       <div class="panel"><h2>Planning du jour <span class="r" id="tl-info"></span></h2><div id="timeline"></div></div>
     </section>
 
     <!-- 3. Météo -->
-    <section class="ecran e3" data-e="2">
+    <section class="ecran e3" data-e="3">
       <div class="col">
         <div class="panel metar-p" id="metar"></div>
         <div class="panel maa-p"><h2>MAA LFOB <span class="r" id="maa-info"></span></h2><div id="maa"></div></div>
@@ -47,8 +52,18 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
       </div>
     </section>
 
+    <!-- 5. Cartes aéro : TEMSI, WINTEM, vents en altitude, METAR des terrains voisins -->
+    <section class="ecran ec" data-e="4">
+      <div class="panel carte-aero"><h2>TEMSI France <span class="r" id="temsi-h"></span></h2><div class="ca-img" id="temsi"></div></div>
+      <div class="panel carte-aero"><h2>WINTEM <span class="r" id="wintem-h"></span></h2><div class="ca-img" id="wintem"></div></div>
+      <div class="col">
+        <div class="panel alt-p"><h2>Vents en altitude LFOB <span class="r">kt · prévision Météo-France</span></h2><div id="altitude"></div></div>
+        <div class="panel voisins-p"><h2>METAR voisins <span class="r" id="voisins-h"></span></h2><div id="voisins"></div></div>
+      </div>
+    </section>
+
     <!-- 4. Radar et satellite -->
-    <section class="ecran e4" data-e="3">
+    <section class="ecran e4" data-e="5">
       <div class="panel img-p">
         <div class="img-t"><b>Satellite</b><span>visible le jour, infrarouge la nuit · EUMETSAT (MTG)</span><em id="sat-h"></em></div>
         <div class="carte" id="sat"></div>
@@ -68,9 +83,11 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
 
     <nav class="points" id="points" aria-label="Écrans">
       <button data-e="0" aria-label="Accueil"><i></i></button>
-      <button data-e="1" aria-label="Réservations"><i></i></button>
-      <button data-e="2" aria-label="Météo"><i></i></button>
-      <button data-e="3" aria-label="Radar et satellite"><i></i></button>
+      <button data-e="1" aria-label="Flotte"><i></i></button>
+      <button data-e="2" aria-label="Réservations"><i></i></button>
+      <button data-e="3" aria-label="Météo"><i></i></button>
+      <button data-e="4" aria-label="TEMSI et WINTEM"><i></i></button>
+      <button data-e="5" aria-label="Radar et satellite"><i></i></button>
     </nav>
     <button type="button" class="pe-ecran" id="plein-ecran" aria-label="Plein écran" title="Plein écran">
       <svg class="ouvrir" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
@@ -126,8 +143,45 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .p-ok { background: var(--okbg); color: var(--ok); } .p-bad { background: var(--badbg); color: var(--bad); } .p-busy { background: rgba(143,166,255,.16); color: var(--accent); } .p-vol { background: rgba(64,201,127,.2); color: var(--ok); }
 
   /* 1. Accueil */
-  .e1 { grid-template-rows: auto auto 1fr; }
-  .e1 .r3 { display: grid; grid-template-columns: 1.45fr 1fr; gap: 18px; min-height: 0; }
+  .e1 { grid-template-rows: auto 1fr; }
+  .e1 .r3 { display: grid; grid-template-columns: 1fr 1.7fr; gap: 18px; min-height: 0; }
+  .e1 .r3 > .panel { display: flex; flex-direction: column; }
+  /* Messages du club (publiés depuis l'espace membre par l'admin) */
+  #messages { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+  .mc { position: relative; border-radius: 12px; padding: 14px 18px 14px 20px; background: linear-gradient(90deg, rgba(143,166,255,.16), transparent 95%); overflow: hidden; }
+  .mc::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--accent); }
+  .mc.imp { background: linear-gradient(90deg, rgba(255,184,31,.22), transparent 95%); } .mc.imp::before { background: var(--yellow); }
+  .mc b { display: block; font-size: 21px; font-weight: 800; line-height: 1.2; }
+  .mc p { margin: 6px 0 0; font-size: 17px; font-weight: 600; line-height: 1.35; color: var(--ink2); }
+  .mc small { display: block; margin-top: 8px; font-size: 13.5px; font-weight: 700; color: var(--muted); }
+  /* 2. Flotte */
+  .ef { grid-template-rows: auto 1fr; }
+  .ef .act-p { display: flex; flex-direction: column; }
+  .ef .cartes .av { padding: 16px 14px 14px; gap: 10px; }
+  .ef .ring { width: 150px; height: 150px; } .ef .ring b { font-size: 32px; } .ef .ring small { font-size: 14px; }
+  .ef .act .ar { max-height: 76px; grid-template-columns: 210px minmax(0, 1fr) minmax(0, 1fr); }
+  .ef .act .im { font-size: 24px; } .ef .act .et { font-size: 15px; } .ef .act .et::before { width: 10px; height: 10px; }
+  .ef .act .ac b { font-size: 22px; } .ef .act .ac small { font-size: 15.5px; }
+  /* 5. TEMSI / WINTEM */
+  .ec { grid-template-columns: 1fr 1fr 520px; }
+  .ec .col { display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+  .carte-aero { display: flex; flex-direction: column; }
+  .ca-img { flex: 1; min-height: 0; border-radius: 12px; background: var(--panel2); display: grid; place-items: center; overflow: hidden; }
+  .ca-img img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+  .ca-vide { text-align: center; color: var(--muted); font-weight: 700; font-size: 17px; line-height: 1.5; padding: 30px; }
+  .ca-vide svg { width: 64px; height: 64px; display: block; margin: 0 auto 14px; opacity: .5; }
+  .ca-fl { display: flex; gap: 8px; margin-bottom: 10px; } .ca-fl span { font-family: var(--mono); font-weight: 700; font-size: 15px; padding: 3px 10px; border-radius: 7px; background: var(--panel2); color: var(--muted); } .ca-fl span.on { background: var(--accent); color: #fff; }
+  .alt { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  .alt th { font-size: 12.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); text-align: left; padding: 0 6px 6px; }
+  .alt td { padding: 8px 6px; border-top: 1px solid var(--line); font-size: 17px; font-weight: 700; white-space: nowrap; }
+  .alt td:first-child { font-family: var(--mono); color: var(--ink); font-size: 16px; }
+  .alt .fl { display: inline-block; width: 18px; height: 18px; vertical-align: -3px; margin-right: 6px; color: var(--accent); }
+  .alt .t { color: var(--muted); font-weight: 600; }
+  .voisins-p { flex: 1; display: flex; flex-direction: column; }
+  #voisins { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+  .mv { font-family: var(--mono); font-size: 14.5px; line-height: 1.35; color: var(--ink2); padding: 7px 10px 7px 12px; border-radius: 8px; background: var(--panel2); border-left: 4px solid var(--k, var(--muted)); }
+  .mv b { color: var(--ink); } .mv .nm { font-family: var(--sans, inherit); font-weight: 700; color: var(--muted); font-size: 12.5px; margin-left: 6px; }
+  .mv.VFR { --k: var(--ok); } .mv.MVFR { --k: var(--accent); } .mv.IFR { --k: var(--bad); } .mv.LIFR { --k: #c050ff; }
   .sf { position: relative; height: 40px; border-radius: 9px; overflow: hidden; background: var(--panel2); }
   .sf .seg { position: absolute; top: 0; bottom: 0; }
   .sf .civ { background: linear-gradient(90deg, var(--civ1), var(--civ2)); } .sf .civ2 { background: linear-gradient(90deg, var(--civ2), var(--civ1)); }
@@ -167,7 +221,6 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .ring div { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
   .ring b { font-weight: 800; line-height: 1; font-size: 22px; } .ring small { color: var(--muted); font-weight: 700; margin-top: 4px; font-size: 12px; }
   .ring.warn b { color: var(--warn); } .ring.bad b { color: var(--bad); }
-  .e1 .r3 > .panel:first-child { display: flex; flex-direction: column; }
   #activite { flex: 1; min-height: 0; }
   /* Activité des avions : état sous l'immat (point de couleur), cases liseré + dégradé comme l'onglet Flotte de l'espace membre */
   .act { height: 100%; display: flex; flex-direction: column; gap: 5px; }
@@ -205,7 +258,6 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   #vent.maj .vd .t, #vent.maj .qfus { animation: fondu .9s ease; }
   @keyframes fondu { 0% { opacity: .25; } 100% { opacity: 1; } }
   .nl b { font-size: 16.5px; font-weight: 700; display: block; }
-  .e1 .r3 > .panel:last-child { display: flex; flex-direction: column; }
   #notam { padding: 0 3px; flex: 1; min-height: 0; overflow: hidden; position: relative; -webkit-mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); }
   #notam .def { animation: defile var(--duree, 60s) linear infinite; }
   @keyframes defile { from { transform: translateY(0); } to { transform: translateY(-50%); } }

@@ -32,6 +32,10 @@ interface Donnees {
   historique: Histo[] | null;
   vigilance?: { maj: string | null; departements: { id: string; nom: string; couleur: number; phenomenes: { phenomene: string; couleur: number; debut: string; fin: string }[] }[] } | null;
   meteofrance?: boolean; meteofranceExpire?: string | null;
+  messages?: { id: number; titre: string; texte?: string; auteur?: string; date: string; important?: boolean }[] | null;
+  voisins?: { id: string; nom: string; raw: string; obs?: string }[] | null;
+  altitude?: { heures: string[]; niveaux: { nom: string; dir: number[]; ff: number[]; t: number[] }[] } | null;
+  cartes?: { temsi?: { url: string; validite: string } | null; wintem?: { fl: string; url: string; validite: string }[] | null; raison?: string } | null;
 }
 
 /* ------------------------------------------------------------------ */
@@ -258,6 +262,20 @@ function defiler(boite: HTMLElement) {
 
 function accueil() {
   soleil();
+  messagesClub();
+  notams();
+}
+
+// Messages du club : publiés depuis l'espace membre (admin), les plus récents d'abord, « important » en jaune
+function messagesClub() {
+  const l = D?.messages ?? [];
+  $('msg-info').textContent = l.length ? `${l.length} message${l.length > 1 ? 's' : ''}` : '';
+  if (!l.length) { $('messages').innerHTML = '<p class="vide">Aucun message du club pour le moment.</p>'; return; }
+  const quand = (iso: string) => { const d = new Date(iso); const j = jourParis(d); return `${j === jourParis(new Date()) ? 'Aujourd’hui' : jourTxt(j)} · ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}`; };
+  $('messages').innerHTML = l.map((m) => `<div class="mc${m.important ? ' imp' : ''}"><b>${esc(m.titre)}</b>${m.texte ? `<p>${esc(m.texte)}</p>` : ''}<small>${[m.auteur, quand(m.date)].filter(Boolean).map(esc).join(' · ')}</small></div>`).join('');
+}
+
+function flotteEcran() {
   const av = D?.flotte?.avions;
   const c = $('cartes');
   if (!av?.length) { c.innerHTML = '<p class="vide">Données Aerogest indisponibles pour le moment.</p>'; $('activite').innerHTML = ''; }
@@ -270,7 +288,53 @@ function accueil() {
     const act = $('activite').firstElementChild as HTMLElement | null;
     if (act) act.style.gridTemplateRows = `auto repeat(${l.length}, minmax(0, 1fr))`;
   }
-  notams();
+}
+
+/* ------------------------------------------------------------------ */
+/* 5. Cartes aéro : TEMSI, WINTEM, vents en altitude, METAR voisins     */
+/* ------------------------------------------------------------------ */
+const CARTE_IC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>';
+let flWintem = 0;
+function cartesAero() {
+  const c = D?.cartes;
+  const vide = (t: string) => `<div class="ca-vide">${CARTE_IC}${t}</div>`;
+  const attente = 'En attente du code d’accès Aéroweb<br>(serveur de données Météo-France)';
+  if (c?.temsi) { $('temsi').innerHTML = `<img src="${esc(c.temsi.url)}" alt="TEMSI France">`; $('temsi-h').textContent = `valide ${c.temsi.validite}`; }
+  else { $('temsi').innerHTML = vide(attente); $('temsi-h').textContent = 'surface → FL150'; }
+  const w = c?.wintem ?? [];
+  if (w.length) {
+    const x = w[flWintem % w.length];
+    $('wintem').innerHTML = `<div class="ca-fl">${w.map((y, i) => `<span class="${i === flWintem % w.length ? 'on' : ''}">FL${esc(y.fl)}</span>`).join('')}</div><img src="${esc(x.url)}" alt="WINTEM FL${esc(x.fl)}">`;
+    $('wintem-h').textContent = `valide ${x.validite}`;
+  } else { $('wintem').innerHTML = vide(attente); $('wintem-h').textContent = 'vent et température · FL020 à FL100'; }
+  altitude();
+  voisins();
+}
+
+function altitude() {
+  const a = D?.altitude;
+  if (!a?.niveaux?.length) { $('altitude').innerHTML = '<p class="vide">Prévision indisponible pour le moment.</p>'; return; }
+  const fleche = (d: number) => `<svg class="fl" viewBox="0 0 24 24" style="transform:rotate(${d}deg)"><path d="M12 3v16M6 13l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const h = a.heures.map((t) => `${t.slice(11, 13)} h UTC`);
+  let o = `<table class="alt"><tr><th>Niveau</th>${h.map((x) => `<th>${x}</th>`).join('')}</tr>`;
+  for (const n of a.niveaux) o += `<tr><td>${esc(n.nom)}</td>${n.dir.map((d, i) => `<td>${fleche(d)}${p2(Math.round(d / 10) * 10).padStart(3, '0')}/${Math.round(n.ff[i])} <span class="t">${n.t[i] > 0 ? '+' : ''}${Math.round(n.t[i])}°</span></td>`).join('')}</tr>`;
+  $('altitude').innerHTML = o + '</table>';
+}
+
+// Catégorie de vol à partir du METAR brut : visibilité et plafond (BKN/OVC/VV)
+function categorie(raw: string) {
+  const cavok = /\bCAVOK\b/.test(raw);
+  const v = cavok ? 9999 : Number(raw.match(/\s(\d{4})(?:NDV)?\s/)?.[1] ?? 9999);
+  const pl = [...raw.matchAll(/\b(?:BKN|OVC|VV)(\d{3})/g)].map((m) => Number(m[1]) * 100);
+  const c = pl.length ? Math.min(...pl) : 99999;
+  return c < 500 || v < 1500 ? 'LIFR' : c < 1000 || v < 5000 ? 'IFR' : c <= 3000 || v <= 8000 ? 'MVFR' : 'VFR';
+}
+
+function voisins() {
+  const l = D?.voisins ?? [];
+  if (!l.length) { $('voisins').innerHTML = '<p class="vide">METAR indisponibles pour le moment.</p>'; $('voisins-h').textContent = ''; return; }
+  $('voisins-h').textContent = 'bruts · vert VFR · bleu MVFR · rouge IFR';
+  $('voisins').innerHTML = l.map((m) => { const r = m.raw.replace(/^(METAR|SPECI)\s+/, ''); const [id, ...reste] = r.split(' '); return `<div class="mv ${categorie(r)}"><b>${esc(id)}</b><span class="nm">${esc(m.nom)}</span><br>${esc(reste.join(' '))}</div>`; }).join('');
 }
 
 /* ------------------------------------------------------------------ */
@@ -748,7 +812,7 @@ function alertes() {
 }
 
 function dessiner() {
-  for (const f of [alertes, accueil, reservations, meteo]) { try { f(); } catch (e) { console.error(e); } }
+  for (const f of [alertes, accueil, flotteEcran, reservations, meteo, cartesAero]) { try { f(); } catch (e) { console.error(e); } }
   majPied();
 }
 
@@ -763,9 +827,10 @@ function majPied() {
   $('maj').textContent = (s > 180 ? `Hors ligne · dernières données de ${t}` : `Actualisé il y a ${s < 60 ? `${s} s` : `${Math.floor(s / 60)} min`} · Aerogest, AVWX, Météo-France (MAA), FAA (NOTAM)`) + alerte;
 }
 
-const DUREES = [30, 20, 25, 20]; // secondes par écran
+const DUREES = [40, 25, 20, 25, 25, 20]; // secondes par écran (accueil plus long pour lire les NOTAM)
+const NB = DUREES.length;
 let ecran = 0, debutEcran = Date.now(), pauseJusqua = 0;
-const fige = (() => { const e = Number(new URLSearchParams(location.search).get('ecran')); return e >= 1 && e <= 4 ? e - 1 : null; })();
+const fige = (() => { const e = Number(new URLSearchParams(location.search).get('ecran')); return e >= 1 && e <= NB ? e - 1 : null; })();
 
 function montrer(i: number) {
   ecran = i;
@@ -775,7 +840,8 @@ function montrer(i: number) {
   const s = $('scene');
   s.className = `s${i}`;
   if (i === 0 && !$('notam').dataset.ok) defileNotam();
-  if (i === 2 && !$('maa').dataset.ok) defiler($('maa'));
+  if (i === 3 && !$('maa').dataset.ok) defiler($('maa'));
+  if (i === 4) { flWintem++; cartesAero(); }
 }
 
 function tic() {
@@ -784,7 +850,7 @@ function tic() {
   const ecoule = (Date.now() - debutEcran) / 1000;
   const b = document.querySelector<HTMLElement>('#points button.on');
   if (b) b.style.setProperty('--p', auto ? String(Math.min(1, ecoule / DUREES[ecran])) : '1');
-  if (auto && ecoule >= DUREES[ecran]) montrer((ecran + 1) % 4);
+  if (auto && ecoule >= DUREES[ecran]) montrer((ecran + 1) % NB);
   majPied();
 }
 
