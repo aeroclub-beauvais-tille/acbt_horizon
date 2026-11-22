@@ -258,7 +258,9 @@ function defiler(boite: HTMLElement) {
   if (!html || !boite.offsetParent) { delete boite.dataset.ok; return; }
   boite.innerHTML = `<div>${html}</div>`;
   const h = (boite.firstElementChild as HTMLElement).offsetHeight;
-  if (h > boite.clientHeight) boite.innerHTML = `<div class="def" style="--duree:${Math.round(h / 25)}s"><div style="padding-bottom:24px">${html}</div><div style="padding-bottom:24px">${html}</div></div>`;
+  // Liste en boucle : un repère « retour au début » marque la jonction entre la fin et le début
+  const fin = '<div class="boucle"><span>retour au début</span></div>';
+  if (h > boite.clientHeight) boite.innerHTML = `<div class="def" style="--duree:${Math.round(h / 25)}s"><div>${html}${fin}</div><div>${html}${fin}</div></div>`;
   boite.dataset.ok = '1';
 }
 
@@ -667,20 +669,34 @@ function tafBloc() {
   const lbl = (d: Date) => `${jr(d)} ${p2(d.getUTCHours())}h${d.getUTCMinutes() ? p2(d.getUTCMinutes()) : ''}`;
   const TYPES: Record<string, string> = { FROM: 'À partir de (FM)', BECMG: 'Évolution (BECMG)', TEMPO: 'Temporaire (TEMPO)', INTER: 'Intermittent (INTER)', PROB: 'Probabilité' };
   const h = utc(t.heure);
-  const on = (p: Periode) => { const d = utc(p.debut), f = utc(p.fin); return !!(d && f && d <= n && n < f); };
+  // Heures écrites dans le message (« 2309/2312 ») : AVWX décale celles des BECMG (fin de transition → changement suivant)
+  const jjhh = (j: number, hh: number) => {
+    let best: Date | null = null;
+    for (const dm of [-1, 0, 1]) {
+      const x = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + dm, j, hh));
+      if (x.getUTCDate() !== j && hh !== 24) continue;
+      if (!best || Math.abs(x.getTime() - n.getTime()) < Math.abs(best.getTime() - n.getTime())) best = x;
+    }
+    return best;
+  };
+  const fen = (p: Periode): [Date | null, Date | null] => {
+    const m = p.raw.match(/\b(\d{2})(\d{2})\/(\d{2})(\d{2})\b/);
+    return m ? [jjhh(+m[1], +m[2]), jjhh(+m[3], +m[4])] : [utc(p.debut), utc(p.fin)];
+  };
+  const on = (p: Periode) => { let d = utc(p.debut), f = utc(p.fin); if (!(d && f && f > d)) [d, f] = fen(p); return !!(d && f && d <= n && n < f); };
   const carte = (p: Periode, i: number) => {
-    const d = utc(p.debut), f = utc(p.fin);
-    const on = d && f && d <= n && n < f;
+    const [d, f] = i === 0 ? [utc(p.debut), utc(p.fin)] : fen(p);
+    const actif = on(p);
     let ty = i === 0 ? 'Période de base' : TYPES[p.type] ?? p.type;
     if (p.probabilite) ty = `Probabilité ${p.probabilite} %${p.type === 'TEMPO' ? ' · temporaire' : ''}`;
     const code = i === 0 ? '' : p.raw;
-    return `<div class="per${on ? ' on' : ''}"><div class="q"><b>${d ? lbl(d) : ''} → ${f ? lbl(f).replace(/^(Auj\.|Dem\.)/, (x) => x.toLowerCase()) : ''}</b><small>${esc(ty)}${on ? ' · en cours' : ''}</small></div>${fr(p.regles)}<div class="d">${esc(decrire(p))}${code ? `<code>${esc(code)}</code>` : ''}</div></div>`;
+    return `<div class="per${actif ? ' on' : ''}"><div class="q"><b>${d ? lbl(d) : ''} → ${f ? lbl(f).replace(/^(Auj\.|Dem\.)/, (x) => x.toLowerCase()) : ''}</b><small>${esc(ty)}${actif ? ' · en cours' : ''}</small></div>${fr(p.regles)}<div class="d">${esc(decrire(p))}${code ? `<code>${esc(code)}</code>` : ''}</div></div>`;
   };
   // Les périodes en cours restent fixes en haut ; les autres (à venir) défilent en dessous si besoin
   const enCours = t.periodes.map((p, i) => (on(p) ? carte(p, i) : '')).join('');
   // À venir : dans l'ordre chronologique de début (le TAF les donne par type, pas toujours dans l'ordre des heures)
   const per = t.periodes.map((p, i) => ({ p, i })).filter(({ p }) => !on(p))
-    .sort((x, y) => (Date.parse(x.p.debut || '') || 0) - (Date.parse(y.p.debut || '') || 0) || x.i - y.i).map(({ p, i }) => carte(p, i)).join('');
+    .sort((x, y) => (fen(x.p)[0]?.getTime() ?? 0) - (fen(y.p)[0]?.getTime() ?? 0) || x.i - y.i).map(({ p, i }) => carte(p, i)).join('');
   // Températures maximale et minimale prévues (TX / TN)
   const tx = [...t.raw.matchAll(/\b(TX|TN)(M?)(\d{2})\/(\d{2})(\d{2})Z\b/g)].map((m) => `${m[1] === 'TX' ? 'Max.' : 'Min.'} ${m[2] ? '-' : ''}${Number(m[3])} °C le ${Number(m[4])} à ${m[5]}h UTC`);
   const amd = /^(TAF\s+)?AMD\b/.test(t.raw) || /\bTAF AMD\b/.test(t.raw);
