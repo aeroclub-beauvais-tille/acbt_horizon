@@ -135,6 +135,7 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch, optio
 
 // Planning des instructeurs (même format que celui des avions) : une ligne par instructeur,
 // avec ses créneaux (réservations où il vole, et créneaux posés à part : présences ou absences).
+const FONDS_NUIT = new Set(['#39c2ff', '#11719c']);
 function lireInstructeurs(plannings) {
   const parNom = new Map();
   for (const p of plannings) {
@@ -149,6 +150,12 @@ function lireInstructeurs(plannings) {
       };
       for (const s of l.sublignes || []) for (const r of s.reservations || []) ajouter(r, false);
       for (const r of l.reservationsFlottantes || []) ajouter(r, true);
+      // Disponibilités posées par l'instructeur : Aerogest les dessine en fond de ligne (couleursFond),
+      // à côté des fonds bleus du lever/coucher du soleil et de la nuit aéronautique, qu'on ignore.
+      for (const c of l.couleursFond || []) {
+        if (!c?.color || FONDS_NUIT.has(String(c.color).toLowerCase())) continue;
+        i.creneaux.push({ id: null, debut: c.debut, fin: c.fin, texte: texte(c.content) || null, type: null, pilote: null, avion: null, flottant: true, couleur: c.color });
+      }
     }
   }
   return [...parNom.values()].map((i) => ({ ...i, creneaux: dedoublonner(i.creneaux).sort((a, b) => String(a.debut).localeCompare(String(b.debut))) }));
@@ -157,7 +164,7 @@ function lireInstructeurs(plannings) {
 // Aperçu de la structure brute (pour régler la lecture du planning instructeurs) : clés et premières valeurs seulement.
 function apercu(v, n = 0) {
   if (n > 5) return '…';
-  if (Array.isArray(v)) return v.slice(0, 3).map((x) => apercu(x, n + 1));
+  if (Array.isArray(v)) return v.slice(0, n < 3 ? 20 : 3).map((x) => apercu(x, n + 1));
   if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, apercu(x, n + 1)]));
   return typeof v === 'string' ? v.slice(0, 300) : v;
 }
