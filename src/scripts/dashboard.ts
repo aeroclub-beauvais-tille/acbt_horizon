@@ -290,9 +290,7 @@ function messagesClub() {
   $('msg-info').textContent = l.length ? `${l.length} message${l.length > 1 ? 's' : ''}` : '';
   // Sans message, le cadre disparaît et les NOTAM prennent toute la largeur
   const r3 = $('messages').closest('.r3') as HTMLElement;
-  // Un ou deux messages : ils passent en bandeau au-dessus des NOTAM, qui gagnent la place restante
-  const peu = l.length > 0 && l.length <= 2;
-  if (r3.classList.contains('sans-msg') !== !l.length || r3.classList.contains('peu-msg') !== peu) { r3.classList.toggle('sans-msg', !l.length); r3.classList.toggle('peu-msg', peu); delete $('notam').dataset.ok; if (ecran === 0) defileNotam(); }
+  if (r3.classList.contains('sans-msg') !== !l.length) { r3.classList.toggle('sans-msg', !l.length); delete $('notam').dataset.ok; if (ecran === 0) defileNotam(); }
   if (!l.length) { $('messages').innerHTML = ''; return; }
   const quand = (iso: string) => { const d = new Date(iso); const j = jourParis(d); return `${j === jourParis(new Date()) ? 'Aujourd’hui' : jourTxt(j)} · ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}`; };
   $('messages').innerHTML = l.map((m) => `<div class="mc${m.important ? ' imp' : ''}"><b>${esc(majuscule(m.titre))}</b>${m.texte ? `<p>${esc(majuscule(m.texte))}</p>` : ''}<small>${[m.auteur, quand(m.date)].filter(Boolean).map(esc).join(' · ')}</small></div>`).join('');

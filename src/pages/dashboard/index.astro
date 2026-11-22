@@ -143,9 +143,6 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .e1 .r3 { display: grid; grid-template-columns: 1fr 1.7fr; gap: 18px; min-height: 0; }
   .e1 .r3 > .panel { display: flex; flex-direction: column; }
   .e1 .r3.sans-msg { grid-template-columns: 1fr; } .e1 .r3.sans-msg .msg-p { display: none; }
-  /* 1 ou 2 messages : bandeau au-dessus des NOTAM, pas d'espace perdu */
-  .e1 .r3.peu-msg { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
-  .e1 .r3.peu-msg #messages { flex-direction: row; } .e1 .r3.peu-msg .mc { flex: 1; min-width: 0; }
   /* Messages du club (publiés depuis l'espace membre par l'admin) */
   #messages { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
   .mc { position: relative; border-radius: 12px; padding: 14px 18px 14px 20px; background: linear-gradient(90deg, rgba(143,166,255,.16), transparent 95%); overflow: hidden; }
