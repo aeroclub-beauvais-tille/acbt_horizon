@@ -1019,7 +1019,8 @@ function montrer(i: number) {
   document.querySelectorAll<HTMLElement>('.ecran').forEach((e) => e.classList.toggle('on', Number(e.dataset.e) === i));
   document.querySelectorAll<HTMLElement>('#points button').forEach((b) => b.classList.toggle('on', Number(b.dataset.e) === i));
   const s = $('scene');
-  s.className = `s${i}`;
+  // Ne remplace que la classe d'écran (s0…s5) : garder « avec-aal » (bandeau NOTAM)
+  for (let k = 0; k < NB; k++) s.classList.toggle(`s${k}`, k === i);
   // NOTAM : la liste repart du début à chaque affichage de l'accueil
   if (i === 0) defileNotam();
   if (i === 3 && !$('maa').dataset.ok) defiler($('maa'));
