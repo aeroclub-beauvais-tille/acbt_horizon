@@ -424,7 +424,9 @@ function reservations() {
     + (instr.some((i) => i.creneaux.some((c) => c.flottant)) ? '<span><i style="background:rgba(64,201,127,.4)"></i>Instructeur disponible</span>' : '') + '<span><i style="background:repeating-linear-gradient(135deg,rgba(143,166,255,.5) 0 3px,transparent 3px 6px)"></i>Nuit aéronautique</span><span><i style="width:3px;background:var(--warn)"></i>Limite jour / nuit aéro.</span></div>';
   $('timeline').innerHTML = avions.length ? html : '<p class="vide">Données Aerogest indisponibles pour le moment.</p>';
   const enCours = jour.filter((r) => mins(r.debut, auj) <= now && mins(r.fin, auj) > now).length;
-  $('tl-info').textContent = `${jour.length} vol${jour.length > 1 ? 's' : ''}${enCours ? ` · ${enCours} en cours` : ''} · heures locales · jour aéro. ${heureLocale(e.jourAero)} → ${heureLocale(e.nuitAero)}`;
+  // Vols du jour et leur durée totale (réservations Aerogest de la journée)
+  const total = jour.reduce((t, r) => t + Math.max(0, mins(r.fin, auj) - mins(r.debut, auj)), 0);
+  $('tl-info').textContent = `${jour.length} vol${jour.length > 1 ? 's' : ''} (${Math.floor(total / 60)}:${p2(total % 60)})${enCours ? ` · ${enCours} en cours` : ''} · heures locales`;
 
 }
 
