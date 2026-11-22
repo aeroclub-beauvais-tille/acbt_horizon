@@ -28,7 +28,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
     <!-- 2. Flotte : potentiels et activité -->
     <section class="ecran ef" data-e="1">
       <div class="panel flotte">
-        <h2>Flotte <span class="r">potentiel avant visite · vert &gt; 5 h · orange 2 à 5 h · rouge &lt; 2 h</span></h2>
+        <h2>Flotte <span class="r">potentiel avant visite <i class="lg c-ok"></i>&gt; 5 h <i class="lg c-warn"></i>2 à 5 h <i class="lg c-bad"></i>&lt; 2 h</span></h2>
         <div class="cartes" id="cartes"></div>
       </div>
       <div class="panel act-p"><h2>Activité des avions <span class="r">heures locales</span></h2><div id="activite"></div></div>
@@ -45,7 +45,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
       <div class="panel vent-p"><h2>Vent et pistes <span class="r" id="vent-info"></span></h2><div id="vent"></div></div>
       <div class="panel taf-p" id="taf"></div>
       <div class="panel maa-p"><h2>MAA LFOB <span class="r" id="maa-info"></span></h2><div id="maa"></div></div>
-      <div class="panel vigi-p" hidden><h2>Vigilance Météo-France <span class="r">Oise et voisins</span></h2><div id="vigi"></div></div>
+      <div class="panel vigi-p" hidden><h2>Vigilance Météo-France <span class="r">Oise et départements limitrophes</span></h2><div id="vigi"></div></div>
     </section>
 
     <!-- 5. Cartes aéro : TEMSI, WINTEM, vents en altitude, METAR des terrains voisins -->
@@ -143,6 +143,9 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .e1 .r3 { display: grid; grid-template-columns: 1fr 1.7fr; gap: 18px; min-height: 0; }
   .e1 .r3 > .panel { display: flex; flex-direction: column; }
   .e1 .r3.sans-msg { grid-template-columns: 1fr; } .e1 .r3.sans-msg .msg-p { display: none; }
+  /* 1 ou 2 messages : bandeau au-dessus des NOTAM, pas d'espace perdu */
+  .e1 .r3.peu-msg { grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); }
+  .e1 .r3.peu-msg #messages { flex-direction: row; } .e1 .r3.peu-msg .mc { flex: 1; min-width: 0; }
   /* Messages du club (publiés depuis l'espace membre par l'admin) */
   #messages { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
   .mc { position: relative; border-radius: 12px; padding: 14px 18px 14px 20px; background: linear-gradient(90deg, rgba(143,166,255,.16), transparent 95%); overflow: hidden; }
@@ -260,6 +263,10 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   #notam .def > div { padding-bottom: 0 !important; } #notam .def .n:last-child { border-bottom: 1px solid var(--line); }
   .boucle { display: flex; align-items: center; gap: 12px; margin: 14px 0; color: var(--muted); font-size: 12.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
   .boucle::before, .boucle::after { content: ''; flex: 1; height: 0; border-top: 2px dashed var(--line); }
+  .boucle.nu { display: block; height: 0; border-top: 2px solid var(--line); } .boucle.nu::before, .boucle.nu::after { content: none; }
+  /* Légende Flotte : pastilles de couleur */
+  .lg { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin: 0 5px 0 12px; vertical-align: 0; }
+  .lg.c-ok { background: var(--ok); } .lg.c-warn { background: var(--warn); } .lg.c-bad { background: var(--bad); }
   @keyframes defile { from { transform: translateY(0); } to { transform: translateY(-50%); } }
   .nl small { display: block; color: var(--muted); font-size: 14px; font-weight: 600; margin-top: 3px; }
 

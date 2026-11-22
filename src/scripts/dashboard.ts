@@ -252,14 +252,14 @@ function notams() {
   defileNotam();
 }
 // À faire quand l'écran est visible (sinon la hauteur mesurée est nulle)
-function defileNotam() { defiler($('notam')); }
-function defiler(boite: HTMLElement) {
+function defileNotam() { defiler($('notam'), false); }
+function defiler(boite: HTMLElement, repere = true) {
   const html = boite.dataset.html;
   if (!html || !boite.offsetParent) { delete boite.dataset.ok; return; }
   boite.innerHTML = `<div>${html}</div>`;
   const h = (boite.firstElementChild as HTMLElement).offsetHeight;
-  // Liste en boucle : un repère « retour au début » marque la jonction entre la fin et le début
-  const fin = '<div class="boucle"><span>retour au début</span></div>';
+  // Liste en boucle : un repère « retour au début » marque la jonction entre la fin et le début (NOTAM : un simple trait)
+  const fin = repere ? '<div class="boucle"><span>retour au début</span></div>' : '<div class="boucle nu"></div>';
   if (h > boite.clientHeight) boite.innerHTML = `<div class="def" style="--duree:${Math.round(h / 25)}s"><div>${html}${fin}</div><div>${html}${fin}</div></div>`;
   boite.dataset.ok = '1';
 }
@@ -276,7 +276,9 @@ function messagesClub() {
   $('msg-info').textContent = l.length ? `${l.length} message${l.length > 1 ? 's' : ''}` : '';
   // Sans message, le cadre disparaît et les NOTAM prennent toute la largeur
   const r3 = $('messages').closest('.r3') as HTMLElement;
-  if (r3.classList.contains('sans-msg') !== !l.length) { r3.classList.toggle('sans-msg', !l.length); delete $('notam').dataset.ok; if (ecran === 0) defileNotam(); }
+  // Un ou deux messages : ils passent en bandeau au-dessus des NOTAM, qui gagnent la place restante
+  const peu = l.length > 0 && l.length <= 2;
+  if (r3.classList.contains('sans-msg') !== !l.length || r3.classList.contains('peu-msg') !== peu) { r3.classList.toggle('sans-msg', !l.length); r3.classList.toggle('peu-msg', peu); delete $('notam').dataset.ok; if (ecran === 0) defileNotam(); }
   if (!l.length) { $('messages').innerHTML = ''; return; }
   const quand = (iso: string) => { const d = new Date(iso); const j = jourParis(d); return `${j === jourParis(new Date()) ? 'Aujourd’hui' : jourTxt(j)} · ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}`; };
   $('messages').innerHTML = l.map((m) => `<div class="mc${m.important ? ' imp' : ''}"><b>${esc(m.titre)}</b>${m.texte ? `<p>${esc(m.texte)}</p>` : ''}<small>${[m.auteur, quand(m.date)].filter(Boolean).map(esc).join(' · ')}</small></div>`).join('');
