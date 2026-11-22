@@ -565,28 +565,27 @@ export function soleil() {
     const el = zone.querySelector<HTMLElement>(`[data-soleil="${k}"]`);
     if (el) el.textContent = heureLocale(e[k]);
   });
-  // Compte à rebours et frise du jour aéronautique (du début du jour aéro à la nuit aéro)
-  const bas = zone.querySelector<HTMLElement>('[data-soleil-etat]');
-  if (bas) {
+  // Compte à rebours et frise des 24 h (heure de Paris) : nuit hachurée, jour aéro. encadré, soleil levé en plein
+  const tete = zone.querySelector<HTMLElement>('[data-soleil-etat]');
+  if (tete) {
     const t = Date.now(), d = e.jourAero.getTime(), f = e.nuitAero.getTime();
-    const q = (sel: string) => zone.querySelector<HTMLElement>(sel);
-    // Position sur la journée locale (00 h → 24 h, heure de Paris)
-    const minParis = (x: Date) => { const [h, m] = new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(x).split(':').map(Number); return h * 60 + m; };
-    const pc = (x: Date) => `${((minParis(x) / 1440) * 100).toFixed(2)}%`;
+    const q = (sel: string) => zone.querySelector<HTMLElement>(sel)!;
+    const minutes = (x: Date) => { const [h, m] = heureLocale(x).split(':').map(Number); return h * 60 + m; };
+    const pct = (x: Date) => `${(minutes(x) / 1440 * 100).toFixed(2)}%`;
+    const bloc = (el: HTMLElement, a: Date, b: Date) => { el.style.left = pct(a); el.style.width = `${((minutes(b) - minutes(a)) / 1440 * 100).toFixed(2)}%`; };
+    bloc(q('[data-soleil-a]'), e.jourAero, e.nuitAero);
+    bloc(q('[data-soleil-j]'), e.lever, e.coucher);
+    const maintenant = new Date(t);
+    q('[data-soleil-now]').style.left = pct(maintenant);
+    q('[data-soleil-h]').textContent = heureLocale(maintenant);
     const nuit = t >= f || t < d;
-    const etat = nuit ? 'nuit' : f - t <= 3600_000 ? 'proche' : 'jour';
-    bas.dataset.soleilEtat = etat;
+    tete.dataset.soleilEtat = nuit ? 'nuit' : f - t <= 3600_000 ? 'proche' : 'jour';
     const avant = (x: number) => { const r = Math.max(0, Math.floor((x - t) / 60000)); return `${Math.floor(r / 60)} h ${String(r % 60).padStart(2, '0')}`; };
-    const demain = t >= f ? ephemeride(new Date(t + 86400000)) : e;
-    q('[data-soleil-txt]')!.textContent = nuit ? 'Nuit aéronautique en cours' : 'Jour aéronautique en cours';
-    q('[data-soleil-val]')!.textContent = nuit
-      ? `jour aéro. ${demain ? `dans ${avant(demain.jourAero.getTime())}` : ''}`
+    const prochain = t >= f ? ephemeride(new Date(t + 86400000)) : e;
+    q('[data-soleil-txt]').textContent = nuit ? 'Nuit aéronautique en cours' : 'Jour aéronautique en cours';
+    q('[data-soleil-val]').textContent = nuit
+      ? (prochain ? `jour aéro. dans ${avant(prochain.jourAero.getTime())}` : '')
       : `nuit aéro. dans ${avant(f)}`;
-    const j = q('[data-soleil-j]')!;
-    j.style.left = pc(e.jourAero);
-    j.style.width = `${(((minParis(e.nuitAero) - minParis(e.jourAero)) / 1440) * 100).toFixed(2)}%`;
-    q('[data-soleil-now]')!.style.left = pc(new Date(t));
-    q('[data-soleil-h]')!.textContent = heureLocale(new Date(t));
   }
 }
 
@@ -594,7 +593,7 @@ export function soleil() {
 /* Onglet Flotte : potentiels et réservations lus sur Aerogest (via /membre/api/flotte) */
 /* ------------------------------------------------------------------ */
 interface Resa { debut: string; fin: string; pilote: string | null; instructeur: string | null; type: string | null; duree?: number | null }
-interface AvionFlotte { occupe?: { debut: string; fin: string }[]; dernier?: { debut: string; fin: string; temps: string | null; pilote?: string | null; instructeur?: string | null } | null; immat: string; potentiel: number | null; tolerance: number; dernierVol: string | null; enCours: Resa | null; enVol?: { depuis: string } | null; prochaine: Resa | null; indispo: { debut: string; fin: string; motif: string } | null }
+interface AvionFlotte { occupe?: { debut: string; fin: string }[]; dernier?: { debut: string; fin: string; temps: string | null; pilote?: string | null; instructeur?: string | null } | null; immat: string; potentiel: number | null; tolerance: number; dernierVol: string | null; enCours: Resa | null; prochaine: Resa | null; indispo: { debut: string; fin: string; motif: string } | null }
 
 const hhmm = (min: number) => { const n = min < 0; const a = Math.abs(min); return `${n ? '-' : ''}${String(Math.floor(a / 60)).padStart(2, '0')}:${String(a % 60).padStart(2, '0')}`; };
 // « AAAAMMJJHHmm » (heure de Paris) → objet simple
@@ -685,7 +684,7 @@ export function flotte() {
     // Ordre du club, mais les avions indisponibles en bas, par fin de maintenance (la plus lointaine en dernier)
     const avions = [...d.avions].sort((x, y) => (x.indispo ? 1 : 0) - (y.indispo ? 1 : 0) || (x.indispo && y.indispo ? x.indispo.fin.localeCompare(y.indispo.fin) : 0));
     liste.innerHTML = avions.map((a) => {
-      const etat = a.indispo ? ['bad', 'Maintenance'] : a.enVol ? ['ok', 'En vol'] : a.enCours ? ['info', 'Réservé'] : ['ok', 'Disponible'];
+      const etat = a.indispo ? ['bad', 'Maintenance'] : a.enCours ? ['info', 'Réservé'] : ['ok', 'Disponible'];
       const pot = a.potentiel;
       const niv = pot == null ? '' : pot < 120 ? 'bad' : pot <= 300 ? 'warn' : 'ok';
       const part = pot == null ? 0 : pot <= 0 ? 1 : Math.min(1, pot / (50 * 60));

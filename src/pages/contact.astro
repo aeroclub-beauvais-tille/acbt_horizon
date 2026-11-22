@@ -31,7 +31,7 @@ const formules = t.formules.flatMap((f) => f.prix.map((p) => ({
             {formules.map((f) => <option data-type={f.type} value={f.texte}>{f.texte}</option>)}
           </select>
         </label>
-        <label class="si-vol">Créneau souhaité<input name="creneau" placeholder="Ex. : samedi après-midi" /></label>
+        <label class="si-vol">Créneaux souhaités (plusieurs possibles)<input name="creneau" placeholder="Ex. : samedi 14/03 après-midi, dimanche 02/04 matin…" /></label>
         <label><span>Message <span class="facultatif">(facultatif)</span></span><textarea name="message" rows="5" required></textarea></label>
         <input type="checkbox" name="botcheck" class="piege" tabindex="-1" autocomplete="off" aria-hidden="true" />
         <button class="btn btn-primary" type="submit">Envoyer</button>
@@ -79,7 +79,7 @@ const formules = t.formules.flatMap((f) => f.prix.map((p) => ({
     e.preventDefault();
     const f = new FormData(form);
     const visible = (n) => !form[n].closest('label').hidden;
-    const detail = () => [visible('formule') && `Formule : ${f.get('formule')}`, visible('creneau') && f.get('creneau') && `Créneau souhaité : ${f.get('creneau')}`].filter(Boolean).map((x) => x + '\n').join('') + (visible('formule') ? '\n' : '');
+    const detail = () => [visible('formule') && `Formule : ${f.get('formule')}`, visible('creneau') && f.get('creneau') && `Créneaux souhaités : ${f.get('creneau')}`].filter(Boolean).map((x) => x + '\n').join('') + (visible('formule') ? '\n' : '');
     if (!cle) {
       const body = `${detail()}${f.get('message')}\n\n${f.get('nom')}\n${f.get('email')}\n${f.get('tel') || ''}`;
       location.href = `mailto:${email}?subject=${encodeURIComponent('[Site] ' + f.get('objet'))}&body=${encodeURIComponent(body)}`;
@@ -100,7 +100,7 @@ const formules = t.formules.flatMap((f) => f.prix.map((p) => ({
           replyto: f.get('email'),
           'Nom': f.get('nom'), 'E-mail': f.get('email'), 'Téléphone': f.get('tel') || '—', 'Objet': f.get('objet'),
           ...(visible('formule') ? { 'Formule': f.get('formule') } : {}),
-          ...(visible('creneau') ? { 'Créneau souhaité': f.get('creneau') || '—' } : {}),
+          ...(visible('creneau') ? { 'Créneaux souhaités': f.get('creneau') || '—' } : {}),
           'Message': f.get('message') || '—',
         }),
       });
