@@ -182,6 +182,14 @@ function carte(a: Avion) {
 // Tableau d'activité : réservation en cours ou prochaine, prochaine dispo de plus de 30 min, dernier vol
 // Tableau d'activité : une ligne par avion, l'état actuel en pastille, puis la prochaine réservation et le dernier vol.
 // Le jour (« demain », « ven. 27/11 ») passe AVANT l'heure, dans une petite étiquette, pour se lire d'un coup d'œil.
+// Mini calendrier : en-tête bleu aujourd'hui, jaune demain, gris ensuite ; le mois s'ajoute en petit s'il n'est pas le mois en cours
+function cal(j: string) {
+  const d = dateJ(j), auj = jourParis(new Date()), dem = jourParis(new Date(Date.now() + 86400000));
+  const kj = j === auj ? 'j0' : j === dem ? 'j1' : 'j2';
+  const wd = j === auj ? 'Auj.' : j === dem ? 'Demain' : d.toLocaleDateString('fr-FR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
+  const mois = j.slice(0, 6) !== auj.slice(0, 6) ? `<em>${d.toLocaleDateString('fr-FR', { month: 'short', timeZone: 'UTC' })}</em>` : '';
+  return `<span class="cal ${kj}"><i>${esc(wd)}</i><b>${d.getUTCDate()}</b>${mois}</span>`;
+}
 function activite(l: Avion[]) {
   const quiC = (r: { pilote?: string | null; instructeur?: string | null }) => [court(r.pilote ?? null), r.instructeur && `+ ${court(r.instructeur)}`].filter(Boolean).join(' ');
   const hier = jourParis(new Date(Date.now() - 86400000));
@@ -191,16 +199,11 @@ function activite(l: Avion[]) {
   for (const a of l) {
     const [k, etat] = a.indispo ? ['m', 'Maintenance'] : a.enVol ? ['v', 'En vol'] : a.enCours ? ['r', 'Réservé'] : ['l', 'Disponible'];
     let resa: string;
-    if (a.indispo) resa = cell('mt', `Retour ${esc(jourL(a.indispo.fin.slice(0, 8)).toLowerCase())}`, 'Maintenance');
+    if (a.indispo) resa = `<div class="ac mt vb">${cal(a.indispo.fin.slice(0, 8))}<div><b>Retour prévu</b><small>Maintenance</small></div></div>`;
     else if (a.enCours) resa = cell('rs', `${agH(a.enCours.debut)} → ${agH(a.enCours.fin)}`, ['En cours', quiC(a.enCours)].filter(Boolean).join(' · '));
     else if (a.prochaine) {
-      // Mini calendrier devant l'heure : en-tête bleu aujourd'hui, jaune demain, gris ensuite
-      const j = a.prochaine.debut.slice(0, 8), d = dateJ(j);
-      const auj = jourParis(new Date()), dem = jourParis(new Date(Date.now() + 86400000));
-      const kj = j === auj ? 'j0' : j === dem ? 'j1' : 'j2';
-      const wd = j === auj ? 'Auj.' : j === dem ? 'Demain' : d.toLocaleDateString('fr-FR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
       const qui = quiC(a.prochaine);
-      resa = `<div class="ac rs vb"><span class="cal ${kj}"><i>${esc(wd)}</i><b>${d.getUTCDate()}</b></span><div><b>${agH(a.prochaine.debut)} → ${agH(a.prochaine.fin)}</b>${qui ? `<small>${esc(qui)}</small>` : ''}</div></div>`;
+      resa = `<div class="ac rs vb">${cal(a.prochaine.debut.slice(0, 8))}<div><b>${agH(a.prochaine.debut)} → ${agH(a.prochaine.fin)}</b>${qui ? `<small>${esc(qui)}</small>` : ''}</div></div>`;
     }
     else resa = cell('rs vide', 'Aucune sur 7 jours');
     let der: string;
