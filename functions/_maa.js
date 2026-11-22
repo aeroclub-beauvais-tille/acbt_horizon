@@ -5,6 +5,33 @@ export async function tableMaa(db) {
   await db.prepare(`CREATE TABLE IF NOT EXISTS maa (
     id TEXT PRIMARY KEY, numero TEXT, motif TEXT, debut TEXT, fin TEXT,
     recu TEXT NOT NULL, nom TEXT, pdf BLOB NOT NULL)`).run();
+  // Colonnes ajoutées ensuite (annulations et amendements) : sans effet si elles existent déjà
+  const { results } = await db.prepare("SELECT name FROM pragma_table_info('maa')").all();
+  const deja = new Set((results || []).map((r) => r.name));
+  for (const c of ['phen', 'ref', 'etat']) if (!deja.has(c)) { try { await db.prepare(`ALTER TABLE maa ADD COLUMN ${c} TEXT`).run(); } catch { /* ajoutée entre-temps */ } }
+}
+
+// MAA à afficher : ni annulés, ni remplacés, ni messages d'annulation eux-mêmes
+export const MAA_VISIBLES = "(etat IS NULL OR etat = '')";
+
+/**
+ * Après l'arrivée d'un MAA : applique son effet sur les précédents (même aérodrome, reçus dans les 36 dernières heures).
+ * - « CNL AD WRNG n » : le MAA n est annulé ; le message d'annulation lui-même n'est pas affiché.
+ * - « AMD AD WRNG n » (ou « annule et remplace ») : le MAA n est remplacé par le nouveau.
+ * - Sinon, un MAA du même phénomène dont la validité chevauche celle du nouveau est remplacé (mise à jour de la validité).
+ */
+export async function appliquerMaa(db, id, lu) {
+  const depuis = new Date(Date.now() - 36 * 3600000).toISOString();
+  if (lu.annule) {
+    await db.prepare("UPDATE maa SET etat = 'cnl' WHERE id = ?1").bind(id).run();
+    await db.prepare("UPDATE maa SET etat = 'annule' WHERE numero = ?1 AND id != ?2 AND recu >= ?3").bind(lu.annule, id, depuis).run();
+    return;
+  }
+  if (lu.amende) await db.prepare("UPDATE maa SET etat = 'remplace' WHERE numero = ?1 AND id != ?2 AND recu >= ?3").bind(lu.amende, id, depuis).run();
+  if (lu.phen && lu.debut && lu.fin) {
+    await db.prepare(`UPDATE maa SET etat = 'remplace' WHERE id != ?1 AND phen = ?2 AND recu >= ?3 AND recu <= ?4
+      AND debut < ?6 AND fin > ?5 AND (etat IS NULL OR etat = '')`).bind(id, lu.phen, depuis, new Date().toISOString(), lu.debut, lu.fin).run();
+  }
 }
 
 /** Décompresse un flux PDF (FlateDecode = zlib). */
@@ -83,7 +110,12 @@ export async function lireMaa(octets, recu = new Date()) {
   const iOrig = lignes.findIndex((l) => /^Message original/i.test(l));
   const motif = iJusqu >= 0 && iOrig > iJusqu ? lignes.slice(iJusqu + 1, iOrig).join(' ').replace(/\s*\.$/, '').replace(/>=\s*à/g, '≥').replace(/^Plusieurs MAA .*?num[ée]ro \d+\/\d+\.\s*/i, '') : '';
   const aero = (tout.match(/A[ée]rodrome\s*:\s*(\w{4})/) || [])[1] || (tout.match(/original:\s*(\w{4})/) || [])[1] || '';
-  return { aerodrome: aero, numero: v[1], motif, debut: debut?.toISOString() ?? null, fin: fin?.toISOString() ?? null };
+  // Message original OACI : phénomène (ligne après « VALID »), annulation « CNL AD WRNG n », amendement « AMD AD WRNG n »
+  const orig = (tout.match(/AD WRNG\s+\w+\s+VALID\s+\d{6}\/\d{6}([\s\S]*?)(?:\n=\s*(?:\n|$)|$)/) || [])[1] || '';
+  const annule = (orig.match(/\bCNL\s+AD\s+WRNG\s+(\w+)/) || tout.match(/annulation du MAA (?:num[ée]ro\s*)?(\d+)/i) || [])[1] || null;
+  const amende = (orig.match(/\bAMD\s+AD\s+WRNG\s+(\w+)/) || tout.match(/annule et remplace le MAA (?:num[ée]ro\s*)?(\d+)/i) || [])[1] || null;
+  const phen = annule ? null : orig.split('\n').map((x) => x.trim()).find(Boolean)?.replace(/\.$/, '') || null;
+  return { aerodrome: aero, numero: v[1], motif: annule ? `Annulation du MAA ${annule}` : motif, debut: debut?.toISOString() ?? null, fin: fin?.toISOString() ?? null, phen, annule, amende };
 }
 
 export async function empreinte(octets) {

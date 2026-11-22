@@ -65,10 +65,12 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch, optio
 
   // 4. Vols réellement effectués (même source que l'option « départs/retours » du planning public) :
   //    pour la durée du dernier vol. Facultatif : si Aerogest ne répond pas, on garde la seule heure du dernier vol.
-  const datesVols = [...new Set(tbo.map((x) => (x.lastFlight || '').match(/^(\d\d)\/(\d\d)\/(\d{4})/)).filter(Boolean).map((m) => m[3] + m[2] + m[1]))].slice(0, 7);
-  const vols = (await Promise.all(datesVols.map((j) =>
+  //    Avec l'option « jour » : aussi les vols d'aujourd'hui, pour dessiner le temps réellement volé sur le planning.
+  const datesVols = [...new Set([...(options.jour ? [jours[0]] : []), ...tbo.map((x) => (x.lastFlight || '').match(/^(\d\d)\/(\d\d)\/(\d{4})/)).filter(Boolean).map((m) => m[3] + m[2] + m[1])])].slice(0, 8);
+  const tousVols = (await Promise.all(datesVols.map((j) =>
     f(`${AEROGEST}/api/FlightManagement/FlightAPI/GetSimple/${j}0000/`, { headers: entetes(cookie) })
-      .then((r) => (r.ok ? r.json() : [])).catch(() => [])))).flat().filter((v) => v && v.idAircraft && v.from && v.to);
+      .then((r) => (r.ok ? r.json() : [])).catch(() => [])))).flat().filter((v) => v && v.idAircraft && v.from);
+  const vols = tousVols.filter((v) => v.to);
 
   const avions = new Map(); // id → { immat, resas: [], indispos: [] }
   const avion = (id, immat) => {
@@ -94,6 +96,11 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch, optio
     const indispo = dedoublonner(a.indispos).find((r) => r.debut <= auj && r.fin > auj) || null;
     const indispos = dedoublonner(a.indispos).filter((r) => r.fin > auj);
     const dernier = vols.filter((v) => v.idAircraft === a.id && String(v.to) <= auj).sort((x, y) => String(y.to).localeCompare(String(x.to)))[0];
+    // En vol (détecté par Aerogest) : un départ enregistré après le dernier atterrissage, il y a moins de 8 h
+    const dep = (() => { const m = String(t?.lastFlight || '').match(/^(\d\d)\/(\d\d)\/(\d{4})\s+(\d\d):(\d\d)/); return m ? m[3] + m[2] + m[1] + m[4] + m[5] : null; })();
+    const ouvert = tousVols.find((v) => v.idAircraft === a.id && !v.to && String(v.from) <= auj);
+    const depuis = ouvert ? String(ouvert.from) : dep && dep <= auj && (!dernier || dep > String(dernier.to)) ? dep : null;
+    const enVol = depuis && minutesEntre(depuis, auj) < 480 ? { depuis } : null;
     return {
       immat: a.immat,
       // Créneaux occupés à venir (réservations + indisponibilités), pour calculer la prochaine disponibilité
@@ -103,11 +110,15 @@ export async function lireFlotte(lien, maintenant = new Date(), f = fetch, optio
       tolerance: t?.tol || 0,
       dernierVol: t?.lastFlight && t.lastFlight !== 'N/A' ? t.lastFlight : null, // « JJ/MM/AAAA HH:mm »
       enCours,
+      enVol,
       prochaine,
       indispo,
       ...(options.jour ? {
         jour: resas.filter((r) => r.debut.slice(0, 8) === jours[0] || r.debut.slice(0, 8) === jours[1]),
         indispos: indispos.map((r) => ({ debut: r.debut, fin: r.fin, motif: r.motif })),
+        // Vols réellement effectués aujourd'hui (départ → arrivée), comme l'option « départs/retours » d'Aerogest
+        volsJour: tousVols.filter((v) => v.idAircraft === a.id && String(v.from).slice(0, 8) === jours[0]).map((v) => ({ debut: String(v.from), fin: v.to ? String(v.to) : null, temps: v.tps || null }))
+          .sort((x, y) => x.debut.localeCompare(y.debut)),
       } : {}),
     };
   });
@@ -213,6 +224,9 @@ function parties(d) {
   return p;
 }
 export const jourParis = (d) => { const p = parties(d); return `${p.year}${p.month}${p.day}`; };
+// Minutes entre deux horodatages « AAAAMMJJHHmm » (heure de Paris)
+const enDate = (s) => Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8), +s.slice(8, 10), +s.slice(10, 12));
+export const minutesEntre = (a, b) => (enDate(b) - enDate(a)) / 60000;
 export const heureParis = (d) => { const p = parties(d); return `${p.year}${p.month}${p.day}${p.hour}${p.minute}`; };
 
 function json(corps, status = 200, cache = 0, portee = 'private') {
