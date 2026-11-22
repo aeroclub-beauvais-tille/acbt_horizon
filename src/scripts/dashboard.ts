@@ -193,7 +193,12 @@ function activite(l: Avion[]) {
     let resa: string;
     if (a.indispo) resa = cell('mt', `Retour ${esc(jourL(a.indispo.fin.slice(0, 8)).toLowerCase())}`, 'Maintenance');
     else if (a.enCours) resa = cell('rs', `${agH(a.enCours.debut)} → ${agH(a.enCours.fin)}`, ['En cours', quiC(a.enCours)].filter(Boolean).join(' · '));
-    else if (a.prochaine) resa = cell('rs', `${agH(a.prochaine.debut)} → ${agH(a.prochaine.fin)}`, [jourL(a.prochaine.debut.slice(0, 8)), quiC(a.prochaine)].filter(Boolean).join(' · '));
+    else if (a.prochaine) {
+      // Le jour en pastille devant l'heure : bleu aujourd'hui, jaune demain, gris ensuite
+      const j = a.prochaine.debut.slice(0, 8);
+      const kj = j === jourParis(new Date()) ? 'j0' : j === jourParis(new Date(Date.now() + 86400000)) ? 'j1' : 'j2';
+      resa = `<div class="ac rs"><b><span class="jt ${kj}">${esc(jourTxt(j))}</span>${agH(a.prochaine.debut)} → ${agH(a.prochaine.fin)}</b>${quiC(a.prochaine) ? `<small>${esc(quiC(a.prochaine))}</small>` : ''}</div>`;
+    }
     else resa = cell('rs vide', 'Aucune sur 7 jours');
     let der: string;
     if (a.dernier) der = cell('dv', `${agH(a.dernier.debut)} → ${agH(a.dernier.fin)}`, [jourL(a.dernier.fin.slice(0, 8)), quiC(a.dernier), a.dernier.temps].filter(Boolean).join(' · '));
