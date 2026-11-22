@@ -182,12 +182,12 @@ function carte(a: Avion) {
 // Tableau d'activité : réservation en cours ou prochaine, prochaine dispo de plus de 30 min, dernier vol
 // Tableau d'activité : une ligne par avion, l'état actuel en pastille, puis la prochaine réservation et le dernier vol.
 // Le jour (« demain », « ven. 27/11 ») passe AVANT l'heure, dans une petite étiquette, pour se lire d'un coup d'œil.
-// Mini calendrier : en-tête bleu aujourd'hui, jaune demain, gris ensuite ; le mois s'ajoute en petit s'il n'est pas le mois en cours
+// Mini calendrier : en-tête bleu aujourd'hui, jaune demain, gris ensuite ; le mois toujours en petit sous le chiffre
 function cal(j: string) {
   const d = dateJ(j), auj = jourParis(new Date()), dem = jourParis(new Date(Date.now() + 86400000));
   const kj = j === auj ? 'j0' : j === dem ? 'j1' : 'j2';
   const wd = j === auj ? 'Auj.' : j === dem ? 'Demain' : d.toLocaleDateString('fr-FR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
-  const mois = j.slice(0, 6) !== auj.slice(0, 6) ? `<em>${d.toLocaleDateString('fr-FR', { month: 'short', timeZone: 'UTC' })}</em>` : '';
+  const mois = `<em>${d.toLocaleDateString('fr-FR', { month: 'short', timeZone: 'UTC' })}</em>`;
   return `<span class="cal ${kj}"><i>${esc(wd)}</i><b>${d.getUTCDate()}</b>${mois}</span>`;
 }
 function activite(l: Avion[]) {
