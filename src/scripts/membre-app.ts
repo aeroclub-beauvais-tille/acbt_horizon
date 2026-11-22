@@ -566,9 +566,8 @@ export function soleil() {
     if (el) el.textContent = heureLocale(e[k]);
   });
   // Compte à rebours et frise des 24 h (heure de Paris) : nuit hachurée, jour aéro. encadré, soleil levé en plein
-  const tete = zone.querySelector<HTMLElement>('[data-soleil-etat]');
-  if (tete) {
-    const t = Date.now(), d = e.jourAero.getTime(), f = e.nuitAero.getTime();
+  {
+    const t = Date.now();
     const q = (sel: string) => zone.querySelector<HTMLElement>(sel)!;
     const minutes = (x: Date) => { const [h, m] = heureLocale(x).split(':').map(Number); return h * 60 + m; };
     const pct = (x: Date) => `${(minutes(x) / 1440 * 100).toFixed(2)}%`;
@@ -578,14 +577,6 @@ export function soleil() {
     const maintenant = new Date(t);
     q('[data-soleil-now]').style.left = pct(maintenant);
     q('[data-soleil-h]').textContent = heureLocale(maintenant);
-    const nuit = t >= f || t < d;
-    tete.dataset.soleilEtat = nuit ? 'nuit' : f - t <= 3600_000 ? 'proche' : 'jour';
-    const avant = (x: number) => { const r = Math.max(0, Math.floor((x - t) / 60000)); return `${Math.floor(r / 60)} h ${String(r % 60).padStart(2, '0')}`; };
-    const prochain = t >= f ? ephemeride(new Date(t + 86400000)) : e;
-    q('[data-soleil-txt]').textContent = nuit ? 'Nuit aéronautique en cours' : 'Jour aéronautique en cours';
-    q('[data-soleil-val]').textContent = nuit
-      ? (prochain ? `jour aéro. dans ${avant(prochain.jourAero.getTime())}` : '')
-      : `nuit aéro. dans ${avant(f)}`;
   }
 }
 
