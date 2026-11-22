@@ -41,24 +41,20 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
 
     <!-- 3. Météo -->
     <section class="ecran e3" data-e="3">
-      <div class="col">
-        <div class="panel metar-p" id="metar"></div>
-        <div class="panel maa-p"><h2>MAA LFOB <span class="r" id="maa-info"></span></h2><div id="maa"></div></div>
-      </div>
+      <div class="panel metar-p" id="metar"></div>
       <div class="panel vent-p"><h2>Vent et pistes <span class="r" id="vent-info"></span></h2><div id="vent"></div></div>
-      <div class="col">
-        <div class="panel taf-p" id="taf"></div>
-      </div>
+      <div class="panel taf-p" id="taf"></div>
+      <div class="panel maa-p"><h2>MAA LFOB <span class="r" id="maa-info"></span></h2><div id="maa"></div></div>
+      <div class="panel vigi-p" hidden><h2>Vigilance Météo-France <span class="r">Oise et voisins</span></h2><div id="vigi"></div></div>
     </section>
 
-    <!-- 5. Cartes aéro : TEMSI, WINTEM, vents en altitude, METAR des terrains voisins, vigilance Météo-France -->
+    <!-- 5. Cartes aéro : TEMSI, WINTEM, vents en altitude, METAR des terrains voisins -->
     <section class="ecran ec" data-e="4">
       <div class="panel carte-aero"><h2>TEMSI France <span class="r" id="temsi-h"></span></h2><div class="ca-img" id="temsi"></div></div>
       <div class="panel carte-aero"><h2>WINTEM <span class="r" id="wintem-h"></span></h2><div class="ca-img" id="wintem"></div></div>
       <div class="col">
         <div class="panel alt-p"><h2>Vents en altitude LFOB <span class="r">kt · prévision Météo-France</span></h2><div id="altitude"></div></div>
         <div class="panel voisins-p"><h2>METAR voisins <span class="r" id="voisins-h"></span></h2><div id="voisins"></div></div>
-        <div class="panel vigi-p" hidden><h2>Vigilance Météo-France <span class="r">Oise et voisins</span></h2><div id="vigi"></div></div>
       </div>
     </section>
 
@@ -318,7 +314,12 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .res.rn .h { color: var(--accent); }
 
   /* 3. Météo */
-  .e3 { grid-template-columns: 560px 1fr 640px; }
+  /* Grille : METAR | vent | TAF (toute la hauteur) ; en bas, MAA et vigilance alignés sur la même ligne */
+  .e3 { grid-template-columns: 560px 1fr 640px; grid-template-rows: minmax(0, 1fr) auto; }
+  .e3 .metar-p { grid-area: 1 / 1; } .e3 .vent-p { grid-area: 1 / 2; } .e3 .taf-p { grid-area: 1 / 3 / 3 / 4; }
+  .e3 .maa-p { grid-area: 2 / 1; } .e3 .vigi-p { grid-area: 2 / 2; }
+  .e3:has(.vigi-p[hidden]) .vent-p { grid-row: 1 / 3; }
+  .maa-p:has(#maa.liste) #maa { max-height: 330px; }
   .e3 .col { display: flex; flex-direction: column; gap: 18px; min-height: 0; }
   .metar-p { flex: 1; }
   .raw { font-family: var(--mono); font-size: 16px; line-height: 1.5; background: var(--panel2); border-radius: 10px; padding: 10px 14px; color: var(--ink2); word-break: break-word; }
@@ -364,7 +365,11 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .m .v small { display: block; font-size: 11.5px; letter-spacing: .5px; color: var(--warn); line-height: 1.2; }
   .m.on .v small { color: var(--bad); }
   .vigi-p[hidden] { display: none; }
-  .vigi-p { flex: 0 0 auto; }
+  /* Une pastille par département, à la couleur de sa vigilance, sur une seule ligne */
+  #vigi { display: flex; flex-wrap: nowrap; gap: 8px; overflow: hidden; }
+  .vgp { display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border: 1px solid var(--line); border-radius: 99px; font-size: 15px; font-weight: 700; white-space: nowrap; flex: none; }
+  .vgp i { width: 11px; height: 11px; border-radius: 50%; background: var(--ok); }
+  .vgp i.c2 { background: #f5c518; } .vgp i.c3 { background: #ff8a1f; } .vgp i.c4 { background: var(--bad); }
   .e3 .taf-p { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
   #taf-per { flex: 1; min-height: 0; overflow: hidden; margin-top: 2px; -webkit-mask-image: linear-gradient(transparent, #000 8px, #000 calc(100% - 12px), transparent); mask-image: linear-gradient(transparent, #000 8px, #000 calc(100% - 12px), transparent); }
   #taf-per .def { animation: defile var(--duree, 60s) linear infinite; }
