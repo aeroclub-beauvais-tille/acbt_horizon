@@ -580,12 +580,12 @@ export function soleil() {
     q('[data-soleil-h]').textContent = heureLocale(maintenant);
     const nuit = t >= f || t < d;
     tete.dataset.soleilEtat = nuit ? 'nuit' : f - t <= 3600_000 ? 'proche' : 'jour';
-    const reste = Math.max(0, Math.floor((f - t) / 60000));
+    const avant = (x: number) => { const r = Math.max(0, Math.floor((x - t) / 60000)); return `${Math.floor(r / 60)} h ${String(r % 60).padStart(2, '0')}`; };
     const prochain = t >= f ? ephemeride(new Date(t + 86400000)) : e;
-    q('[data-soleil-txt]').textContent = nuit ? 'Nuit aéronautique en cours' : 'Nuit aéro. dans';
+    q('[data-soleil-txt]').textContent = nuit ? 'Nuit aéronautique en cours' : 'Jour aéronautique en cours';
     q('[data-soleil-val]').textContent = nuit
-      ? `jour aéro. à ${prochain ? heureLocale(prochain.jourAero) : '--:--'}`
-      : `${Math.floor(reste / 60)} h ${String(reste % 60).padStart(2, '0')}`;
+      ? (prochain ? `jour aéro. dans ${avant(prochain.jourAero.getTime())}` : '')
+      : `nuit aéro. dans ${avant(f)}`;
   }
 }
 

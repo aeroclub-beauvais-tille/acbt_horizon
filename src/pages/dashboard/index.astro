@@ -39,10 +39,12 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
       <div class="col">
         <div class="panel metar-p" id="metar"></div>
         <div class="panel maa-p"><h2>MAA LFOB <span class="r" id="maa-info"></span></h2><div id="maa"></div></div>
-        <div class="panel vigi-p" hidden><h2>Vigilance Météo-France <span class="r">Oise et voisins</span></h2><div id="vigi"></div></div>
       </div>
       <div class="panel vent-p"><h2>Vent et pistes <span class="r" id="vent-info"></span></h2><div id="vent"></div></div>
-      <div class="panel" id="taf"></div>
+      <div class="col">
+        <div class="panel taf-p" id="taf"></div>
+        <div class="panel vigi-p" hidden><h2>Vigilance Météo-France <span class="r">Oise et voisins</span></h2><div id="vigi"></div></div>
+      </div>
     </section>
 
     <!-- 4. Radar et satellite -->
@@ -58,9 +60,9 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
         <div class="anim"><span>-2 h</span><div class="barre"><i id="rad-b"></i></div><span>maintenant</span></div>
       </div>
       <div class="panel img-p" id="aro-p" hidden>
-        <div class="img-t"><b>Prévision de pluie</b><span>jusqu’à +6 h · modèle AROME-PI de Météo-France</span><em id="aro-h"></em></div>
+        <div class="img-t"><b>Prévision de pluie</b><span>prochaines heures · modèle AROME-PI de Météo-France</span><em id="aro-h"></em></div>
         <div class="carte" id="aro"></div>
-        <div class="anim"><span>maintenant</span><div class="barre"><i id="aro-b"></i></div><span>+6 h</span></div>
+        <div class="anim"><span>maintenant</span><div class="barre"><i id="aro-b"></i></div><span id="aro-fin"></span></div>
       </div>
     </section>
 
@@ -121,7 +123,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .dot.ko { background: var(--bad); }
   #maj.alerte { color: var(--warn); font-size: 16px; font-weight: 800; }
   .pill { font-size: 14px; font-weight: 800; padding: 4px 11px; border-radius: 99px; white-space: nowrap; }
-  .p-ok { background: var(--okbg); color: var(--ok); } .p-bad { background: var(--badbg); color: var(--bad); } .p-busy { background: rgba(143,166,255,.16); color: var(--accent); }
+  .p-ok { background: var(--okbg); color: var(--ok); } .p-bad { background: var(--badbg); color: var(--bad); } .p-busy { background: rgba(143,166,255,.16); color: var(--accent); } .p-vol { background: rgba(64,201,127,.2); color: var(--ok); }
 
   /* 1. Accueil */
   .e1 { grid-template-rows: auto auto 1fr; }
@@ -179,7 +181,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .act .mu { color: var(--muted); flex: none; }
   .act .nm2 { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
   .act .pe { font-style: normal; font-size: 14px; font-weight: 800; padding: 4px 12px; border-radius: 99px; }
-  .act .pe.g { color: var(--ok); background: var(--okbg); } .act .pe.a { color: var(--accent); background: rgba(143,166,255,.16); } .act .pe.r { color: var(--bad); background: var(--badbg); }
+  .act .pe.g { color: var(--ok); background: var(--okbg); } .act .pe.a { color: var(--accent); background: rgba(143,166,255,.16); } .act .pe.r { color: var(--bad); background: var(--badbg); } .act .pe.v { color: #fff; background: #23a55a; }
   .nl .n { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--line); align-items: start; }
   .nl .ic.l3 { font-size: 13px; letter-spacing: .3px; } .nl .ic.l4 { font-size: 11px; letter-spacing: .2px; }
   .nl .ic { width: 44px; height: 30px; border-radius: 7px; display: grid; place-items: center; font-weight: 900; font-size: 18px; color: #111; background: #f5c518; box-shadow: inset 0 0 0 2px #111, 0 0 0 1px #f5c518; letter-spacing: -.5px; }
@@ -225,6 +227,10 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .rz b { font-size: 17px; font-weight: 800; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .rz small { display: block; font-size: 14px; font-weight: 700; opacity: .92; overflow-wrap: anywhere; }
   .rz.ins { background: var(--r2); } .rz.clu { background: var(--r3); }
+  .trk .reel { position: absolute; bottom: 3px; height: 12px; border-radius: 4px; background: var(--ok); z-index: 2; overflow: hidden; }
+  .trk .reel span { display: block; padding: 0 5px; font-size: 10px; line-height: 12px; font-weight: 800; color: #062b17; white-space: nowrap; }
+  .trk:has(.reel) .rz { top: 5px; bottom: 18px; padding-top: 4px; padding-bottom: 3px; }
+  .trk .reel.ouvert { background: repeating-linear-gradient(135deg, var(--ok) 0 8px, #2f8f5b 8px 16px); }
   .rz.mnt { background: repeating-linear-gradient(45deg, #5b6a80 0 10px, #6d7c92 10px 20px); }
   .trk.ins .rz { top: 5px; bottom: 5px; padding: 5px 9px; }
   .trk.ins .rz b { font-size: 15px; -webkit-line-clamp: 1; }
@@ -266,6 +272,8 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   #vent { flex: 1; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 14px; }
   .vd { display: flex; flex-direction: column; align-items: center; min-height: 0; }
   .vd .t { display: flex; align-items: baseline; gap: 22px; font-size: 48px; font-weight: 800; line-height: 1.05; }
+  .vd .vsous { margin-top: 6px; font-size: 18px; font-weight: 700; color: var(--muted); text-align: center; }
+  .vd .t .sep { align-self: center; width: 3px; height: 40px; border-radius: 2px; background: var(--muted); opacity: .45; }
   .vd .t small { font-size: 18px; font-weight: 700; color: var(--muted); } .vd .t small.raf { color: var(--warn); }
   .vd svg { flex: 1; min-height: 0; width: 100%; margin-top: 8px; }
   .qfus { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -290,6 +298,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .m.on .v small { color: var(--bad); }
   .vigi-p[hidden] { display: none; }
   .vigi-p { flex: 0 0 auto; }
+  .e3 .taf-p { flex: 1; min-height: 0; overflow: hidden; }
   .vigi-p .vide { display: flex; align-items: center; gap: 10px; padding: 0; }
   .vigi-p .vide::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
   .vg { display: grid; grid-template-columns: 12px 140px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 1px 0; font-size: 15px; }
