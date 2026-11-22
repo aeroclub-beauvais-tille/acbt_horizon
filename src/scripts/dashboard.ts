@@ -272,7 +272,11 @@ function defiler(boite: HTMLElement, repere = true) {
   // Liste en boucle : un repère « retour au début » marque la jonction entre la fin et le début (NOTAM : le trait sous le dernier NOTAM suffit)
   const fin = repere ? '<div class="boucle"><span>retour au début</span></div>' : '';
   // Défile seulement si la liste dépasse vraiment la hauteur du cadre
-  if (h > boite.clientHeight + 2) boite.innerHTML = `<div class="def" style="--duree:${Math.round(h / 25)}s"><div>${html}${fin}</div><div>${html}${fin}</div></div>`;
+  if (h > boite.clientHeight + 2) {
+    boite.innerHTML = `<div class="def" style="--duree:${Math.round(h / 25)}s"><div>${html}${fin}</div><div>${html}${fin}</div></div>`;
+    // Durée d'un tour complet (pour laisser l'écran d'accueil le temps de tout faire défiler)
+    boite.dataset.tour = String(Math.round(h / 25));
+  } else delete boite.dataset.tour;
   boite.dataset.ok = '1';
 }
 
@@ -981,11 +985,20 @@ function montrer(i: number) {
   document.querySelectorAll<HTMLElement>('#points button').forEach((b) => b.classList.toggle('on', Number(b.dataset.e) === i));
   const s = $('scene');
   s.className = `s${i}`;
-  if (i === 0 && !$('notam').dataset.ok) defileNotam();
+  // NOTAM : la liste repart du début à chaque affichage de l'accueil
+  if (i === 0) defileNotam();
   if (i === 3 && !$('maa').dataset.ok) defiler($('maa'));
   // TAF : mesuré à chaque affichage de l'écran, pour ne défiler que s'il ne tient pas
   if (i === 3 && document.getElementById('taf-per')) defiler($('taf-per'));
   if (i === 4) { flWintem++; cartesAero(); if (!$('voisins').dataset.ok) defiler($('voisins')); }
+}
+
+// Accueil : si les NOTAM défilent, l'écran reste le temps d'un tour complet (3 s de pause au début + défilement) ; sinon durée standard
+const PAUSE_NOTAM = 3;
+function dureeEcran(i: number) {
+  if (i !== 0) return DUREES[i];
+  const tour = Number(document.getElementById('notam')?.dataset.tour || 0);
+  return tour ? Math.max(20, PAUSE_NOTAM + tour) : DUREES[0];
 }
 
 function tic() {
@@ -993,15 +1006,26 @@ function tic() {
   const auto = fige == null && Date.now() > pauseJusqua;
   const ecoule = (Date.now() - debutEcran) / 1000;
   const b = document.querySelector<HTMLElement>('#points button.on');
-  if (b) b.style.setProperty('--p', auto ? String(Math.min(1, ecoule / DUREES[ecran])) : '1');
-  if (auto && ecoule >= DUREES[ecran]) montrer((ecran + 1) % NB);
+  const duree = dureeEcran(ecran);
+  if (b) b.style.setProperty('--p', auto ? String(Math.min(1, ecoule / duree)) : '1');
+  if (auto && ecoule >= duree) montrer((ecran + 1) % NB);
   majPied();
 }
 
+// La scène est dessinée en 1920 × 1080 puis mise à l'échelle de l'écran (TV, navigateur, Fully Kiosk…)
 function echelle() {
   const s = $('scene');
-  const k = Math.min(innerWidth / 1920, innerHeight / 1080);
-  s.style.transform = `translate(${(innerWidth - 1920 * k) / 2}px, ${(innerHeight - 1080 * k) / 2}px) scale(${k})`;
+  const v = window.visualViewport;
+  const w = Math.min(innerWidth, document.documentElement.clientWidth || innerWidth, v?.width ?? innerWidth);
+  const h = Math.min(innerHeight, document.documentElement.clientHeight || innerHeight, v?.height ?? innerHeight);
+  const k = Math.min(w / 1920, h / 1080);
+  s.style.transform = `translate(${(w - 1920 * k) / 2}px, ${(h - 1080 * k) / 2}px) scale(${k})`;
+  // Diagnostic d'affichage : ajouter ?diag=1 à l'adresse
+  if (new URLSearchParams(location.search).has('diag')) {
+    let d = document.getElementById('diag');
+    if (!d) { d = document.createElement('div'); d.id = 'diag'; document.body.appendChild(d); }
+    d.textContent = `fenêtre ${innerWidth}×${innerHeight} · visible ${Math.round(v?.width ?? 0)}×${Math.round(v?.height ?? 0)} (zoom ${v?.scale ?? '?'}) · écran ${screen.width}×${screen.height} · densité ${devicePixelRatio} · échelle ${k.toFixed(3)}`;
+  }
 }
 
 export function demarrer() {
@@ -1009,6 +1033,8 @@ export function demarrer() {
   theme();
   echelle();
   addEventListener('resize', echelle);
+  window.visualViewport?.addEventListener('resize', echelle);
+  document.addEventListener('fullscreenchange', () => setTimeout(echelle, 200));
   // Bouton discret plein écran / sortie (en bas à gauche)
   const pe = document.getElementById('plein-ecran');
   pe?.addEventListener('click', () => {

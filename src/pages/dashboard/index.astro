@@ -263,7 +263,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   @keyframes fondu { 0% { opacity: .25; } 100% { opacity: 1; } }
   .nl b { font-size: 16.5px; font-weight: 700; display: block; }
   #notam { padding: 0 3px; flex: 1; min-height: 0; overflow: hidden; position: relative; -webkit-mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); mask-image: linear-gradient(transparent, #000 18px, #000 calc(100% - 18px), transparent); }
-  #notam .def { animation: defile var(--duree, 60s) linear infinite; }
+  #notam .def { animation: defile var(--duree, 60s) linear 3s infinite; }
   /* Boucle de défilement : pas de trou entre la fin et le retour au début, trait de séparation gardé */
   #notam .def > div { padding-bottom: 0 !important; } #notam .def .n:last-child { border-bottom: 1px solid var(--line); }
   .boucle { display: flex; align-items: center; gap: 12px; margin: 14px 0; color: var(--muted); font-size: 12.5px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
@@ -271,6 +271,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   /* Légende Flotte : pastilles de couleur */
   .lg { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin: 0 5px 0 12px; vertical-align: 0; }
   .lg.c-ok { background: var(--ok); } .lg.c-warn { background: var(--warn); } .lg.c-bad { background: var(--bad); }
+  #diag { position: fixed; left: 0; right: 0; bottom: 0; z-index: 99; background: #000; color: #ff0; font: 700 16px/1.4 monospace; padding: 6px 10px; }
   @keyframes defile { from { transform: translateY(0); } to { transform: translateY(-50%); } }
   .nl small { display: block; color: var(--muted); font-size: 14px; font-weight: 600; margin-top: 3px; }
 
