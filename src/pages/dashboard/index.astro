@@ -188,7 +188,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .alt .t { color: var(--muted); font-weight: 600; }
   .voisins-p { flex: 1; display: flex; flex-direction: column; }
   #voisins { flex: 1; min-height: 0; overflow: hidden; position: relative; }
-  #voisins .def { animation: defile var(--duree, 60s) linear infinite; } #voisins .def > div { padding-bottom: 0 !important; }
+  #voisins .def { animation: defile var(--duree, 60s) linear 3s infinite; } #voisins .def > div { padding-bottom: 0 !important; }
   #voisins .mv { margin-bottom: 8px; }
   .mv { font-family: var(--mono); font-size: 14.5px; line-height: 1.35; color: var(--ink2); padding: 7px 10px 7px 12px; border-radius: 8px; background: var(--panel2); border-left: 4px solid var(--k, var(--muted)); }
   .mv b { color: var(--ink); } .mv .nm { font-family: var(--sans, inherit); font-weight: 700; color: var(--muted); font-size: 12.5px; margin-left: 6px; }
