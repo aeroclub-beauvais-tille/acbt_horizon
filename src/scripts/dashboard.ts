@@ -448,7 +448,7 @@ function ventBloc() {
   const g = m?.rafales ?? null;
   // Point vert : la station envoie bien ses mesures ; rouge : rien de neuf depuis 18 min (3 mesures de 6 min manquées) ou repli sur le METAR
   const capte = !!st;
-  $('vent-info').innerHTML = st ? `<span class="dot${capte ? '' : ' ko'}"></span>&nbsp;Station LFOB (seuil 30) · ${hUtc(new Date(st.t))} UTC · toutes les 6 min`
+  $('vent-info').innerHTML = st ? `<span class="dot${capte ? '' : ' ko'}"></span>&nbsp;Station LFOB (seuil 30) · ${hUtc(new Date(st.t))} UTC`
     : metar ? `<span class="dot ko"></span>&nbsp;Secours METAR (station muette) ${metar.heure ? hUtc(new Date(metar.heure)) + ' UTC' : ''}` : '';
   const R = 54;
   const pt = (deg: number, r: number, x0 = 0, y0 = 0) => [x0 + r * Math.sin((deg * Math.PI) / 180), y0 - r * Math.cos((deg * Math.PI) / 180)];
