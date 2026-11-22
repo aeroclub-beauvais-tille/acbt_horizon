@@ -327,6 +327,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .rows { margin-top: 10px; }
   .rows div { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 12px; padding: 9px 2px; border-bottom: 1px solid var(--line); font-size: 18px; }
   .rows div:last-child { border-bottom: 0; }
+  .rows.dense div { padding: 5px 2px; font-size: 16px; }
   .rows span { color: var(--muted); font-weight: 600; }
   .rows b { font-weight: 700; }
   .vent-p { display: flex; flex-direction: column; }
@@ -349,6 +350,8 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .per .q small { font-size: 14px; color: var(--muted); font-weight: 600; margin-left: 8px; }
   .per .fr { grid-row: 1; grid-column: 2; align-self: start; font-size: 14px; min-width: 64px; padding: 3px 10px; }
   .per .d { grid-column: 1 / -1; font-size: 18px; font-weight: 600; line-height: 1.35; color: var(--ink2); }
+  #taf .tx { margin: 8px 2px 0; font-size: 15px; font-weight: 700; color: var(--ink2); }
+  #maa .ev { display: block; font-size: 13px; font-weight: 700; color: var(--muted); text-transform: none; }
   .per .d code { display: block; font-family: var(--mono); font-size: 13.5px; color: var(--muted); margin-top: 4px; }
   .m { display: grid; grid-template-columns: 30px minmax(0, 1fr) auto; gap: 10px; align-items: center; background: var(--panel2); border-left: 4px solid var(--warn); border-radius: 10px; padding: 7px 12px; margin-bottom: 7px; }
   .m.on { border-left-color: var(--bad); background: linear-gradient(90deg, var(--badbg), var(--panel2)); }
