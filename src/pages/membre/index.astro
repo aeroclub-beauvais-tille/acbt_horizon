@@ -145,7 +145,6 @@ const onglets = [
       </template>
 
       <div class="soleil" id="soleil" aria-label="Soleil à LFOB, heures locales">
-        <div class="sol-tete" data-soleil-etat="jour"><span data-soleil-txt>Nuit aéro. dans</span><b data-soleil-val></b></div>
         <div class="sol-frise" aria-hidden="true">
           <span class="a" data-soleil-a></span><span class="j" data-soleil-j></span>
           <span class="now" data-soleil-now><em data-soleil-h></em></span>
@@ -415,11 +414,7 @@ const onglets = [
   .carte-taf { margin-top: 10px; }
 
   /* Soleil (onglet Météo, sous le MAA) : frise des 24 h comme le tableau de bord, sans aube ni crépuscule */
-  .soleil { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 18px; padding: 12px 14px 10px; }
-  .sol-tete { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font-size: .82rem; font-weight: 600; color: var(--muted); margin-bottom: 22px; }
-  .sol-tete b { font-size: .95rem; color: var(--ink); font-variant-numeric: tabular-nums; }
-  .sol-tete[data-soleil-etat='proche'] b { color: var(--warn); }
-  .sol-tete[data-soleil-etat='nuit'] b { color: var(--accent-text, var(--accent)); }
+  .soleil { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; margin-bottom: 18px; padding: 30px 14px 10px; }
   .sol-frise { position: relative; height: 22px; border-radius: 7px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--muted) 35%, transparent) 0 2px, transparent 2px 7px), var(--surface-2); }
   .sol-frise .a { position: absolute; top: 0; bottom: 0; border-radius: 7px; box-shadow: inset 0 0 0 2px #e2a400; background: color-mix(in srgb, var(--accent) 25%, var(--surface)); }
   .sol-frise .j { position: absolute; top: 3px; bottom: 3px; border-radius: 4px; background: var(--accent); }
