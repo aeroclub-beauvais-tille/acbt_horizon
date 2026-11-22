@@ -189,7 +189,7 @@ function activite(l: Avion[]) {
   const cell = (cls: string, t: string, sous = '') => `<div class="ac ${cls}"><b>${t}</b>${sous ? `<small>${esc(sous)}</small>` : ''}</div>`;
   let h = '<div class="act"><div class="ar th"><span>Avion</span><span>Prochaine réservation</span><span>Dernier vol</span></div>';
   for (const a of l) {
-    const [k, etat] = a.indispo ? ['m', 'Maintenance'] : a.enVol ? ['v', 'En vol'] : a.enCours ? ['r', 'Réservé'] : ['l', 'Libre'];
+    const [k, etat] = a.indispo ? ['m', 'Maintenance'] : a.enVol ? ['v', 'En vol'] : a.enCours ? ['r', 'Réservé'] : ['l', 'Disponible'];
     let resa: string;
     if (a.indispo) resa = cell('mt', `Retour ${esc(jourL(a.indispo.fin.slice(0, 8)).toLowerCase())}`, 'Maintenance');
     else if (a.enCours) resa = cell('rs', `${agH(a.enCours.debut)} → ${agH(a.enCours.fin)}`, ['En cours', quiC(a.enCours)].filter(Boolean).join(' · '));
