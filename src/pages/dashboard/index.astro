@@ -397,7 +397,7 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .vgp i.c2 { background: #f5c518; } .vgp i.c3 { background: #ff8a1f; } .vgp i.c4 { background: var(--bad); }
   .e3 .taf-p { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
   #taf-per { flex: 1; min-height: 0; overflow: hidden; margin-top: 2px; -webkit-mask-image: linear-gradient(transparent, #000 8px, #000 calc(100% - 12px), transparent); mask-image: linear-gradient(transparent, #000 8px, #000 calc(100% - 12px), transparent); }
-  #taf-per .def { animation: defile var(--duree, 60s) linear infinite; }
+  #taf-per .def { animation: defile var(--duree, 60s) linear 3s infinite; }
   .vigi-p .vide { display: flex; align-items: center; gap: 10px; padding: 0; }
   .vigi-p .vide::before { content: ''; width: 10px; height: 10px; border-radius: 50%; background: var(--ok); }
   .vg { display: grid; grid-template-columns: 12px 140px minmax(0, 1fr); gap: 10px; align-items: baseline; padding: 1px 0; font-size: 15px; }
