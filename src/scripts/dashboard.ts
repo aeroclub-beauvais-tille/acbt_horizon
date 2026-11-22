@@ -267,7 +267,11 @@ function defiler(boite: HTMLElement, repere = true) {
   const html = boite.dataset.html;
   if (!html || !boite.offsetParent) { delete boite.dataset.ok; return; }
   boite.innerHTML = `<div>${html}</div>`;
-  const h = (boite.firstElementChild as HTMLElement).offsetHeight;
+  const liste = boite.firstElementChild as HTMLElement;
+  const h = liste.offsetHeight;
+  // NOTAM : hauteur occupée par les NOTAM actifs (en tête de liste), pour les relire une 2e fois avant de changer d'écran
+  const actifs = [...liste.querySelectorAll<HTMLElement>('.n')].filter((e) => e.querySelector('.actif'));
+  const hActifs = actifs.length ? actifs[actifs.length - 1].offsetTop + actifs[actifs.length - 1].offsetHeight - liste.offsetTop : 0;
   // Liste en boucle : un repère « retour au début » marque la jonction entre la fin et le début (NOTAM : le trait sous le dernier NOTAM suffit)
   const fin = repere ? '<div class="boucle"><span>retour au début</span></div>' : '';
   // Défile seulement si la liste dépasse vraiment la hauteur du cadre
@@ -275,7 +279,8 @@ function defiler(boite: HTMLElement, repere = true) {
     boite.innerHTML = `<div class="def" style="--duree:${Math.round(h / 25)}s"><div>${html}${fin}</div><div>${html}${fin}</div></div>`;
     // Durée d'un tour complet (pour laisser l'écran d'accueil le temps de tout faire défiler)
     boite.dataset.tour = String(Math.round(h / 25));
-  } else delete boite.dataset.tour;
+    boite.dataset.actifs = String(Math.round(hActifs / 25));
+  } else { delete boite.dataset.tour; delete boite.dataset.actifs; }
   boite.dataset.ok = '1';
 }
 
@@ -1026,15 +1031,17 @@ function montrer(i: number) {
   if (i === 3 && !$('maa').dataset.ok) defiler($('maa'));
   // TAF : mesuré à chaque affichage de l'écran, pour ne défiler que s'il ne tient pas
   if (i === 3 && document.getElementById('taf-per')) defiler($('taf-per'));
-  if (i === 4) { flWintem++; cartesAero(); if (!$('voisins').dataset.ok) defiler($('voisins')); }
+  if (i === 4) { flWintem++; cartesAero(); defiler($('voisins')); } // METAR voisins : repart du début (pause 3 s) à chaque affichage
 }
 
-// Accueil : si les NOTAM défilent, l'écran reste le temps d'un tour complet (3 s de pause au début + défilement) ; sinon durée standard
+// Accueil : si les NOTAM défilent, l'écran reste le temps d'un tour complet (3 s de pause au début + défilement) puis des actifs une 2e fois ; sinon durée standard
 const PAUSE_NOTAM = 3;
 function dureeEcran(i: number) {
   if (i !== 0) return DUREES[i];
-  const tour = Number(document.getElementById('notam')?.dataset.tour || 0);
-  return tour ? Math.max(20, PAUSE_NOTAM + tour) : DUREES[0];
+  const nt = document.getElementById('notam');
+  const tour = Number(nt?.dataset.tour || 0), actifs = Number(nt?.dataset.actifs || 0);
+  // Un tour complet de la liste, puis encore les NOTAM actifs une 2e fois (+ 2 s de marge)
+  return tour ? Math.max(20, PAUSE_NOTAM + tour + (actifs ? actifs + 2 : 0)) : DUREES[0];
 }
 
 function tic() {
