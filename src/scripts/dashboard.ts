@@ -193,7 +193,15 @@ function activite(l: Avion[]) {
     let resa: string;
     if (a.indispo) resa = cell('mt', `Retour ${esc(jourL(a.indispo.fin.slice(0, 8)).toLowerCase())}`, 'Maintenance');
     else if (a.enCours) resa = cell('rs', `${agH(a.enCours.debut)} → ${agH(a.enCours.fin)}`, ['En cours', quiC(a.enCours)].filter(Boolean).join(' · '));
-    else if (a.prochaine) resa = cell('rs', `${agH(a.prochaine.debut)} → ${agH(a.prochaine.fin)}`, [jourL(a.prochaine.debut.slice(0, 8)), quiC(a.prochaine)].filter(Boolean).join(' · '));
+    else if (a.prochaine) {
+      // Mini calendrier devant l'heure : en-tête bleu aujourd'hui, jaune demain, gris ensuite
+      const j = a.prochaine.debut.slice(0, 8), d = dateJ(j);
+      const auj = jourParis(new Date()), dem = jourParis(new Date(Date.now() + 86400000));
+      const kj = j === auj ? 'j0' : j === dem ? 'j1' : 'j2';
+      const wd = j === auj ? 'Auj.' : j === dem ? 'Demain' : d.toLocaleDateString('fr-FR', { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
+      const qui = quiC(a.prochaine);
+      resa = `<div class="ac rs vb"><span class="cal ${kj}"><i>${esc(wd)}</i><b>${d.getUTCDate()}</b></span><div><b>${agH(a.prochaine.debut)} → ${agH(a.prochaine.fin)}</b>${qui ? `<small>${esc(qui)}</small>` : ''}</div></div>`;
+    }
     else resa = cell('rs vide', 'Aucune sur 7 jours');
     let der: string;
     if (a.dernier) der = cell('dv', `${agH(a.dernier.debut)} → ${agH(a.dernier.fin)}`, [jourL(a.dernier.fin.slice(0, 8)), quiC(a.dernier), a.dernier.temps].filter(Boolean).join(' · '));
