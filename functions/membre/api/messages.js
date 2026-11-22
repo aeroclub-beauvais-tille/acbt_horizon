@@ -17,8 +17,10 @@ export async function onRequestPost({ request, env }) {
   const d = await lire(request);
   if (!d) return json({ ok: false, erreur: 'Demande illisible.' }, 400);
   if (!estAdmin(env, d.motDePasse)) return json({ ok: false, erreur: 'Mot de passe admin incorrect.' }, 401);
-  const titre = String(d.titre || '').trim().slice(0, 120);
-  const texte = String(d.texte || '').trim().slice(0, 600);
+  // Première lettre en majuscule pour le titre et le texte
+  const maj = (t) => t.replace(/^\p{L}/u, (c) => c.toUpperCase());
+  const titre = maj(String(d.titre || '').trim().slice(0, 120));
+  const texte = maj(String(d.texte || '').trim().slice(0, 600));
   const auteur = String(d.auteur || '').trim().slice(0, 60);
   if (!titre) return json({ ok: false, erreur: 'Indiquez au moins un titre.' }, 400);
   const jours = Math.min(90, Math.max(0, Number(d.jours) || 0));

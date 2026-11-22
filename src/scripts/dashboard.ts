@@ -272,6 +272,8 @@ function accueil() {
 }
 
 // Messages du club : publiés depuis l'espace membre (admin), les plus récents d'abord, « important » en jaune
+// Première lettre en majuscule (titre et texte des messages du club)
+const majuscule = (t: string) => t.replace(/^\s*\p{L}/u, (c) => c.toUpperCase());
 function messagesClub() {
   const l = D?.messages ?? [];
   $('msg-info').textContent = l.length ? `${l.length} message${l.length > 1 ? 's' : ''}` : '';
@@ -282,7 +284,7 @@ function messagesClub() {
   if (r3.classList.contains('sans-msg') !== !l.length || r3.classList.contains('peu-msg') !== peu) { r3.classList.toggle('sans-msg', !l.length); r3.classList.toggle('peu-msg', peu); delete $('notam').dataset.ok; if (ecran === 0) defileNotam(); }
   if (!l.length) { $('messages').innerHTML = ''; return; }
   const quand = (iso: string) => { const d = new Date(iso); const j = jourParis(d); return `${j === jourParis(new Date()) ? 'Aujourd’hui' : jourTxt(j)} · ${d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Paris' })}`; };
-  $('messages').innerHTML = l.map((m) => `<div class="mc${m.important ? ' imp' : ''}"><b>${esc(m.titre)}</b>${m.texte ? `<p>${esc(m.texte)}</p>` : ''}<small>${[m.auteur, quand(m.date)].filter(Boolean).map(esc).join(' · ')}</small></div>`).join('');
+  $('messages').innerHTML = l.map((m) => `<div class="mc${m.important ? ' imp' : ''}"><b>${esc(majuscule(m.titre))}</b>${m.texte ? `<p>${esc(majuscule(m.texte))}</p>` : ''}<small>${[m.auteur, quand(m.date)].filter(Boolean).map(esc).join(' · ')}</small></div>`).join('');
 }
 
 function flotteEcran() {
@@ -925,13 +927,16 @@ function alertes() {
   const t = (iso: string | null) => { const d = utc(iso); return d ? (jmUtc(d) === jmUtc(new Date()) ? hUtc(d) : `${jmUtc(d)} ${hUtc(d)}`) : '…'; };
   const enCours = D.maa.filter((m) => m.debut && Date.parse(m.debut) <= n);
   const aVenir = D.maa.filter((m) => !(m.debut && Date.parse(m.debut) <= n));
-  const snow = (D.notam?.notam ?? []).filter((x) => x.snow);
+  // SNOWTAM seulement en saison hivernale, du 1er novembre au 31 mars inclus
+  const mois = Number(new Date().toLocaleString('en-US', { month: 'numeric', timeZone: 'Europe/Paris' }));
+  const hiver = mois >= 11 || mois <= 3;
+  const snow = hiver ? (D.notam?.notam ?? []).filter((x) => x.snow) : [];
   const plus = (l: unknown[]) => (l.length > 1 ? ` (+${l.length - 1})` : '');
   const h: string[] = [];
   if (snow.length) h.push(`<div class="al a-on"><b>SNOWTAM en vigueur</b><span>état des pistes publié · voir NOTAM</span></div>`);
   if (enCours.length) h.push(`<div class="al a-on"><b>Alerte météo en cours</b><span>${esc(enCours[0].motif || 'MAA')}${enCours[0].fin ? ` jusqu’à ${t(enCours[0].fin)} UTC` : ''}${plus(enCours)}</span></div>`);
   else if (aVenir.length) h.push(`<div class="al a-av"><b>Alerte météo à venir</b><span>${esc(aVenir[0].motif || 'MAA')} dès ${t(aVenir[0].debut)} UTC${plus(aVenir)}</span></div>`);
-  if (!h.length) h.push(`<div class="al a-ok"><b>Aucune alerte météo</b><span>ni MAA ni SNOWTAM, en cours ou à venir</span></div>`);
+  if (!h.length) h.push(hiver ? `<div class="al a-ok"><b>Aucune alerte météo</b><span>ni MAA ni SNOWTAM, en cours ou à venir</span></div>` : `<div class="al a-ok"><b>Aucun MAA</b><span>en cours ou à venir</span></div>`);
   b.innerHTML = h.join('');
 }
 
