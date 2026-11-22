@@ -751,26 +751,11 @@ function maaBloc() {
 function vigilanceBloc() {
   const v = D?.vigilance;
   const boite = $('vigi');
-  const panneau = boite.closest<HTMLElement>('.panel')!;
+  const panneau = boite.closest<HTMLElement>('.vigi-p')!;
   panneau.hidden = !v;
   if (!v) return;
-  const COUL = ['', 'verte', 'jaune', 'orange', 'rouge'];
-  const quand = (iso: string) => {
-    const d = new Date(iso);
-    const auj = new Date().toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' }) === d.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris' });
-    const h = d.toLocaleTimeString('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit' });
-    return auj ? h : `${d.toLocaleDateString('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short' })} ${h}`;
-  };
-  const avec = v.departements.filter((d) => d.phenomenes.length);
-  if (!avec.length) { boite.innerHTML = '<p class="vide">Pas de vigilance dans l’Oise ni les départements voisins.</p>'; return; }
-  boite.innerHTML = v.departements.map((d) => {
-    if (!d.phenomenes.length) return `<div class="vg"><i class="c1"></i><b>${esc(d.nom)}</b><span class="pas">Pas de vigilance</span></div>`;
-    const t = d.phenomenes.map((p) => {
-      const enCours = Date.parse(p.debut) <= Date.now();
-      return `<span class="c${p.couleur}">${COUL[p.couleur][0].toUpperCase() + COUL[p.couleur].slice(1)} · ${esc(p.phenomene)}</span><small>${enCours ? `jusqu’à ${quand(p.fin)}` : `dès ${quand(p.debut)}`}</small>`;
-    }).join('<br>');
-    return `<div class="vg"><i class="c${d.couleur}"></i><b>${esc(d.nom)}</b><span>${t}</span></div>`;
-  }).join('');
+  // Une pastille par département (couleur de vigilance) ; le détail reste sur le site de Météo-France
+  boite.innerHTML = v.departements.map((d) => `<span class="vgp"><i class="c${d.couleur}"></i>${esc(d.nom)}</span>`).join('');
 }
 
 // Nouvelle version du site publiée : la page se recharge toute seule (les fichiers /_astro/ changent de nom à chaque version)

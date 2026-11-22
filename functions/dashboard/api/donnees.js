@@ -204,7 +204,7 @@ async function lireNotam(env, cache, waitUntil, debug, lieu = 'LFOB') {
 // Vigilance météo de Météo-France (API DPVigilance, abonnement « Vigilance ») : l'Oise et ses 6 départements voisins.
 // Gardée 10 min en cache. Pour chaque département : les phénomènes jaune, orange ou rouge d'aujourd'hui et de demain,
 // avec le début et la fin de la vigilance (les zones littorales « 7610 » sont rattachées à la Seine-Maritime).
-const DEPARTEMENTS = [['60', 'Oise'], ['80', 'Somme'], ['02', 'Aisne'], ['95', 'Val-d’Oise'], ['77', 'Seine-et-Marne'], ['27', 'Eure'], ['76', 'Seine-Maritime']];
+const DEPARTEMENTS = [['60', 'Oise'], ['80', 'Somme'], ['95', 'Val-d’Oise'], ['76', 'Seine-Maritime'], ['27', 'Eure']]; // choisis par le club
 const PHENOMENES = { 1: 'vent violent', 2: 'pluie-inondation', 3: 'orages', 4: 'crues', 5: 'neige-verglas', 6: 'canicule', 7: 'grand froid', 8: 'avalanches', 9: 'vagues-submersion' };
 const CACHE_VIGILANCE = 'https://cache.acbt60.local/dashboard/api/vigilance';
 async function lireVigilance(env, cache, waitUntil) {
