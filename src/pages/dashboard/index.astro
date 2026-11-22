@@ -410,8 +410,8 @@ const modeles = { 'F-BTBJ': 'DR315', ...Object.fromEntries(avions.map((a) => [a.
   .carte { position: relative; flex: 1; border-radius: 12px; overflow: hidden; background: #0b1430; }
   .carte img { position: absolute; left: 50%; top: 50%; width: 1060px; height: 1060px; transform: translate(-50%, -50%); }
   .carte img.fond { filter: brightness(.55) contrast(1.1); }
-  /* Fondu enchaîné entre deux prises de vue (l'image suivante apparaît pendant que la précédente s'efface) */
-  .carte img.f { opacity: 0; transition: opacity .85s ease-in-out; } .carte img.f.on { opacity: 1; }
+  /* Passage direct d'une prise de vue à la suivante (sans fondu) */
+  .carte img.f { opacity: 0; } .carte img.f.on { opacity: 1; }
   .carte .pt { position: absolute; transform: translate(-50%, -50%); font-size: 14px; font-weight: 700; color: #fff; text-shadow: 0 1px 3px #000; white-space: nowrap; z-index: 3; }
   .carte .pt::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #fff; margin-right: 6px; vertical-align: middle; }
   .carte .lfob { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4; display: grid; justify-items: center; gap: 4px; }

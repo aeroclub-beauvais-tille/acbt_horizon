@@ -260,7 +260,8 @@ function defiler(boite: HTMLElement, repere = true) {
   const h = (boite.firstElementChild as HTMLElement).offsetHeight;
   // Liste en boucle : un repère « retour au début » marque la jonction entre la fin et le début (NOTAM : un simple trait)
   const fin = repere ? '<div class="boucle"><span>retour au début</span></div>' : '<div class="boucle nu"></div>';
-  if (h > boite.clientHeight) boite.innerHTML = `<div class="def" style="--duree:${Math.round(h / 25)}s"><div>${html}${fin}</div><div>${html}${fin}</div></div>`;
+  // Défile seulement si la liste dépasse vraiment la hauteur du cadre
+  if (h > boite.clientHeight + 2) boite.innerHTML = `<div class="def" style="--duree:${Math.round(h / 25)}s"><div>${html}${fin}</div><div>${html}${fin}</div></div>`;
   boite.dataset.ok = '1';
 }
 
@@ -833,7 +834,7 @@ function animer(id: string, cadres: { t: number; src: string }[]) {
       if (id === 'aro') { const f = document.getElementById('aro-fin'); if (f) f.textContent = ech(ok[ok.length - 1].t); }
       ($(`${id}-b`) as HTMLElement).style.width = `${ok.length > 1 ? (n.i / (ok.length - 1)) * 100 : 100}%`;
     }
-    n.minuteur = window.setTimeout(pas, ok.length && n.i === ok.length - 1 ? 2500 : 900);
+    n.minuteur = window.setTimeout(pas, ok.length && n.i === ok.length - 1 ? 2500 : 450);
   };
   pas();
 }
@@ -962,7 +963,8 @@ function montrer(i: number) {
   s.className = `s${i}`;
   if (i === 0 && !$('notam').dataset.ok) defileNotam();
   if (i === 3 && !$('maa').dataset.ok) defiler($('maa'));
-  if (i === 3 && document.getElementById('taf-per') && !$('taf-per').dataset.ok) defiler($('taf-per'));
+  // TAF : mesuré à chaque affichage de l'écran, pour ne défiler que s'il ne tient pas
+  if (i === 3 && document.getElementById('taf-per')) defiler($('taf-per'));
   if (i === 4) { flWintem++; cartesAero(); if (!$('voisins').dataset.ok) defiler($('voisins')); }
 }
 
