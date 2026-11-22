@@ -91,7 +91,7 @@ async function aValider(dlg: HTMLDialogElement) {
   const corps = dlg.querySelector<HTMLElement>('.mc-corps')!;
   const montrer = () => {
     const m = l[i];
-    corps.innerHTML = `<span class="mc-tag">Message du club</span><h3>${esc(m.titre)}</h3>${m.texte ? `<p>${esc(m.texte).replace(/\n/g, '<br>')}</p>` : ''}`
+    corps.innerHTML = `<span class="mc-tag">Message du club</span><h3>${esc(majuscule(m.titre))}</h3>${m.texte ? `<p>${esc(majuscule(m.texte)).replace(/\n/g, '<br>')}</p>` : ''}`
       + `<small>${m.auteur ? esc(m.auteur) + ' · ' : ''}${quand(m.date)}</small>${l.length > 1 ? `<small class="mc-n">${i + 1} message${''} sur ${l.length}</small>` : ''}`;
   };
   dlg.addEventListener('cancel', (e) => e.preventDefault()); // pas de fermeture par la touche Échap / retour
@@ -109,3 +109,6 @@ export function messagesClub() {
   const dlg = document.getElementById('msg-club') as HTMLDialogElement | null;
   if (dlg) aValider(dlg);
 }
+
+// Première lettre en majuscule (titre et texte)
+function majuscule(t: string) { return t.replace(/^\s*\p{L}/u, (c) => c.toUpperCase()); }
